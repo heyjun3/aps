@@ -68,7 +68,7 @@ class Product(Base):
 
     @classmethod
     def create(cls, date, product_name, asin_code, jan, sku, fnsku, danger_class, sell_price, cost_price):
-        product = cls(date=date, name=product_name, ASIN_code=asin_code, jan=jan, sku=sku, fnsku=fnsku,
+        product = cls(date=date, name=product_name, asin=asin_code, jan=jan, sku=sku, fnsku=fnsku,
                       danger_class=danger_class, sell_price=sell_price, cost_price=cost_price)
         try:
             with session_scope() as session:
