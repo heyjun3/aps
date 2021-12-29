@@ -242,13 +242,12 @@ def session_scope():
         session.expire_on_commit = True
         lock.release()
 
-STOCK_SAVE_PATH = r"C:\Users\jojo0\Desktop\ビジネス\2021年度\期首棚卸\\"
 
 def calc_stock_cost():
     df = pd.read_sql_query('SELECT stock.sku, home_stock, fba_stock, (home_stock+fba_stock)*product_master.cost_price as total \
         from Stock inner join product_master on stock.sku = product_master.sku where home_stock > 0 or fba_stock > 0', postgresql_engine)
     month = datetime.date.today().strftime('%y%m')
-    df.to_excel(STOCK_SAVE_PATH+month+'.xlsx', index=False)
+    df.to_excel(default['save_path']+month+'.xlsx', index=False)
 
 
 def init_db():
