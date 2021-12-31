@@ -1,2 +1,4 @@
-setting.ini
+settings.ini
 .*
+*.pyc
+__pycache__
