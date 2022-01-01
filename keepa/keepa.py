@@ -4,21 +4,25 @@ from logging import getLogger
 import logging.handlers
 from collections import deque
 import logging.config
+import configparser
+import os
 
 import pandas as pd
 import json
 import requests
 
-from scraping.controllers.utils import post_request
-from scraping.models.models import KeepaProducts
-import settings
+# from scraping.controllers.utils import post_request
+# from scraping.models.models import KeepaProducts
+# import settings
 
 logger = getLogger(__name__)
-
+config = configparser.ConfigParser()
+config.read(os.path.join(os.path.dirname(__file__), 'settings.ini'))
+default = config['DEFAULT']
 
 def check_keepa_tokens():
     logger.info('action=check_keepa_tokens status=run')
-    url = f'https://api.keepa.com/product?key={settings.KEEPA_ACCESS_KEY}'
+    url = f'https://api.keepa.com/product?key={default["KEEPA_ACCESS_KEY"]}'
     response = requests.post(url)
     time.sleep(1)
     response = response.content.decode()
@@ -35,7 +39,7 @@ def keepa_get_drops(products: list):
     while products:
         asin_list = [products.pop() for _ in range(100) if products]
         asin_csv = ','.join(asin_list)
-        url = f'https://api.keepa.com/product?key={settings.KEEPA_ACCESS_KEY}&domain=5&asin={asin_csv}&stats=90'
+        url = f'https://api.keepa.com/product?key={default["KEEPA_ACCESS_KEY"]}&domain=5&asin={asin_csv}&stats=90'
 
         while True:
             token = check_keepa_tokens()
@@ -43,7 +47,7 @@ def keepa_get_drops(products: list):
                 break
             time.sleep(60)
 
-        response = post_request(url)
+        response = requests(url)
         response = response.json()
         time.sleep(2)
 

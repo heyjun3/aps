@@ -3,6 +3,7 @@ import threading
 import datetime
 import copy
 import configparser
+import os
 
 import pandas as pd
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, desc
@@ -13,7 +14,7 @@ from contextlib import contextmanager
 
 
 config = configparser.ConfigParser()
-config.read('setting.ini')
+config.read(os.path.join(os.path.dirname(__file__), 'settings.ini'))
 default = config['DEFAULT']
 logger = logging.getLogger(__name__)
 lock = threading.Lock()
