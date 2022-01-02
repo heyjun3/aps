@@ -1,9 +1,5 @@
 import time
-import datetime
 from logging import getLogger
-import logging.handlers
-from collections import deque
-import logging.config
 import configparser
 import os
 import pathlib
@@ -13,9 +9,8 @@ import pandas as pd
 import json
 import requests
 
-# from scraping.controllers.utils import post_request
-# from scraping.models.models import KeepaProducts
-# import settings
+from models import KeepaProducts
+
 
 logger = getLogger(__name__)
 config = configparser.ConfigParser()
