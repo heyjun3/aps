@@ -6,6 +6,8 @@ from collections import deque
 import logging.config
 import configparser
 import os
+import pathlib
+import shutil
 
 import pandas as pd
 import json
@@ -81,6 +83,29 @@ def main(products: list):
 
     logger.info('action=main status=done')
     return df
+
+
+
+def keepa_worker():
+    logger.info('action=keepa_worker status=run')
+    while True:
+        try:
+            path = next(pathlib.Path(settings.AMAZON_RESULT_PATH).iterdir())
+        except StopIteration:
+            logger.info('amazon_result_path is None')
+            time.sleep(60)
+            continue
+        df = pd.read_pickle(str(path))
+        drops = main(list(df['asin']))
+        df = df.merge(drops, on='asin', how='inner').sort_values('drops', ascending=False).drop_duplicates()
+        if not df.empty:
+            df.to_excel(settings.KEEPA_SAVE_PATH+path.stem+'.xlsx', index=False)
+        try:
+            time.sleep(1)
+            shutil.move(str(path), settings.AMAZON_MOVE_PATH)
+        except Exception as e:
+            logger.error(f'action=shutil.move error={e}')
+            pass
 
 
 # if __name__ == '__main__':
