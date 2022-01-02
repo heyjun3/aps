@@ -85,12 +85,11 @@ def main(products: list):
     return df
 
 
-
 def keepa_worker():
     logger.info('action=keepa_worker status=run')
     while True:
         try:
-            path = next(pathlib.Path(settings.AMAZON_RESULT_PATH).iterdir())
+            path = next(pathlib.Path(config['AMAZON_RESULT_PATH']).iterdir())
         except StopIteration:
             logger.info('amazon_result_path is None')
             time.sleep(60)
@@ -99,14 +98,14 @@ def keepa_worker():
         drops = main(list(df['asin']))
         df = df.merge(drops, on='asin', how='inner').sort_values('drops', ascending=False).drop_duplicates()
         if not df.empty:
-            df.to_excel(settings.KEEPA_SAVE_PATH+path.stem+'.xlsx', index=False)
+            df.to_excel(config['KEEPA_SAVE_PATH']+path.stem+'.xlsx', index=False)
         try:
             time.sleep(1)
-            shutil.move(str(path), settings.AMAZON_MOVE_PATH)
+            shutil.move(str(path), config['AMAZON_MOVE_PATH'])
         except Exception as e:
             logger.error(f'action=shutil.move error={e}')
             pass
 
 
-# if __name__ == '__main__':
-
+if __name__ == '__main__':
+    keepa_worker()
