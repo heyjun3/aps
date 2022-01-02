@@ -2,7 +2,7 @@ import openpyxl
 
 from models import Product
 
-PATH = 
+PATH = './insert.xlsx'
 
 def insert():
     workbook = openpyxl.open(PATH)
