@@ -3,3 +3,4 @@ settings.ini
 *.pyc
 __pycache__
 files
+todo.txt
