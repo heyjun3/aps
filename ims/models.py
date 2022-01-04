@@ -89,7 +89,7 @@ class Product(Base):
     @classmethod
     def update_cost_price(cls, sku, cost_price):
         with session_scope() as session:
-            product = session.query(cls).filter(cls.sku == sku).first()
+            product = session.query(cls).filter(cls.sku == str(sku)).first()
             if product is None:
                 return None
             product.cost_price = cost_price
@@ -104,28 +104,28 @@ class Stock(Base):
 
     @classmethod
     def add_home_stock(cls, sku: str, home_stock: int):
-        product = cls(sku=sku, home_stock=home_stock, fba_stock=0)
+        product = cls(sku=sku, home_stock_count=home_stock, fba_stock_count=0)
         try:
             with session_scope() as session:
-                response = session.query(cls).filter(cls.sku == sku).first()
+                response = session.query(cls).filter(cls.sku == str(sku)).first()
                 if not response:
                     session.add(product)
                 else:
-                    response.home_stock += int(home_stock)
+                    response.home_stock_count += int(home_stock)
             return True
         except IntegrityError:
             return False
 
     @classmethod
     def add_fba_stock(cls, sku: str, fba_stock: int):
-        product = cls(sku=sku, home_stock=0, fba_stock=fba_stock)
+        product = cls(sku=sku, home_stock_count=0, fba_stock_count=fba_stock)
         try:
             with session_scope() as session:
-                response = session.query(cls).filter(cls.sku == sku).first()
+                response = session.query(cls).filter(cls.sku == str(sku)).first()
                 if not response:
                     session.add(product)
                 else:
-                    response.fba_stock += int(fba_stock)
+                    response.fba_stock_count += int(fba_stock)
             return True
         except IntegrityError:
             return False
@@ -134,11 +134,11 @@ class Stock(Base):
     def decrease_home_stock(cls, sku: str, home_stock: int):
         try:
             with session_scope() as session:
-                response = session.query(cls).filter(cls.sku == sku).first()
+                response = session.query(cls).filter(cls.sku == str(sku)).first()
                 if not response:
                     raise NoneskuException(f'sku not found {sku}')
                 else:
-                    response.home_stock -= int(home_stock)
+                    response.home_stock_count -= int(home_stock)
             return True
         except NoneskuException:
             return False
@@ -149,7 +149,7 @@ class Stock(Base):
             with session_scope() as session:
                 response = session.query(cls).all()
                 for product in response:
-                    product.fba_stock = 0
+                    product.fba_stock_count = 0
             return True
         except IntegrityError:
             return False
@@ -158,8 +158,8 @@ class Stock(Base):
     def value(self):
         return {
             'sku': self.sku,
-            'home_stock': self.home_stock,
-            'fba_stock': self.fba_stock,
+            'home_stock': self.home_stock_count,
+            'fba_stock': self.fba_stock_count,
         }
 
 
@@ -248,7 +248,8 @@ def calc_stock_cost():
     df = pd.read_sql_query('SELECT stock.sku, home_stock, fba_stock, (home_stock+fba_stock)*product_master.cost_price as total \
         from Stock inner join product_master on stock.sku = product_master.sku where home_stock > 0 or fba_stock > 0', postgresql_engine)
     month = datetime.date.today().strftime('%y%m')
-    df.to_excel(default['save_path']+month+'.xlsx', index=False)
+    path = os.path.dirname(__file__)
+    df.to_excel(os.path.join(path, month+'.xlsx'), index=False)
 
 
 def init_db():

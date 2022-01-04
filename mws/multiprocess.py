@@ -3,9 +3,9 @@ import logging.config
 
 import pandas as pd
 
-import api
+from mws import api
 
-logging.config.fileConfig(r'', disable_existing_loggers=False)
+# logging.config.fileConfig(r'', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 

@@ -4,3 +4,4 @@ settings.ini
 __pycache__
 files
 todo.txt
+*.xlsx
