@@ -20,7 +20,7 @@ import xml.etree.ElementTree as et
 import pandas as pd
 from lxml import etree
 
-import mws.multiprocess
+from mws import multiprocess
 
 
 # logging.config.fileConfig(r'', disable_existing_loggers=False)
