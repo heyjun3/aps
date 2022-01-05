@@ -294,7 +294,7 @@ def open_excel_file(filepath: str) -> dict:
 
 def get_file_path():
     try:
-        path = next(pathlib.Path(default['SCRAPING_SCHEDULE_PAHT']).iterdir())
+        path = next(pathlib.Path(default['SCRAPING_SCHEDULE_PATH']).iterdir())
     except StopIteration:
         logger.info('scraping_schedule_path is None')
         try:    
