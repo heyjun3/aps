@@ -98,7 +98,7 @@ class Product(Base):
 
 class Stock(Base):
     __tablename__ = 'stock'
-    sku = Column(String, ForeignKey("product_master.sku"), primary_key=True)
+    sku = Column(String, primary_key=True)
     home_stock_count = Column(Integer)
     fba_stock_count = Column(Integer)
 
@@ -165,7 +165,7 @@ class Stock(Base):
 
 class InactiveStock(Base):
     __tablename__ = 'inactivestock'
-    sku = Column(String, ForeignKey("product_master.sku"), primary_key=True)
+    sku = Column(String, primary_key=True)
     asin = Column(String)
 
     @classmethod
