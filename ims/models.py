@@ -245,8 +245,8 @@ def session_scope():
 
 
 def calc_stock_cost():
-    df = pd.read_sql_query('SELECT stock.sku, home_stock, fba_stock, (home_stock+fba_stock)*product_master.cost_price as total \
-        from Stock inner join product_master on stock.sku = product_master.sku where home_stock > 0 or fba_stock > 0', postgresql_engine)
+    df = pd.read_sql_query('SELECT stock.sku, home_stock_count, fba_stock_count, (home_stock_count+fba_stock_count)*product_master.cost_price as total \
+        from Stock inner join product_master on stock.sku = product_master.sku where home_stock_count > 0 or fba_stock_count > 0', postgresql_engine)
     month = datetime.date.today().strftime('%y%m')
     path = os.path.dirname(__file__)
     df.to_excel(os.path.join(path, month+'.xlsx'), index=False)
