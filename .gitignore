@@ -5,3 +5,4 @@ __pycache__
 files
 todo.txt
 *.xlsx
+*.log
