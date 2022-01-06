@@ -9,7 +9,7 @@ import pandas as pd
 import json
 import requests
 
-from models import KeepaProducts
+from keepa.models import KeepaProducts
 
 
 logger = getLogger(__name__)
@@ -17,10 +17,21 @@ config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(__file__), 'settings.ini'))
 default = config['DEFAULT']
 
+
+def request(url):
+    for _ in range(60):
+        response = requests.post(url)
+        if response.status_code == 200:
+            return response
+        logger.error(f'Request Error code {response.status_code}')
+        logger.error(response.json())
+        time.sleep(60)
+
+
 def check_keepa_tokens():
     logger.info('action=check_keepa_tokens status=run')
-    url = f'https://api.keepa.com/product?key={default["KEEPA_ACCESS_KEY"]}'
-    response = requests.post(url)
+    url = f'https://api.keepa.com/token?key={default["KEEPA_ACCESS_KEY"]}'
+    response = request(url)
     time.sleep(1)
     response = response.content.decode()
     response = json.loads(response)
@@ -44,7 +55,7 @@ def keepa_get_drops(products: list):
                 break
             time.sleep(60)
 
-        response = requests(url)
+        response = request(url)
         response = response.json()
         time.sleep(2)
 
@@ -84,7 +95,7 @@ def keepa_worker():
     logger.info('action=keepa_worker status=run')
     while True:
         try:
-            path = next(pathlib.Path(config['AMAZON_RESULT_PATH']).iterdir())
+            path = next(pathlib.Path(default['AMAZON_RESULT_PATH']).iterdir())
         except StopIteration:
             logger.info('amazon_result_path is None')
             time.sleep(60)
@@ -93,14 +104,10 @@ def keepa_worker():
         drops = main(list(df['asin']))
         df = df.merge(drops, on='asin', how='inner').sort_values('drops', ascending=False).drop_duplicates()
         if not df.empty:
-            df.to_excel(config['KEEPA_SAVE_PATH']+path.stem+'.xlsx', index=False)
+            df.to_excel(default['KEEPA_SAVE_PATH']+path.stem+'.xlsx', index=False)
         try:
             time.sleep(1)
-            shutil.move(str(path), config['AMAZON_MOVE_PATH'])
+            shutil.move(str(path), default['AMAZON_MOVE_PATH'])
         except Exception as e:
             logger.error(f'action=shutil.move error={e}')
             pass
-
-
-if __name__ == '__main__':
-    keepa_worker()

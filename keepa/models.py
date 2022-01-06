@@ -25,7 +25,7 @@ Session = sessionmaker(bind=postgresql_engine)
 
 
 class KeepaProducts(Base):
-    __tablename__ = 'KeepaProducts'
+    __tablename__ = 'keepa_products'
     asin = Column(String, primary_key=True)
     sales_drops_90 = Column(Integer)
     created = Column(Date, default=datetime.date.today)
