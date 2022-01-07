@@ -357,32 +357,3 @@ def session_scope():
 
 def init_db():
     Base.metadata.create_all(bind=postgresql_engine)
-
-
-# if __name__ == '__main__':
-    # transfer_db()
-    # init_db()
-    # session = Session()
-    # shops = session.query(NetseaShop).all()
-    # print(shops)
-
-    # shop_info = TestShop.get_all_info()
-    # for shop in shop_info:
-    #     NetseaShop.create(name=shop.name, shop_id=shop.shop_id, url=shop.url,
-    #                       quantity=shop.product_quantity, category=shop.category_id)
-
-    # with open('tmp', 'r') as f:
-    #     for i in f.readlines():
-    #         print(i.strip(), type(i))
-    #         shop_id = int(i.strip())
-    #         with session_scope() as session:
-    #             shop = session.query(NetseaShop).filter(NetseaShop.shop_id == shop_id).first()
-    #             if shop:
-    #                 shop.discount_rate = 0.95
-
-    # product = Netsea.get_object_filter_productcode_shopcode("49795462", "357136")
-    # print(product.value)
-
-    # netseaindex = Index('ix_pc4uproducts_product_code', Pc4u.product_code)
-    # netseaindex.create(bind=engine)
-
