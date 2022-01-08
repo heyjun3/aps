@@ -14,7 +14,7 @@ class RequestException(Exception):
     pass
 
 
-def request(url: str, session=requests.Session()) -> Response:
+def request(url: str, session: Session = requests.Session()) -> Response:
     for _ in range(60):
         try:
             response = session.get(url, timeout=60.0, headers=HEADERS)
