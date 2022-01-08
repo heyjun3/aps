@@ -7,11 +7,12 @@ from dateutil.relativedelta import relativedelta
 from ims.models import Product, Stock
 from mws.api import AmazonClient
 from ims import models
+import settings
 
-PATH = os.path.join(os.path.dirname(__file__), 'source.xlsx')
+SOURCE_PATH = settings.SOURCE_PATH
 
 def insert():
-    workbook = openpyxl.open(PATH)
+    workbook = openpyxl.open(SOURCE_PATH)
     sheet = workbook['insert']
     sheet.delete_rows(1)
 
@@ -23,7 +24,7 @@ def insert():
 
 
 def purchasing_data_update():
-    workbook = openpyxl.open(PATH)
+    workbook = openpyxl.open(SOURCE_PATH)
     sheet = workbook['purchasing']
     sheet.delete_rows(1)
 
