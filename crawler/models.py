@@ -2,11 +2,9 @@ import logging
 import threading
 import datetime
 import time
-import os
-import configparser
 
 from bs4 import BeautifulSoup
-from sqlalchemy import create_engine, Index
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Date, Float
 from sqlalchemy.orm import sessionmaker
@@ -15,16 +13,13 @@ from sqlalchemy.sql.expression import and_
 from contextlib import contextmanager
 
 import utils
-
+import settings
 
 logger = logging.getLogger('sqlalchemy.engine')
 logger.setLevel(logging.WARNING)
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(__file__), 'settings.ini'))
-db = config['DB']
 
 lock = threading.Lock()
-postgresql_engine = create_engine(f"postgresql://{db['UserName']}:{db['PassWord']}@{db['Host']}:{db['Port']}/{db['DBname']}")
+postgresql_engine = create_engine(settings.DB_URL)
 Base = declarative_base()
 Session = sessionmaker(bind=postgresql_engine)
 
@@ -321,10 +316,6 @@ class RakutenProduct(Product, Base):
                 return product.jan
 
 
-class Test(Product, Base):
-    __tablename__ = 'test'
-
-
 class NetseaShop(Shop, Base):
     __tablename__ = 'NetseaShops'
     discount_rate = Column(Float)
@@ -332,11 +323,6 @@ class NetseaShop(Shop, Base):
 
 class SuperShop(Shop, Base):
     __tablename__ = 'SuperShops'
-
-
-class TestShop(Shop, Base):
-    __tablename__ = 'testshop'
-
 
 @contextmanager
 def session_scope():
