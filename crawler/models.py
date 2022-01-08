@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import and_
 from contextlib import contextmanager
 
-import utils
+from crawler import utils
 import settings
 
 logger = logging.getLogger('sqlalchemy.engine')
@@ -25,7 +25,7 @@ Session = sessionmaker(bind=postgresql_engine)
 
 
 class NetseaShopUrl(Base):
-    __tablename__ = 'NetseaShopUrl'
+    __tablename__ = 'netsea_shop_url'
     id = Column(Integer, primary_key=True, autoincrement=True)
     url = Column(String)
     shop_id = Column(Integer)
@@ -38,54 +38,6 @@ class NetseaShopUrl(Base):
             return True
         except IntegrityError:
             return False
-
-
-class KeepaProducts(Base):
-    __tablename__ = 'KeepaProducts'
-    asin = Column(String, primary_key=True)
-    sales_drops_90 = Column(Integer)
-    created = Column(Date, default=datetime.date.today)
-    modified = Column(Date, default=datetime.date.today)
-
-    @classmethod
-    def create(cls, asin, drops):
-        shop = cls(asin=asin, sales_drops_90=drops)
-        try:
-            with session_scope() as session:
-                session.add(shop)
-            return True
-        except IntegrityError:
-            return False
-
-    @classmethod
-    def object_get_db_asin(cls, asin, delay=90):
-        with session_scope() as session:
-            delay_date = datetime.date.today() - datetime.timedelta(days=delay)
-            product = session.query(cls).filter(cls.asin == asin, cls.modified >= delay_date).first()
-            if product is None:
-                return None
-            return product
-
-    @classmethod
-    def update_or_insert(cls, asin, drops):
-        with session_scope() as session:
-            keepa_product = cls(asin=asin, sales_drops_90=drops)
-            product = session.query(cls).filter(cls.asin == asin).first()
-            if product is None:
-                session.add(keepa_product)
-                return True
-            product.sales_drops_90 = drops
-            product.modified = datetime.date.today()
-            return True
-
-    @property
-    def value(self):
-        return {
-            'asin': self.asin,
-            'sales_drop_90': self.sales_drops_90,
-            'created': self.created,
-            'modified': self.modified,
-        }
 
 
 class Shop:
@@ -234,11 +186,11 @@ class Product:
 
 
 class Netsea(Product, Base):
-    __tablename__ = 'Netseaproducts'
+    __tablename__ = 'netsea_products'
 
 
 class Super(Product, Base):
-    __tablename__ = 'Superproducts'
+    __tablename__ = 'super_products'
     url = Column(String)
     id = Column(Integer, primary_key=True, autoincrement=True)
 
@@ -270,11 +222,11 @@ class Super(Product, Base):
 
 
 class Pc4u(Product, Base):
-    __tablename__ = 'pc4uproducts'
+    __tablename__ = 'pc4u_products'
 
 
 class RakutenProduct(Product, Base):
-    __tablename__ = 'rakutenproducts'
+    __tablename__ = 'rakuten_products'
 
     def get_jan_code(self):
         logger.info('action=get_jan_code status=run')
@@ -317,12 +269,12 @@ class RakutenProduct(Product, Base):
 
 
 class NetseaShop(Shop, Base):
-    __tablename__ = 'NetseaShops'
+    __tablename__ = 'netsea_shops'
     discount_rate = Column(Float)
 
 
 class SuperShop(Shop, Base):
-    __tablename__ = 'SuperShops'
+    __tablename__ = 'super_shops'
 
 @contextmanager
 def session_scope():
