@@ -12,13 +12,12 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from contextlib import contextmanager
 
+import settings
 
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(__file__), 'settings.ini'))
-default = config['DEFAULT']
+
 logger = logging.getLogger(__name__)
 lock = threading.Lock()
-postgresql_engine = create_engine(f"postgresql://{default['UserName']}:{default['PassWord']}@{default['Host']}:{default['Port']}/{default['DBname']}")
+postgresql_engine = create_engine(settings.DB_URL)
 Base = declarative_base()
 Session = sessionmaker(bind=postgresql_engine)
 
