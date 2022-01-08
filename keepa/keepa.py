@@ -102,7 +102,7 @@ def keepa_worker():
         drops = main(list(df['asin']))
         df = df.merge(drops, on='asin', how='inner').sort_values('drops', ascending=False).drop_duplicates()
         if not df.empty:
-            df.to_excel(settings.KEEPA_SAVE_PATH+path.stem+'.xlsx', index=False)
+            df.to_excel(os.path.join(settings.KEEPA_SAVE_PATH, f'{path.stem}.xlsx'), index=False)
         try:
             time.sleep(1)
             shutil.move(str(path), settings.MWS_DONE_SAVE_PATH)
