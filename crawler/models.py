@@ -6,7 +6,7 @@ import time
 from bs4 import BeautifulSoup
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Date, Float
+from sqlalchemy import Column, Integer, String, Date, Float, BigInteger
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import and_
@@ -93,7 +93,7 @@ class Shop:
 class Product:
     name = Column(String)
     jan = Column(String)
-    price = Column(Integer)
+    price = Column(BigInteger)
     shop_code = Column(String)
     url = Column(String, primary_key=True, nullable=False)
     product_code = Column(String)
@@ -192,7 +192,7 @@ class Netsea(Product, Base):
 class Super(Product, Base):
     __tablename__ = 'super_products'
     url = Column(String)
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
 
     @classmethod
     def get_product(cls, product_code, price):
