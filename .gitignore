@@ -2,7 +2,7 @@ settings.ini
 .*
 *.pyc
 __pycache__
-files
+scrape_files
 todo.txt
 *.xlsx
 *.log

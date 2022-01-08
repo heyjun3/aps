@@ -10,7 +10,6 @@ from multiprocessing import Manager
 from multiprocessing import Process
 import logging.config
 import os
-import configparser
 import pathlib
 import shutil
 
@@ -21,14 +20,10 @@ import pandas as pd
 from lxml import etree
 
 from mws import multiprocess
+import settings
 
 
-# logging.config.fileConfig(r'', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
-
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(__file__), 'settings.ini'))
-default = config['DEFAULT']
 
 
 def datetime_encode(dt):
@@ -52,18 +47,18 @@ def request_api(url):
 
 class AmazonClient:
     def __init__(self):
-        self.secret_key = default['SECRET_KEY']
-        self.domain = default['DOMAIN']
-        self.endpoint = default['ENDPOINT']
+        self.secret_key = settings.SECRET_KEY
+        self.domain = settings.DOMAIN
+        self.endpoint = settings.ENDPOINT
         self.data = {
-            'AWSAccessKeyId': default['ACCESS_ID'],
-            'SellerId': default['SELLER_ID'],
+            'AWSAccessKeyId': settings.ACCESS_ID,
+            'SellerId': settings.SELLER_ID,
             'SignatureMethod': 'HmacSHA256',
             'SignatureVersion': '2',
             'Version': '2011-10-01',
         }
-        self.tag_xmlns = default['XMLNS']
-        self.tag_ns2 = default['NS2']
+        self.tag_xmlns = settings.XMLNS
+        self.tag_ns2 = settings.NS2
 
     def request(self, data_dict):
         logger.info('action=request status=run')
@@ -115,7 +110,7 @@ class AmazonClient:
             product = [products.pop() for _ in range(5) if products]
 
             data_dict = dict(self.data)
-            data_dict['MarketplaceId'] = default['MARKETPLACEID']
+            data_dict['MarketplaceId'] = settings.MARKETPLACEID
             data_dict['IdType'] = 'JAN'
             data_dict['Action'] = 'GetMatchingProductForId'
             for index, jan in enumerate(product):
@@ -161,7 +156,7 @@ class AmazonClient:
         while products:
             product = [products.pop() for _ in range(20) if products]
             data_dict = dict(self.data)
-            data_dict['MarketplaceId'] = default['MARKETPLACEID']
+            data_dict['MarketplaceId'] = settings.MARKETPLACEID
             data_dict['IdType'] = 'ASIN'
             data_dict['Action'] = 'GetCompetitivePricingForASIN'
             for index, asin in enumerate(product):
@@ -294,11 +289,11 @@ def open_excel_file(filepath: str) -> dict:
 
 def get_file_path():
     try:
-        path = next(pathlib.Path(default['SCRAPING_SCHEDULE_PATH']).iterdir())
+        path = next(pathlib.Path(settings.SCRAPE_SCHEDULE_SAVE_PATH).iterdir())
     except StopIteration:
         logger.info('scraping_schedule_path is None')
         try:    
-            path = next(pathlib.Path(default['SCRAPING_PATH']).iterdir())
+            path = next(pathlib.Path(settings.SCRAPE_SAVE_PATH).iterdir())
         except StopIteration:
             logger.info('scraping_path is None')
             return None
@@ -342,7 +337,7 @@ def main():
             df['profit_rate'] = df['profit'] / df['price']
 
             df = df.query('profit >= 200 and profit_rate >= 0.1').astype({'profit': int})
-            df.to_pickle(default['AMAZON_RESULT_PATH'] + file.stem + '.pickle')
-            shutil.move(str(file), default['SCRAPING_MOVE_PATH'] + file.name)
+            df.to_pickle(os.path.join(settings.MWS_SAVE_PATH, f'{file.stem}.pickle'))
+            shutil.move(str(file), os.path.join(settings.SCRAPE_DONE_SAVE_PATH, file.name))
         else:
             time.sleep(60)

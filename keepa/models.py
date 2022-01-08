@@ -1,8 +1,6 @@
 import logging
 import threading
 import datetime
-import os
-import configparser
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -11,14 +9,13 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from contextlib import contextmanager
 
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(__file__), 'settings.ini'))
-db = config['DB']
+import settings
+
 
 logger = logging.getLogger('sqlalchemy.engine')
 logger.setLevel(logging.WARNING)
 lock = threading.Lock()
-postgresql_engine = create_engine(f"postgresql://{db['UserName']}:{db['PassWord']}@{db['Host']}:{db['Port']}/{db['DBname']}")
+postgresql_engine = create_engine(settings.DB_URL)
 Base = declarative_base()
 NetseaBase = declarative_base()
 Session = sessionmaker(bind=postgresql_engine)

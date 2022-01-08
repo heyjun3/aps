@@ -10,12 +10,10 @@ import json
 import requests
 
 from keepa.models import KeepaProducts
+import settings
 
 
 logger = getLogger(__name__)
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(__file__), 'settings.ini'))
-default = config['DEFAULT']
 
 
 def request(url):
@@ -30,7 +28,7 @@ def request(url):
 
 def check_keepa_tokens():
     logger.info('action=check_keepa_tokens status=run')
-    url = f'https://api.keepa.com/token?key={default["KEEPA_ACCESS_KEY"]}'
+    url = f'https://api.keepa.com/token?key={settings.KEEPA_ACCESS_KEY}'
     response = request(url)
     time.sleep(1)
     response = response.content.decode()
@@ -47,7 +45,7 @@ def keepa_get_drops(products: list):
     while products:
         asin_list = [products.pop() for _ in range(100) if products]
         asin_csv = ','.join(asin_list)
-        url = f'https://api.keepa.com/product?key={default["KEEPA_ACCESS_KEY"]}&domain=5&asin={asin_csv}&stats=90'
+        url = f'https://api.keepa.com/product?key={settings.KEEPA_ACCESS_KEY}&domain=5&asin={asin_csv}&stats=90'
 
         while True:
             token = check_keepa_tokens()
@@ -95,7 +93,7 @@ def keepa_worker():
     logger.info('action=keepa_worker status=run')
     while True:
         try:
-            path = next(pathlib.Path(default['AMAZON_RESULT_PATH']).iterdir())
+            path = next(pathlib.Path(settings.MWS_SAVE_PATH).iterdir())
         except StopIteration:
             logger.info('amazon_result_path is None')
             time.sleep(60)
@@ -104,10 +102,11 @@ def keepa_worker():
         drops = main(list(df['asin']))
         df = df.merge(drops, on='asin', how='inner').sort_values('drops', ascending=False).drop_duplicates()
         if not df.empty:
-            df.to_excel(default['KEEPA_SAVE_PATH']+path.stem+'.xlsx', index=False)
+            df.to_excel(settings.KEEPA_SAVE_PATH+path.stem+'.xlsx', index=False)
         try:
             time.sleep(1)
-            shutil.move(str(path), default['AMAZON_MOVE_PATH'])
+            shutil.move(str(path), settings.MWS_DONE_SAVE_PATH)
         except Exception as e:
             logger.error(f'action=shutil.move error={e}')
+            os.remove(str(path))
             pass
