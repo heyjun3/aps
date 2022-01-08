@@ -163,41 +163,6 @@ class Stock(Base):
         }
 
 
-class InactiveStock(Base):
-    __tablename__ = 'inactivestock'
-    sku = Column(String, primary_key=True)
-    asin = Column(String)
-
-    @classmethod
-    def save(cls, sku, asin):
-        product = cls(sku=sku, asin=asin)
-        try:
-            with session_scope() as session:
-                session.add(product)
-        except IntegrityError:
-            return False
-
-    @classmethod
-    def delete(cls):
-        with session_scope() as session:
-            session.query(cls).delete()
-
-    @classmethod
-    def get_asin_cost(cls):
-        with session_scope() as session:
-            response = session.query(cls, Product, FavoriteProduct).join(Product, cls.asin == Product.ASIN_code)\
-                        .join(FavoriteProduct, Product.jan == FavoriteProduct.jan)\
-                        .filter(Product.cost_price.isnot(None)).order_by(desc(FavoriteProduct.cost)).all()
-            return response
-
-    @property
-    def value(self):
-        return {
-            'sku': self.sku,
-            'asin': self.asin,
-        }
-
-
 class FavoriteProduct(Base):
     __tablename__ = 'favoriteproduct'
     url = Column(String, primary_key=True)
