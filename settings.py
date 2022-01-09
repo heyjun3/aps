@@ -26,7 +26,6 @@ DB = config['DB']['DB']
 DB_URL = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB}"
 
 
-
 BASE_SAVE_PATH = os.path.join(BASE_PATH, 'scrape_files')
 
 SCRAPE_SAVE_PATH = os.path.join(BASE_SAVE_PATH, 'scrape')
@@ -36,3 +35,6 @@ MWS_SAVE_PATH = os.path.join(BASE_SAVE_PATH, 'mws')
 MWS_DONE_SAVE_PATH = os.path.join(BASE_SAVE_PATH, '.mws')
 KEEPA_SAVE_PATH = os.path.join(BASE_SAVE_PATH, 'keepa')
 SOURCE_PATH = os.path.join(BASE_PATH, 'ims', 'source.xlsx')
+
+BUFFALO_URL = 'https://www.buffalo-direct.com/'
+BUFFALO_START_URL = 'https://www.buffalo-direct.com/directshop/products/list_category.php?category_id=1181'
