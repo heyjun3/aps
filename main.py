@@ -3,7 +3,7 @@ import sys
 
 from mws import api
 from keepa import keepa
-
+from crawler.buffalo import buffalo
 from settings import LOGGING_CONF_PATH
 
 
@@ -17,5 +17,7 @@ if __name__ == '__main__':
         keepa.keepa_worker()
     elif args[1] == 'mws':
         api.main()
+    elif args[1] == 'buffalo':
+        buffalo.main()
     else:
         sys.stdout.write(f'{args[1]} is not a command')

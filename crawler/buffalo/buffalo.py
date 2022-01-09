@@ -10,7 +10,7 @@ from requests import Response
 from bs4 import BeautifulSoup
 
 from crawler import utils
-from crawler.models import BuffaloProduct
+from crawler.buffalo.models import BuffaloProduct
 import settings
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class Crawler():
         logger.info('action=detail_page_crawling status=run')
 
         for product in products:
-            response = utils.request(self.session, product.url)
+            response = utils.request(product.url, self.session)
             time.sleep(2)
             product.jan = self.detail_page_scraping(response)
             product.save()
