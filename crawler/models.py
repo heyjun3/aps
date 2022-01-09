@@ -221,53 +221,6 @@ class Super(Product, Base):
             return products
 
 
-class Pc4u(Product, Base):
-    __tablename__ = 'pc4u_products'
-
-
-class RakutenProduct(Product, Base):
-    __tablename__ = 'rakuten_products'
-
-    def get_jan_code(self):
-        logger.info('action=get_jan_code status=run')
-        """self has jan code"""
-        if self.jan:
-            return True
-
-        jan_code = self.fetch()
-
-        if jan_code is None:
-            response = utils.request(self.url)
-            time.sleep(2)
-            self.jan = self.scraping_jan_code(response.text)
-            self.save()
-        else:
-            self.jan = jan_code
-
-    @staticmethod
-    def scraping_jan_code(response: str):
-        soup = BeautifulSoup(response, 'lxml')
-        try:
-            jan = soup.select_one('#ratRanCode').get('value')
-        except AttributeError as e:
-            logger.error(f'{e}')
-            return None
-        return jan
-
-    def fetch(self):
-        with session_scope() as session:
-            product = session.query(RakutenProduct).filter(RakutenProduct.url == self.url).first()
-            if not product:
-                return None
-            elif not product.jan:
-                return None
-            elif not product.price == self.price:
-                product.price = self.price
-                return product.jan
-            else:
-                return product.jan
-
-
 class NetseaShop(Shop, Base):
     __tablename__ = 'netsea_shops'
     discount_rate = Column(Float)
