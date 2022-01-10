@@ -2,7 +2,6 @@ import re
 import logging
 import time
 import datetime
-import configparser
 import os
 
 import requests
@@ -11,13 +10,11 @@ from requests import Response
 from bs4 import BeautifulSoup
 
 from crawler import utils
-from models import BuffaloProduct
-
+from crawler.buffalo.models import BuffaloProduct
+import settings
 
 logger = logging.getLogger(__name__)
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(__file__), 'settings.ini'))
-default = config['DEFAULT']
+
 
 class Crawler():
 
@@ -45,14 +42,14 @@ class Crawler():
         logger.info('action=detail_page_crawling status=run')
 
         for product in products:
-            response = utils.request(self.session, product.url)
+            response = utils.request(product.url, self.session)
             time.sleep(2)
             product.jan = self.detail_page_scraping(response)
             product.save()
 
         logger.info('action=detail_page_crawling status=done')
 
-    def export_excel_file(self, products, save_path=default['SCRAPING_SAVE_PATH']):
+    def export_excel_file(self, products, save_path=settings.SCRAPE_SAVE_PATH):
         logger.info('action=export_excel_file status=run')
         dt = datetime.datetime.now()
         timestamp = dt.strftime('%Y%m%d_%H%M%S')
@@ -64,8 +61,8 @@ class Crawler():
         for product in products:
             if product.jan and product.price:
                 sheet.append([product.jan, product.price])
-
-        workbook.save(save_path + self.filename + timestamp + '.xlsx')
+        
+        workbook.save(os.path.join(save_path, f'{self.filename}{timestamp}.xlsx'))
         workbook.close()
         logger.info('action=export_excel_file status=done')
 
@@ -86,7 +83,7 @@ class Crawler():
             price = ''.join(re.findall('[\\d+]', price))
             url = product.select_one('.columnRight a').attrs['href']
             product_code = re.search('[\\d]+', url)
-            buffalo = BuffaloProduct.create(name=title, price=int(price), url=default['URL'] + url,
+            buffalo = BuffaloProduct.create(name=title, price=int(price), url=settings.BUFFALO_URL + url,
                                             product_code=product_code.group())
             self.products.append(buffalo)
             logger.debug(buffalo.value)
@@ -122,10 +119,10 @@ class Crawler():
 
 
 def main():
-    url = 'https://www.buffalo-direct.com/directshop/products/list_category.php?category_id=1181'
-    crawler_buffalo = Crawler(url=url)
+    start_url = settings.BUFFALO_START_URL
+    crawler_buffalo = Crawler(url=start_url)
     crawler_buffalo.list_page_crawling()
     crawler_buffalo.classify_exist_db()
     crawler_buffalo.detail_page_crawling(crawler_buffalo.not_db_list)
     crawler_buffalo.export_excel_file(crawler_buffalo.db_list+crawler_buffalo.not_db_list,
-                                      save_path=default['SCHEDULE_SAVE_PATH'])
+                                      save_path=settings.SCRAPE_SCHEDULE_SAVE_PATH)

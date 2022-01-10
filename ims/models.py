@@ -2,11 +2,10 @@ import logging
 import threading
 import datetime
 import copy
-import configparser
 import os
 
 import pandas as pd
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, desc
+from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
@@ -213,7 +212,7 @@ def calc_stock_cost():
         from Stock inner join product_master on stock.sku = product_master.sku where home_stock_count > 0 or fba_stock_count > 0', postgresql_engine)
     month = datetime.date.today().strftime('%y%m')
     path = os.path.dirname(__file__)
-    df.to_excel(os.path.join(path, month+'.xlsx'), index=False)
+    df.to_excel(os.path.join(path, f'{month}.xlsx'), index=False)
 
 
 def init_db():
