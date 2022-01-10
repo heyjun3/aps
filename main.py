@@ -5,6 +5,7 @@ from mws import api
 from keepa import keepa
 from crawler.buffalo import buffalo
 from crawler.pc4u import pc4u
+from crawler.rakuten import rakuten
 from settings import LOGGING_CONF_PATH
 
 
@@ -22,5 +23,7 @@ if __name__ == '__main__':
         buffalo.main()
     elif args[1] == 'pc4u':
         pc4u.schedule_pc4u_task_everyday()
+    elif args[1] == 'rakuten':
+        rakuten.schedule()
     else:
         sys.stdout.write(f'{args[1]} is not a command')
