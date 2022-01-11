@@ -1,18 +1,14 @@
 import logging
 import threading
-import datetime
-import time
 
-from bs4 import BeautifulSoup
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Date, Float, BigInteger
+from sqlalchemy import Column, Integer, String, Float, BigInteger
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import and_
 from contextlib import contextmanager
 
-from crawler import utils
 import settings
 
 logger = logging.getLogger('sqlalchemy.engine')
@@ -189,45 +185,10 @@ class Netsea(Product, Base):
     __tablename__ = 'netsea_products'
 
 
-class Super(Product, Base):
-    __tablename__ = 'super_products'
-    url = Column(String)
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-
-    @classmethod
-    def get_product(cls, product_code, price):
-        with session_scope() as session:
-            products = session.query(cls).filter(and_(cls.product_code == product_code, cls.price == price)).all()
-            if not products:
-                return None
-            products = session.query(cls).filter(cls.product_code == product_code).all()
-            return products
-
-    @classmethod
-    def get_product_jan_and_update_price(cls, product_code, jan, price):
-        with session_scope() as session:
-            product = session.query(cls).filter(cls.product_code == product_code, cls.jan == jan).first()
-            if not product:
-                return None
-            product.price = price
-            return True
-
-    @classmethod
-    def get_url(cls, url):
-        with session_scope() as session:
-            products = session.query(cls).filter(cls.url == url, cls.jan.isnot(None)).all()
-            if not products:
-                return None
-            return products
-
-
 class NetseaShop(Shop, Base):
     __tablename__ = 'netsea_shops'
     discount_rate = Column(Float)
 
-
-class SuperShop(Shop, Base):
-    __tablename__ = 'super_shops'
 
 @contextmanager
 def session_scope():
