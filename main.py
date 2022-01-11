@@ -6,6 +6,7 @@ from keepa import keepa
 from crawler.buffalo import buffalo
 from crawler.pc4u import pc4u
 from crawler.rakuten import rakuten
+from crawler.super import super
 from settings import LOGGING_CONF_PATH
 
 
@@ -25,5 +26,7 @@ if __name__ == '__main__':
         pc4u.schedule_pc4u_task_everyday()
     elif args[1] == 'rakuten':
         rakuten.schedule()
+    elif args[1] == 'super':
+        super.schedule_super_task()
     else:
         sys.stdout.write(f'{args[1]} is not a command')
