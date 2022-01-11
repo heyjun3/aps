@@ -45,3 +45,12 @@ BUFFALO_START_URL = 'https://www.buffalo-direct.com/directshop/products/list_cat
 # RAKUTEN settings
 RAKUTEN_APP_ID = config['RAKUTEN']['APP_ID']
 REQUEST_URL = 'https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706'
+
+# SUPER settings
+SUPER_LOGIN_URL = 'https://www.superdelivery.com/p/login.do'
+SUPER_LOGIN_INFO = {
+            'identification': config['SUPER']['MAIL_ADDRESS'],
+            'password': config['SUPER']['PASSWORD'],
+}
+SUPER_DOMAIN_URL = 'https://www.superdelivery.com'
+SUPER_NEW_PRODUCTS_URL = 'https://www.superdelivery.com/p/do/psl/?so=newly&vi=1&ed='
