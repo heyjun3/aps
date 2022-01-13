@@ -134,7 +134,6 @@ def list_to_excel_file(products: list, save_path: str):
     workbook.save(save_path)
     workbook.close()
 
-PRODUCT_DETAIL_CODE_REGEX = re.compile('((?P<product_detail_code>.*))')
 
 def detail_page_selector(response: Response, sales_tax: float = 1.1):
     logger.info('action=detail_page_selector status=run')
@@ -149,14 +148,26 @@ def detail_page_selector(response: Response, sales_tax: float = 1.1):
         try:
             jan = ''.join(re.findall('[0-9]{13}', row.select_one('.co-fcgray.td-jan').text))
             price = int(int(''.join(re.findall('\\d+', row.select_one('.td-price02').text))) * sales_tax)
-            product_detail_code = PRODUCT_DETAIL_CODE_REGEX.search(row.select_one('.co-mt3.co-pc-only').text).group('product_detail_code')
+            product_detail_code = re.sub('\(|\)|\）|\（', '',row.select_one('.co-mt3.co-pc-only').text).strip()
         except AttributeError as e:
             logger.error(e)
             continue
-        super_product_detail = SuperProductDetails(product_code=product_code, product_detail_code=product_detail_code, shop_code=shop_code, price=price, jan=jan)
-        # super_product_detail.save()
-        logger.error(super_product_detail.value)
-        products.append(super_product_detail)
+        super_product = SuperProductDetails(jan=jan, price=price, product_detail_code=product_detail_code)
+        products.append(super_product)
+
+    # products = sorted(products, key=lambda x: x.price, reverse=True)
+    products = {product.jan: product for product in sorted(products, key=lambda x: x.price, reverse=True)}
+    for product in products.values():
+        product.product_code = product_code
+        product.shop_code = shop_code
+        product.save()
+    
+    products = list(products.values())
+    
+    #     super_product_detail = SuperProductDetails(product_code=product_code, product_detail_code=product_detail_code, shop_code=shop_code, price=price, jan=jan)
+    #     # super_product_detail.save()
+    #     logger.error(super_product_detail.value)
+    #     products.append(super_product_detail)
 
     return products
 

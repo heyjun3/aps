@@ -18,7 +18,7 @@ logger = getLogger(__name__)
 
 
 class Super(Product, Base):
-    __tablename__ = 'super_products_test'
+    __tablename__ = 'super_products'
     product_code = Column(String, primary_key=True, nullable=False)
     url = Column(String)
 
@@ -51,7 +51,7 @@ class Super(Product, Base):
 
 class SuperProductDetails(Base):
     __tablename__ = 'super_product_details'
-    product_code = Column(String, ForeignKey("super_products_test.product_code"), nullable=False)
+    product_code = Column(String, ForeignKey("super_products.product_code"), nullable=False)
     product_detail_code = Column(String, primary_key=True)
     shop_code = Column(String, primary_key=True)
     price = Column(BigInteger)
@@ -78,10 +78,10 @@ class SuperProductDetails(Base):
 
     def save(self):
         try:
-            with session_scope as session:
+            with session_scope() as session:
                 session.add(self)
                 return True
-        except InterruptedError as ex:
+        except Exception as ex:
             logger.error(ex)
             return False
 
