@@ -1,6 +1,8 @@
 import re
 import time
 import copy
+import os
+import urllib
 from datetime import datetime
 from datetime import timedelta
 import logging.config
@@ -15,6 +17,7 @@ import settings
 from crawler import utils
 from crawler.super.models import Super
 from crawler.super.models import SuperShop
+from crawler.super.models import SuperProductDetails
 from ims.models import FavoriteProduct
 
 
@@ -27,7 +30,7 @@ def login() -> Session:
     logger.info('action=login status=run')
 
     # session = requests.session()
-    # response = utils.request(settings.LOGIN_URL, method='POST', session=session)
+    # response = utils.request(settings.SUPER_LOGIN_URL, method='POST', session=session)
     
     # return session
 
@@ -45,7 +48,7 @@ def login() -> Session:
 
 
 def super_main(shop_url, save_path=settings.SCRAPE_SAVE_PATH):
-    logger.error('action=super_main status=run')
+    logger.info('action=super_main status=run')
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     session = login()
@@ -53,35 +56,38 @@ def super_main(shop_url, save_path=settings.SCRAPE_SAVE_PATH):
     db_list, web_list = classify_exist_db(products)
     detail_list = get_product_detail_page(session, web_list)
     detail_list.extend(db_list)
-    save_path = save_path + 'super' + timestamp + '.xlsx'
+    save_path = os.path.join(save_path, f'super{timestamp}.xlsx')
     list_to_excel_file(detail_list, save_path)
 
 
-def get_url_list_page(session, shop_url):
+def get_url_list_page(session, shop_url, interval_sec: int = 2):
     logger.info('action=get_url_list_page status=run')
 
     products = []
+    next_url = shop_url
 
     while True:
-        response = utils.request(url=shop_url, session=session)
-        time.sleep(2)
+        response = utils.request(url=next_url, session=session)
+        time.sleep(interval_sec)
         product_list = list_page_selector(response)
         next_url = next_page_selector(response)
         products.extend(product_list)
         if next_url is None:
+            logger.info('action=get_url_list_page status=done')
             return products
-        shop_url = next_url
 
 
-def get_product_detail_page(session, products):
+def get_product_detail_page(session, products, interval_sec: int = 2):
     logger.info('action=get_product_detail_page status=run')
 
     result_list = []
     for product in products:
-        response = utils.request(url=product.url, session=session)
-        time.sleep(2)
-        product_dict = detail_page_selector(response)
-        logger.debug(product_dict)
+        db_response = SuperProductDetails.get(product.product_code, product.price)
+        if db_response is None:
+            response = utils.request(url=product.url, session=session)
+            time.sleep(interval_sec)
+            product_dict = detail_page_selector(response)
+            logger.debug(product_dict)
         for key, value in product_dict.items():
             copy_product = copy.deepcopy(product)
             copy_product.jan = key
@@ -128,30 +134,33 @@ def list_to_excel_file(products: list, save_path: str):
     workbook.save(save_path)
     workbook.close()
 
+PRODUCT_DETAIL_CODE_REGEX = re.compile('((?P<product_detail_code>.*))')
 
-def detail_page_selector(response: Response):
+def detail_page_selector(response: Response, sales_tax: float = 1.1):
     logger.info('action=detail_page_selector status=run')
+    products = []
 
     soup = BeautifulSoup(response.text, 'lxml')
     table = soup.select('.ts-tr02')
-
-    products = {}
+    product_code = ''.join(re.findall('\\d+', soup.select_one('.co-fs12.co-clf.reduce-tax .co-pc-only').text))
+    shop_code = ''.join(re.findall('\\d+', soup.select_one('.dl-name-txt').get('href')))
 
     for row in table:
         try:
             jan = ''.join(re.findall('[0-9]{13}', row.select_one('.co-fcgray.td-jan').text))
-            price = int(int(''.join(re.findall('\\d+', row.select_one('.td-price02').text))) * 1.1)
+            price = int(int(''.join(re.findall('\\d+', row.select_one('.td-price02').text))) * sales_tax)
+            product_detail_code = PRODUCT_DETAIL_CODE_REGEX.search(row.select_one('.co-mt3.co-pc-only').text).group('product_detail_code')
         except AttributeError as e:
             logger.error(e)
             continue
-        flg = products.get(jan)
-        if flg is None or flg > price:
-            products[jan] = price
+        super_product_detail = SuperProductDetails(product_code=product_code, product_detail_code=product_detail_code, shop_code=shop_code, price=price, jan=jan)
+        # super_product_detail.save()
+        logger.error(super_product_detail.value)
+        products.append(super_product_detail)
 
     return products
 
-
-def list_page_selector(response: Response):
+def list_page_selector(response: Response, sales_tax: float = 1.1):
     logger.info('action=list_page_selector status=run')
 
     result_list = []
@@ -162,12 +171,13 @@ def list_page_selector(response: Response):
         try:
             item_name = product.select_one('.item-name a')
             name = item_name.text.strip().replace('\u3000', '')
-            url = settings.SUPER_DOMAIN_URL + item_name.attrs.get('href')
+            url = urllib.parse.urljoin(settings.SUPER_DOMAIN_URL, item_name.attrs.get('href'))
             product_code = item_name.attrs['href'].split('/')[-2]
             shop_code = response.url.split('/')[6]
             price = product.select_one('.item-price').text
-            price = int(int(''.join(re.findall('\\d+', price))) * 1.1)
-            item = Super.create(name=name, url=url, product_code=product_code, shop_code=shop_code, price=price)
+            price = int(int(''.join(re.findall('\\d+', price))) * sales_tax)
+            item = Super(name=name, url=url, product_code=product_code, shop_code=shop_code, price=price, jan=None)
+            item.save()
 
         except AttributeError as e:
             logger.error(f'action=list_page_selector error={e}')
@@ -208,7 +218,7 @@ def next_page_selector(response):
     next_url = soup.select_one('.page-nav-next')
     if next_url:
         try:
-            next_page_url = settings.SUPER_DOMAIN_URL + next_url.attrs['href']
+            next_page_url = urllib.parse.urljoin(settings.SUPER_DOMAIN_URL, next_url.attrs['href'])
         except KeyError as e:
             logger.error(f'next_page_selector error={e}')
             next_page_url = None

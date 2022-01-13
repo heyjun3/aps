@@ -1,6 +1,10 @@
+from logging import getLogger
+
+from threading import get_ident
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import BigInteger
+from sqlalchemy import ForeignKey
 from sqlalchemy.sql.expression import and_
 
 from crawler.models import Base
@@ -10,10 +14,13 @@ from crawler.models import Shop
 from crawler.models import postgresql_engine
 
 
+logger = getLogger(__name__)
+
+
 class Super(Product, Base):
-    __tablename__ = 'super_products'
+    __tablename__ = 'super_products_test'
+    product_code = Column(String, primary_key=True, nullable=False)
     url = Column(String)
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
 
     @classmethod
     def get_product(cls, product_code, price):
@@ -41,9 +48,47 @@ class Super(Product, Base):
                 return None
             return products
 
+
+class SuperProductDetails(Base):
+    __tablename__ = 'super_product_details'
+    product_code = Column(String, ForeignKey("super_products_test.product_code"), nullable=False)
+    product_detail_code = Column(String, primary_key=True)
+    shop_code = Column(String, primary_key=True)
+    price = Column(BigInteger)
+    jan = Column(String)
+
+    @property
+    def value(self):
+        return {
+            'product_code': self.product_code,
+            'product_detail_code': self.product_detail_code,
+            'shop_code': self.shop_code,
+            'price': self.price,
+            'jan': self.jan,
+        }
+
+    @classmethod
+    def get(cls, product_code, price):
+        with session_scope as session:
+            products = session.query(cls).filter(cls.product_code == product_code).all()
+            for product in products:
+                if product.price == price:
+                    return products
+            return None
+
+    def save(self):
+        try:
+            with session_scope as session:
+                session.add(self)
+                return True
+        except InterruptedError as ex:
+            logger.error(ex)
+            return False
+
+
 class SuperShop(Shop, Base):
     __tablename__ = 'super_shops'
 
-
+    
 def init_db():
     Base.metadata.create_all(bind=postgresql_engine)
