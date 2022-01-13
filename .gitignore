@@ -6,3 +6,4 @@ scrape_files
 todo.txt
 *.xlsx
 *.log
+test*.html
