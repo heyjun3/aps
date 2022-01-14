@@ -39,9 +39,23 @@ def super_main(shop_url, save_path=settings.SCRAPE_SAVE_PATH):
 
 
 def schedule_super_task():
+    logger.info('action=schedule_super_task status=run')
+
     yesterday = datetime.now() - timedelta(days=1)
     url = settings.SUPER_NEW_PRODUCTS_URL + yesterday.strftime("%Y%m%d")
     super_main(url, save_path=settings.SCRAPE_SCHEDULE_SAVE_PATH)
+
+    logger.info('action=schedule_super_task status=done')
+
+
+def super_all():
+    logger.info('action=super_all status=run')
+
+    shops = SuperShop.get_all_info()
+    for shop in shops:
+        super_main(shop.url)
+
+    logger.info('action=super_all status=done')
 
 
 def login() -> Session:
