@@ -1,14 +1,13 @@
 from logging import getLogger
 
-from threading import get_ident
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import BigInteger
 from sqlalchemy import ForeignKey
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import and_
 
 from crawler.models import Base
-from crawler.models import Product
 from crawler.models import session_scope
 from crawler.models import Shop
 from crawler.models import postgresql_engine
@@ -17,10 +16,13 @@ from crawler.models import postgresql_engine
 logger = getLogger(__name__)
 
 
-class Super(Product, Base):
+class Super(Base):
     __tablename__ = 'super_products'
+    name = Column(String)
     product_code = Column(String, primary_key=True, nullable=False)
     url = Column(String)
+    price = Column(BigInteger)
+    shop_code = Column(String)
 
     @classmethod
     def get_product(cls, product_code, price):
@@ -48,6 +50,15 @@ class Super(Product, Base):
                 return None
             return products
 
+    def save(self):
+        try:
+            with session_scope() as session:
+                session.add(self)
+                return True
+        except IntegrityError as ex:
+            logger.error(ex)
+
+
 
 class SuperProductDetails(Base):
     __tablename__ = 'super_product_details'
@@ -69,7 +80,7 @@ class SuperProductDetails(Base):
 
     @classmethod
     def get(cls, product_code, price):
-        with session_scope as session:
+        with session_scope() as session:
             products = session.query(cls).filter(cls.product_code == product_code).all()
             for product in products:
                 if product.price == price:
@@ -81,9 +92,21 @@ class SuperProductDetails(Base):
             with session_scope() as session:
                 session.add(self)
                 return True
-        except Exception as ex:
+        except IntegrityError as ex:
             logger.error(ex)
             return False
+
+    def save_or_update(self):
+        try:
+            with session_scope() as session:
+                session.add(self)
+                return True
+        except IntegrityError as ex:
+            logger.error(ex)
+            with session_scope() as session:
+                product = session.query(SuperProductDetails).filter(SuperProductDetails.product_detail_code == self.product_detail_code, SuperProductDetails.shop_code == self.shop_code).first()
+                product.price = self.price
+                return True
 
 
 class SuperShop(Shop, Base):

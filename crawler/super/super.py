@@ -10,8 +10,8 @@ import logging.config
 from requests import Session
 from requests import Response
 import requests
-import openpyxl
 from bs4 import BeautifulSoup
+import pandas as pd
 
 import settings
 from crawler import utils
@@ -53,11 +53,9 @@ def super_main(shop_url, save_path=settings.SCRAPE_SAVE_PATH):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     session = login()
     products = get_url_list_page(session, shop_url)
-    db_list, web_list = classify_exist_db(products)
-    detail_list = get_product_detail_page(session, web_list)
-    detail_list.extend(db_list)
+    products_detail_list = get_product_detail_page(session, products)
     save_path = os.path.join(save_path, f'super{timestamp}.xlsx')
-    list_to_excel_file(detail_list, save_path)
+    list_to_excel_file(products_detail_list, save_path)
 
 
 def get_url_list_page(session, shop_url, interval_sec: int = 2):
@@ -86,17 +84,10 @@ def get_product_detail_page(session, products, interval_sec: int = 2):
         if db_response is None:
             response = utils.request(url=product.url, session=session)
             time.sleep(interval_sec)
-            product_dict = detail_page_selector(response)
-            logger.debug(product_dict)
-        for key, value in product_dict.items():
-            copy_product = copy.deepcopy(product)
-            copy_product.jan = key
-            copy_product.price = value
-            item = Super.get_product_jan_and_update_price(copy_product.product_code,
-                                                          copy_product.jan, copy_product.price)
-            if item is None:
-                copy_product.save()
-            result_list.append(copy_product)
+            product_list = detail_page_selector(response)
+            result_list.extend(product_list)
+        else:
+            result_list.extend(db_response)
 
     return result_list
 
@@ -118,21 +109,13 @@ def classify_exist_db(products):
 def list_to_excel_file(products: list, save_path: str):
     logger.info('action=list_to_excel_file status=run')
 
-    workbook = openpyxl.Workbook()
-    sheet = workbook['Sheet']
-    sheet.append(['JAN', 'Cost'])
+    jan_price_list = [[product.jan, product.price] for product in products if product.jan]
+    df = pd.DataFrame(data=jan_price_list, columns=['JAN', 'Cost']).astype({'JAN': str, 'Cost': int}).drop_duplicates()
 
-    for product in products:
-        if product.jan and product.price:
-            sheet.append([product.jan, product.price])
+    if not df.empty:
+        df.to_excel(save_path, index=False)    
 
-    if sheet.max_row == 1:
-        logger.info("This Shop don't have JAN_CODE")
-        workbook.close()
-        return
-
-    workbook.save(save_path)
-    workbook.close()
+    logger.info('action=list_to_excel_file status=done')
 
 
 def detail_page_selector(response: Response, sales_tax: float = 1.1):
@@ -155,20 +138,14 @@ def detail_page_selector(response: Response, sales_tax: float = 1.1):
         super_product = SuperProductDetails(jan=jan, price=price, product_detail_code=product_detail_code)
         products.append(super_product)
 
-    # products = sorted(products, key=lambda x: x.price, reverse=True)
     products = {product.jan: product for product in sorted(products, key=lambda x: x.price, reverse=True)}
     for product in products.values():
         product.product_code = product_code
         product.shop_code = shop_code
-        product.save()
+        product.save_or_update()
     
     products = list(products.values())
     
-    #     super_product_detail = SuperProductDetails(product_code=product_code, product_detail_code=product_detail_code, shop_code=shop_code, price=price, jan=jan)
-    #     # super_product_detail.save()
-    #     logger.error(super_product_detail.value)
-    #     products.append(super_product_detail)
-
     return products
 
 def list_page_selector(response: Response, sales_tax: float = 1.1):
@@ -187,7 +164,7 @@ def list_page_selector(response: Response, sales_tax: float = 1.1):
             shop_code = response.url.split('/')[6]
             price = product.select_one('.item-price').text
             price = int(int(''.join(re.findall('\\d+', price))) * sales_tax)
-            item = Super(name=name, url=url, product_code=product_code, shop_code=shop_code, price=price, jan=None)
+            item = Super(name=name, url=url, product_code=product_code, shop_code=shop_code, price=price)
             item.save()
 
         except AttributeError as e:
