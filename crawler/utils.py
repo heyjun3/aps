@@ -21,6 +21,6 @@ def request(url: str, method: str = 'GET', session: Session = requests.Session()
             if not response.status_code == 200:
                 raise RequestException
             return response
-        except RequestException as e:
+        except Exception as e:
             logger.error(f'action=request error={e}')
             time.sleep(30)
