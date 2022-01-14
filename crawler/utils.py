@@ -14,10 +14,10 @@ class RequestException(Exception):
     pass
 
 
-def request(url: str, session: Session = requests.Session()) -> Response:
+def request(url: str, method: str = 'GET', session: Session = requests.Session(), data: dict = None) -> Response:
     for _ in range(60):
         try:
-            response = session.get(url, timeout=60.0, headers=HEADERS)
+            response = session.request(method=method, url=url, timeout=60.0, headers=HEADERS, data=data)
             if not response.status_code == 200:
                 raise RequestException
             return response
