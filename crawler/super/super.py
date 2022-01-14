@@ -26,26 +26,6 @@ logger = logging.getLogger(__name__)
 
 number_regex = re.compile('\\d+')
 
-def login() -> Session:
-    logger.info('action=login status=run')
-
-    # session = requests.session()
-    # response = utils.request(settings.SUPER_LOGIN_URL, method='POST', session=session)
-    
-    # return session
-
-    for _ in range(60):
-        try:
-            session = requests.session()
-            response = session.post(settings.SUPER_LOGIN_URL, data=settings.SUPER_LOGIN_INFO)
-            time.sleep(2)
-            if not response.status_code == 200 or response is None:
-                raise Exception
-            return session
-        except Exception as e:
-            logger.error(f'action=login error={e}')
-            time.sleep(30)
-
 
 def super_main(shop_url, save_path=settings.SCRAPE_SAVE_PATH):
     logger.info('action=super_main status=run')
@@ -56,6 +36,21 @@ def super_main(shop_url, save_path=settings.SCRAPE_SAVE_PATH):
     products_detail_list = get_product_detail_page(session, products)
     save_path = os.path.join(save_path, f'super{timestamp}.xlsx')
     list_to_excel_file(products_detail_list, save_path)
+
+
+def schedule_super_task():
+    yesterday = datetime.now() - timedelta(days=1)
+    url = settings.SUPER_NEW_PRODUCTS_URL + yesterday.strftime("%Y%m%d")
+    super_main(url, save_path=settings.SCRAPE_SCHEDULE_SAVE_PATH)
+
+
+def login() -> Session:
+    logger.info('action=login status=run')
+
+    session = requests.session()
+    response = utils.request(url=settings.SUPER_LOGIN_URL, method='POST', session=session, data=settings.SUPER_LOGIN_INFO)
+    
+    return session
 
 
 def get_url_list_page(session, shop_url, interval_sec: int = 2):
@@ -138,7 +133,7 @@ def detail_page_selector(response: Response, sales_tax: float = 1.1):
         super_product = SuperProductDetails(jan=jan, price=price, product_detail_code=product_detail_code)
         products.append(super_product)
 
-    products = {product.jan: product for product in sorted(products, key=lambda x: x.price, reverse=True)}
+    products = {product.product_detail_code: product for product in sorted(products, key=lambda x: x.price, reverse=True)}
     for product in products.values():
         product.product_code = product_code
         product.shop_code = shop_code
@@ -213,12 +208,6 @@ def next_page_selector(response):
     else:
         next_page_url = None
     return next_page_url
-
-
-def schedule_super_task():
-    yesterday = datetime.now() - timedelta(days=1)
-    url = settings.SUPER_NEW_PRODUCTS_URL + yesterday.strftime("%Y%m%d")
-    super_main(url, save_path=settings.SCRAPE_SCHEDULE_SAVE_PATH)
 
 
 def collection_favorite_products():
