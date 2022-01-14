@@ -139,15 +139,15 @@ def detail_page_selector(response: Response, sales_tax: float = 1.1):
     for row in table:
         try:
             jan = ''.join(re.findall('[0-9]{13}', row.select_one('.co-fcgray.td-jan').text))
-            price = int(int(''.join(re.findall('\\d+', row.select_one('.td-price02').text))) * sales_tax)
-            product_detail_code = re.sub('\(|\)|\）|\（', '',row.select_one('.co-mt3.co-pc-only').text).strip()
         except AttributeError as e:
-            logger.error(e)
-            continue
-        super_product = SuperProductDetails(jan=jan, price=price, product_detail_code=product_detail_code)
+            logger.error(f"product hasn't jan code error={e}")
+            jan = None
+        price = int(int(''.join(re.findall('\\d+', row.select_one('.td-price02').text))) * sales_tax)
+        set_number = int(re.search('\\d+', row.select_one('.co-align-center.co-pc-only.border-rt.border-b').text.strip()).group())
+        super_product = SuperProductDetails(jan=jan, price=price, set_number=set_number)
         products.append(super_product)
 
-    products = {product.product_detail_code: product for product in sorted(products, key=lambda x: x.price, reverse=True)}
+    products = {product.jan: product for product in sorted(products, key=lambda x: x.price, reverse=True)}
     for product in products.values():
         product.product_code = product_code
         product.shop_code = shop_code

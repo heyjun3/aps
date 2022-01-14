@@ -16,7 +16,7 @@ class TestSuper(unittest.TestCase):
         products = super.detail_page_selector(response)
 
         self.assertEqual('9037265', products[0].product_code)
-        self.assertEqual('VSTN-2000B', products[0].product_detail_code)
+        self.assertLessEqual(1, products[0].set_number)
         self.assertEqual('184955', products[0].shop_code)
         self.assertEqual(3960, products[0].price)
         self.assertEqual('4977642021907', products[0].jan)

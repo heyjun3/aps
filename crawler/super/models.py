@@ -3,6 +3,7 @@ from logging import getLogger
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import BigInteger
+from sqlalchemy import Integer
 from sqlalchemy import ForeignKey
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import and_
@@ -62,9 +63,9 @@ class Super(Base):
 
 class SuperProductDetails(Base):
     __tablename__ = 'super_product_details'
-    product_code = Column(String, ForeignKey("super_products.product_code"), nullable=False)
-    product_detail_code = Column(String, primary_key=True)
-    shop_code = Column(String, primary_key=True)
+    product_code = Column(String, ForeignKey("super_products.product_code"), nullable=False, primary_key=True)
+    set_number = Column(Integer, primary_key=True)
+    shop_code = Column(String)
     price = Column(BigInteger)
     jan = Column(String)
 
@@ -72,7 +73,7 @@ class SuperProductDetails(Base):
     def value(self):
         return {
             'product_code': self.product_code,
-            'product_detail_code': self.product_detail_code,
+            'set_number': self.set_number,
             'shop_code': self.shop_code,
             'price': self.price,
             'jan': self.jan,
@@ -104,7 +105,7 @@ class SuperProductDetails(Base):
         except IntegrityError as ex:
             logger.error(ex)
             with session_scope() as session:
-                product = session.query(SuperProductDetails).filter(SuperProductDetails.product_detail_code == self.product_detail_code, SuperProductDetails.shop_code == self.shop_code).first()
+                product = session.query(SuperProductDetails).filter(SuperProductDetails.product_code == self.product_code, SuperProductDetails.set_number == self.set_number).first()
                 product.price = self.price
                 return True
 
