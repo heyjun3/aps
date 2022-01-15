@@ -47,7 +47,7 @@ NETSEA_LOGIN_URL = 'https://www.netsea.jp/login'
 NETSEA_NEXT_URL = 'https://www.netsea.jp/search/'
 NETSEA_SHOP_URL = 'https://www.netsea.jp/shop/'
 NETSEA_ID = config['NETSEA']['ID']
-NETSAE_PASSWD = config['NETSEA']['PASSWD']
+NETSEA_PASSWD = config['NETSEA']['PASSWD']
 
 # RAKUTEN settings
 RAKUTEN_APP_ID = config['RAKUTEN']['APP_ID']

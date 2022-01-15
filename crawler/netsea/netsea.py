@@ -1,8 +1,10 @@
 import time
 import re
+import os
 import logging
 import datetime
 import logging.config
+from urllib.parse import urljoin
 
 import requests
 from requests import Session
@@ -94,7 +96,7 @@ def next_page_url_selector(response):
         return None
 
     if next_page_url:
-        next_page_url = settings.NETSEA_NEXT_URL + next_page_url.attrs['href']
+        next_page_url = urljoin(settings.NETSEA_NEXT_URL, next_page_url.attrs['href'])
 
     if current == '166' and len(products) == 60:
         price = products[-1].select_one('.price')
@@ -102,8 +104,7 @@ def next_page_url_selector(response):
         try:
             supplier_id = re.findall('supplier_id=[\\d]+', response.url)[0]
             supplier_id = ''.join(price_regex.findall(supplier_id))
-            next_page_url = (settings.NETSEA_NEXT_URL +
-                             f"?supplier_id={supplier_id}&sort=PD&facet_price_to={price}")
+            next_page_url = urljoin(settings.NETSEA_NEXT_URL, f"?supplier_id={supplier_id}&sort=PD&facet_price_to={price}")
         except IndexError as e:
             logging.error(f'action=next_page_selector status={e}')
             return None
@@ -263,7 +264,6 @@ def shop_list_page_selector(response: Response):
 #     product_quantity = ''.join(price_regex.findall(product_quantity.text))
 #     return product_quantity
 
-
 def new_product_search():
     logger.info('action=new_product_search status=run')
 
@@ -283,7 +283,7 @@ def new_product_search():
         url_include_jan.extend(web_list)
         result_list.extend(url_include_jan)
 
-    save_path = settings.SCRAPE_SCHEDULE_SAVE_PATH + 'netsea' + timestamp + '.xlsx'
+    save_path = os.path.join(settings.SCRAPE_SCHEDULE_SAVE_PATH, f'netsea{timestamp}.xlsx')
 
     list_to_excel_file(result_list, save_path)
 
@@ -307,7 +307,7 @@ def run_netsea(url: str, discount_rate=1.0):
         rate = [discount_rate for _ in range(len(url_include_jan))]
         url_include_jan = list(map(calc_discount_price, url_include_jan, rate))
 
-    save_path = settings.SCRAPE_SCHEDULE_SAVE_PATH + 'netsea' + timestamp + '.xlsx'
+    save_path = os.path.join(settings.SCRAPE_SCHEDULE_SAVE_PATH, f'netsea{timestamp}.xlsx')
 
     list_to_excel_file(url_include_jan, save_path)
 
@@ -338,7 +338,7 @@ def run_discount():
 
 def discount_shops():
     logger.info('action=discount_shops status=run')
-    path = r'C:\Users\jojo0\PycharmProjects\amazon\scraping\site\tmp\98r5ftAjhnnB.xlsx'
+    path = os.path.join(settings.BASE_PATH, 'QBizeLc6MSjZ.xlsx')
     book = openpyxl.load_workbook(path)
     sheet = book[book.sheetnames[0]]
     shop_ids = []

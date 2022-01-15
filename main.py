@@ -9,13 +9,8 @@ from crawler.buffalo import buffalo
 from crawler.pc4u import pc4u
 from crawler.rakuten import rakuten
 from crawler.super import super
+from crawler.netsea import netsea
 from settings import LOGGING_CONF_PATH
-
-
-def f():
-    while True:
-        time.sleep(2)
-        print('test')
 
 
 if __name__ == '__main__':
@@ -36,5 +31,7 @@ if __name__ == '__main__':
         rakuten.schedule()
     elif args[1] == 'super':
         super.super_all()
+    elif args[1] == 'netsea':
+        netsea.new_product_search()
     else:
         sys.stdout.write(f'{args[1]} is not a command')
