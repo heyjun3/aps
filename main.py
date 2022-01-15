@@ -35,6 +35,6 @@ if __name__ == '__main__':
     elif args[1] == 'rakuten':
         rakuten.schedule()
     elif args[1] == 'super':
-        super.schedule_super_task()
+        super.super_all()
     else:
         sys.stdout.write(f'{args[1]} is not a command')
