@@ -31,7 +31,7 @@ class Crawler():
         logger.info('action=list_page_crawling status=run')
 
         while True:
-            response = utils.request(self.url, self.session)
+            response = utils.request(url=self.url, session=self.session)
             self.list_page_scraping(response)
             time.sleep(2)
             if not self.url:
@@ -42,7 +42,7 @@ class Crawler():
         logger.info('action=detail_page_crawling status=run')
 
         for product in products:
-            response = utils.request(product.url, self.session)
+            response = utils.request(url=product.url, session=self.session)
             time.sleep(2)
             product.jan = self.detail_page_scraping(response)
             product.save()

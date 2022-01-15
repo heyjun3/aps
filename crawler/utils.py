@@ -19,8 +19,10 @@ def request(url: str, method: str = 'GET', session: Session = requests.Session()
         try:
             response = session.request(method=method, url=url, timeout=60.0, headers=HEADERS, data=data)
             if not response.status_code == 200:
+                logger.error(response.status_code)
                 raise RequestException
             return response
         except Exception as e:
             logger.error(f'action=request error={e}')
+            logger.error(url)
             time.sleep(30)
