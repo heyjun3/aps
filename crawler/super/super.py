@@ -51,11 +51,36 @@ def schedule_super_task():
 def super_all():
     logger.info('action=super_all status=run')
 
+    SuperShop.delete()
+    crawler_super_shop_info_main()
+
     shops = SuperShop.get_all_info()
     for shop in shops:
         super_main(shop.url)
 
     logger.info('action=super_all status=done')
+
+
+def crawler_super_shop_info_main():
+    logger.info('action=crawler_super_shop_info_main status=run')
+    url = 'https://www.superdelivery.com/p/do/psl/?so=newdealer'
+
+    session = login()
+    pool_shop_list_page(session=session, url=url)
+
+    logger.info('action=crawler_super_shop_info_main status=done')
+
+
+def pool_shop_list_page(session, url, interval_sec: int = 2):
+    logger.info('action=get_shop_list_page')
+
+    while True:
+        response = utils.request(url=url, session=session)
+        shop_list_page_selector(response)
+        url = next_page_selector(response)
+        if url is None:
+            return
+        time.sleep(interval_sec)
 
 
 def login() -> Session:
@@ -201,11 +226,6 @@ def shop_list_page_selector(response: Response):
         except AttributeError as e:
             logger.error(rf'action=shop_name_selector error={e}')
             continue
-
-    next_page_url = next_page_selector(response)
-    logger.debug(next_page_url)
-
-    return shop_list, next_page_url
 
 
 def next_page_selector(response):

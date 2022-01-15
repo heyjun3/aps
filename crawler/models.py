@@ -85,6 +85,11 @@ class Shop:
         except IntegrityError:
             return False
 
+    @classmethod
+    def delete(cls):
+        with session_scope() as session:
+            session.query(cls).delete()
+
 
 class Product:
     name = Column(String)

@@ -57,7 +57,11 @@ class Super(Base):
                 session.add(self)
                 return True
         except IntegrityError as ex:
+            logger.info(ex)
+            return False
+        except Exception as ex:
             logger.error(ex)
+            return False
 
 
 
@@ -94,6 +98,9 @@ class SuperProductDetails(Base):
                 session.add(self)
                 return True
         except IntegrityError as ex:
+            logger.info(ex)
+            return False
+        except Exception as ex:
             logger.error(ex)
             return False
 
@@ -103,11 +110,14 @@ class SuperProductDetails(Base):
                 session.add(self)
                 return True
         except IntegrityError as ex:
-            logger.error(ex)
+            logger.info(ex)
             with session_scope() as session:
                 product = session.query(SuperProductDetails).filter(SuperProductDetails.product_code == self.product_code, SuperProductDetails.set_number == self.set_number).first()
                 product.price = self.price
                 return True
+        except Exception as ex:
+            logger.error(ex)
+            return False
 
 
 class SuperShop(Shop, Base):
