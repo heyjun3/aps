@@ -1,11 +1,14 @@
 import logging
 import threading
 import datetime
-import copy
 import os
 
 import pandas as pd
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine
+from sqlalchemy import desc
+from sqlalchemy import Column
+from sqlalchemy import Integer
+from sqlalchemy import String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
@@ -24,20 +27,6 @@ Session = sessionmaker(bind=postgresql_engine)
 class NoneskuException(Exception):
     pass
 
-
-def migration(model):
-    with session_scope() as session:
-        rows = session.query(model).all()
-
-    for row in rows:
-        p = copy.copy(row)
-        session = Session()
-        try:
-            session.add(p)
-            session.commit()
-        except IntegrityError as e:
-            print(row.value)
-            session.rollback()
 
 class Product(Base):
     __tablename__ = 'product_master'
@@ -158,6 +147,41 @@ class Stock(Base):
             'sku': self.sku,
             'home_stock': self.home_stock_count,
             'fba_stock': self.fba_stock_count,
+        }
+
+
+class InactiveStock(Base):
+    __tablename__ = 'inactivestock'
+    SKU = Column(String, primary_key=True)
+    asin = Column(String)
+
+    @classmethod
+    def save(cls, sku, asin):
+        product = cls(SKU=sku, asin=asin)
+        try:
+            with session_scope() as session:
+                session.add(product)
+        except IntegrityError:
+            return False
+
+    @classmethod
+    def delete(cls):
+        with session_scope() as session:
+            session.query(cls).delete()
+
+    @classmethod
+    def get_asin_cost(cls):
+        with session_scope() as session:
+            response = session.query(cls, Product, FavoriteProduct).join(Product, cls.asin == Product.ASIN_code)\
+                        .join(FavoriteProduct, Product.JAN == FavoriteProduct.jan)\
+                        .filter(Product.cost_price.isnot(None)).order_by(desc(FavoriteProduct.cost)).all()
+            return response
+
+    @property
+    def value(self):
+        return {
+            'SKU': self.SKU,
+            'asin': self.asin,
         }
 
 
