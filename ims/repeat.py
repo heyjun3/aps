@@ -1,5 +1,5 @@
 import datetime
-from urllib.parse import urljoin
+import os
 
 import openpyxl
 
@@ -42,7 +42,7 @@ def main():
     products = InactiveStock.get_asin_cost()
     for product in products:
         inactive, master, favorite = product
-        data[master.JAN] = favorite.cost
+        data[master.jan] = favorite.cost
 
     workbook = openpyxl.Workbook()
     sheet = workbook['Sheet']
@@ -52,6 +52,6 @@ def main():
         sheet.append([key, value])
 
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    save_path = urljoin(settings.SCRAPE_SCHEDULE_SAVE_PATH, f'repeatedly{timestamp}.xlsx')
+    save_path = os.path.join(settings.SCRAPE_SCHEDULE_SAVE_PATH, f'repeatedly{timestamp}.xlsx')
     workbook.save(save_path)
     workbook.close()

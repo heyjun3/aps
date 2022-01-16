@@ -172,8 +172,8 @@ class InactiveStock(Base):
     @classmethod
     def get_asin_cost(cls):
         with session_scope() as session:
-            response = session.query(cls, Product, FavoriteProduct).join(Product, cls.asin == Product.ASIN_code)\
-                        .join(FavoriteProduct, Product.JAN == FavoriteProduct.jan)\
+            response = session.query(cls, Product, FavoriteProduct).join(Product, cls.asin == Product.asin)\
+                        .join(FavoriteProduct, Product.jan == FavoriteProduct.jan)\
                         .filter(Product.cost_price.isnot(None)).order_by(desc(FavoriteProduct.cost)).all()
             return response
 
