@@ -35,12 +35,19 @@ ENDPOINT = '/Products/2011-10-01'
 XMLNS = '{http://mws.amazonservices.com/schema/Products/2011-10-01}'
 NS2 = '{http://mws.amazonservices.com/schema/Products/2011-10-01/default.xsd}'
 
-# KEEPA settings
-KEEPA_ACCESS_KEY = config['KEEPA']['KEEPA_ACCESS_KEY']
-
 # BUFFALO settings
 BUFFALO_URL = 'https://www.buffalo-direct.com/'
 BUFFALO_START_URL = 'https://www.buffalo-direct.com/directshop/products/list_category.php?category_id=1181'
+
+# KEEPA settings
+KEEPA_ACCESS_KEY = config['KEEPA']['KEEPA_ACCESS_KEY']
+
+# NETSEA settings
+NETSEA_LOGIN_URL = 'https://www.netsea.jp/login'
+NETSEA_NEXT_URL = 'https://www.netsea.jp/search/'
+NETSEA_SHOP_URL = 'https://www.netsea.jp/shop/'
+NETSEA_ID = config['NETSEA']['ID']
+NETSEA_PASSWD = config['NETSEA']['PASSWD']
 
 # RAKUTEN settings
 RAKUTEN_APP_ID = config['RAKUTEN']['APP_ID']

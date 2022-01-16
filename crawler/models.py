@@ -20,22 +20,6 @@ Base = declarative_base()
 Session = sessionmaker(bind=postgresql_engine)
 
 
-class NetseaShopUrl(Base):
-    __tablename__ = 'netsea_shop_url'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    url = Column(String)
-    shop_id = Column(Integer)
-    quantity = Column(Integer)
-
-    def save(self):
-        try:
-            with session_scope() as session:
-                session.add(self)
-            return True
-        except IntegrityError:
-            return False
-
-
 class Shop:
     name = Column(String)
     shop_id = Column(Integer, primary_key=True, nullable=False)
@@ -186,13 +170,7 @@ class Product:
         }
 
 
-class Netsea(Product, Base):
-    __tablename__ = 'netsea_products'
 
-
-class NetseaShop(Shop, Base):
-    __tablename__ = 'netsea_shops'
-    discount_rate = Column(Float)
 
 
 @contextmanager
