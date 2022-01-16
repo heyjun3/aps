@@ -1,7 +1,5 @@
 import logging.config
 import sys
-from multiprocessing import Process
-import time
 
 from mws import api
 from keepa import keepa
@@ -10,6 +8,7 @@ from crawler.pc4u import pc4u
 from crawler.rakuten import rakuten
 from crawler.super import super
 from crawler.netsea import netsea
+from ims import repeat
 from settings import LOGGING_CONF_PATH
 
 
@@ -33,5 +32,7 @@ if __name__ == '__main__':
         super.super_all()
     elif args[1] == 'netsea':
         netsea.new_product_search()
+    elif args[1] == 'repeat':
+        repeat.main()
     else:
         sys.stdout.write(f'{args[1]} is not a command')

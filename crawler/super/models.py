@@ -46,7 +46,7 @@ class Super(Base):
     @classmethod
     def get_url(cls, url):
         with session_scope() as session:
-            products = session.query(cls).filter(cls.url == url, cls.jan.isnot(None)).all()
+            products = session.query(cls).filter(cls.url == url).all()
             if not products:
                 return None
             return products
@@ -118,6 +118,14 @@ class SuperProductDetails(Base):
         except Exception as ex:
             logger.error(ex)
             return False
+
+    @classmethod
+    def get_url(cls, url):
+        with session_scope() as session:
+            products = session.query(cls).filter(cls.url == url, cls.jan.isnot(None)).all()
+            if not products:
+                return None
+            return products
 
 
 class SuperShop(Shop, Base):
