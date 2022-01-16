@@ -22,7 +22,7 @@ def register():
     schedule.every().day.at('05:00').do(run_threaded, super.schedule_super_task)
     schedule.every().day.at('17:00').do(run_threaded, pc4u.schedule_pc4u_task_everyday)
     schedule.every().day.at('17:30').do(run_threaded, buffalo.main)
-    schedule.every().monday.at('01:00').do(run_threaded, netsea.new_shop_search)
+    # schedule.every().monday.at('01:00').do(run_threaded, netsea.new_shop_search)
     # schedule.every().saturday.at('07:00').do(run_threaded, repeatedly.main)
 
 
