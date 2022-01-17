@@ -5,6 +5,7 @@ import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy import JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from contextlib import contextmanager
@@ -27,10 +28,12 @@ class KeepaProducts(Base):
     sales_drops_90 = Column(Integer)
     created = Column(Date, default=datetime.date.today)
     modified = Column(Date, default=datetime.date.today)
+    price_data = Column(JSON)
+    rank_data = Column(JSON)
 
     @classmethod
-    def create(cls, asin, drops):
-        shop = cls(asin=asin, sales_drops_90=drops)
+    def create(cls, asin, drops ,price_data, rank_data):
+        shop = cls(asin=asin, sales_drops_90=drops, price_data=price_data, rank_data=rank_data)
         try:
             with session_scope() as session:
                 session.add(shop)
@@ -66,7 +69,10 @@ class KeepaProducts(Base):
             'sales_drop_90': self.sales_drops_90,
             'created': self.created,
             'modified': self.modified,
+            'price_data': self.price_data,
+            'rank_data': self.rank_data,
         }
+
 
 @contextmanager
 def session_scope():
