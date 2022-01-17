@@ -57,10 +57,17 @@ def keepa_get_drops(products: list):
         response = response.json()
         time.sleep(2)
 
+        PRICE_DATA_NUM = 1
+        RANK_DATA_NUM = 3
+
         for product in response.get('products'):
             asin = product.get('asin')
             drops = int(product.get('stats').get('salesRankDrops90'))
-            KeepaProducts.update_or_insert(asin, drops)
+            price_data = product.get('csv')[PRICE_DATA_NUM]
+            price_data = {date: price for date, price in zip(price_data[0::2], price_data[1::2])}
+            rank_data = product.get('csv')[RANK_DATA_NUM]
+            rank_data = {date: rank for date, rank in zip(rank_data[0::2], rank_data[1::2])}
+            KeepaProducts.update_or_insert(asin, drops, price_data, rank_data)
             data.append([asin, drops])
 
     df = pd.DataFrame(data=data, columns=['asin', 'drops']).astype({'drops': int})
