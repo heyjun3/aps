@@ -51,15 +51,19 @@ class KeepaProducts(Base):
             return product
 
     @classmethod
-    def update_or_insert(cls, asin, drops):
+    def update_or_insert(cls, asin, drops, price_json, rank_json):
         with session_scope() as session:
-            keepa_product = cls(asin=asin, sales_drops_90=drops)
             product = session.query(cls).filter(cls.asin == asin).first()
             if product is None:
-                session.add(keepa_product)
-                return True
-            product.sales_drops_90 = drops
-            product.modified = datetime.date.today()
+                keepa_product = cls(asin=asin, sales_drops_90=drops, price_data=price_json, rank_data=rank_json)
+                try:
+                    session.add(keepa_product)
+                except IntegrityError as ex:
+                    logger.error(ex)
+                    logger.error(keepa_product.value)
+            else:
+                product.sales_drops_90 = drops
+                product.modified = datetime.date.today()
             return True
 
     @property
