@@ -5,9 +5,11 @@ import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy import JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from contextlib import contextmanager
+from ims.models import NoneskuException
 
 import settings
 
@@ -27,10 +29,12 @@ class KeepaProducts(Base):
     sales_drops_90 = Column(Integer)
     created = Column(Date, default=datetime.date.today)
     modified = Column(Date, default=datetime.date.today)
+    price_data = Column(JSON)
+    rank_data = Column(JSON)
 
     @classmethod
-    def create(cls, asin, drops):
-        shop = cls(asin=asin, sales_drops_90=drops)
+    def create(cls, asin, drops ,price_data, rank_data):
+        shop = cls(asin=asin, sales_drops_90=drops, price_data=price_data, rank_data=rank_data)
         try:
             with session_scope() as session:
                 session.add(shop)
@@ -48,16 +52,31 @@ class KeepaProducts(Base):
             return product
 
     @classmethod
-    def update_or_insert(cls, asin, drops):
+    def update_or_insert(cls, asin, drops, price_data, rank_data):
         with session_scope() as session:
-            keepa_product = cls(asin=asin, sales_drops_90=drops)
             product = session.query(cls).filter(cls.asin == asin).first()
             if product is None:
-                session.add(keepa_product)
-                return True
-            product.sales_drops_90 = drops
-            product.modified = datetime.date.today()
+                keepa_product = cls(asin=asin, sales_drops_90=drops, price_data=price_data, rank_data=rank_data)
+                try:
+                    session.add(keepa_product)
+                except IntegrityError as ex:
+                    logger.error(ex)
+                    logger.error(keepa_product.value)
+            else:
+                product.sales_drops_90 = drops
+                product.modified = datetime.date.today()
+                product.price_data = price_data
+                product.rank_data = rank_data
             return True
+    
+    @classmethod
+    def get_product_price_data_is_None(cls, get_product_num: int = 100):
+        with session_scope() as session:
+            products = session.query(cls).filter(cls.price_data == None, cls.rank_data == None).limit(get_product_num).all()
+            if products:
+                return products
+            else:
+                return None
 
     @property
     def value(self):
@@ -66,7 +85,10 @@ class KeepaProducts(Base):
             'sales_drop_90': self.sales_drops_90,
             'created': self.created,
             'modified': self.modified,
+            'price_data': self.price_data,
+            'rank_data': self.rank_data,
         }
+
 
 @contextmanager
 def session_scope():
