@@ -4,6 +4,7 @@ import configparser
 import os
 import pathlib
 import shutil
+from typing import Type
 
 import pandas as pd
 import json
@@ -63,10 +64,18 @@ def keepa_get_drops(products: list):
         for product in response.get('products'):
             asin = product.get('asin')
             drops = int(product.get('stats').get('salesRankDrops90'))
-            price_data = product.get('csv')[PRICE_DATA_NUM]
-            price_data = {date: price for date, price in zip(price_data[0::2], price_data[1::2])}
-            rank_data = product.get('csv')[RANK_DATA_NUM]
-            rank_data = {date: rank for date, rank in zip(rank_data[0::2], rank_data[1::2])}
+            try:
+                price_data = product.get('csv')[PRICE_DATA_NUM]
+                price_data = {date: price for date, price in zip(price_data[0::2], price_data[1::2])}
+            except TypeError as ex:
+                logger.error(f"{asin} hasn't price data {ex}")
+                price_data = {'-1': -1}
+            try:
+                rank_data = product.get('csv')[RANK_DATA_NUM]
+                rank_data = {date: rank for date, rank in zip(rank_data[0::2], rank_data[1::2])}
+            except TypeError as ex:
+                logger.error(f"{asin} hasn't rank data {ex}")
+                rank_data = {'-1': -1}
             KeepaProducts.update_or_insert(asin, drops, price_data, rank_data)
             data.append([asin, drops])
 
@@ -103,6 +112,12 @@ def keepa_worker():
             path = next(pathlib.Path(settings.MWS_SAVE_PATH).iterdir())
         except StopIteration:
             logger.info('amazon_result_path is None')
+            tokens = check_keepa_tokens()
+            if tokens > 100:
+                products = KeepaProducts.get_product_price_data_is_None()
+                if products:
+                    asin_list = [product.asin for product in products]
+                    keepa_get_drops(asin_list)
             time.sleep(60)
             continue
         df = pd.read_pickle(str(path))

@@ -9,6 +9,7 @@ from sqlalchemy import JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from contextlib import contextmanager
+from ims.models import NoneskuException
 
 import settings
 
@@ -51,11 +52,11 @@ class KeepaProducts(Base):
             return product
 
     @classmethod
-    def update_or_insert(cls, asin, drops, price_json, rank_json):
+    def update_or_insert(cls, asin, drops, price_data, rank_data):
         with session_scope() as session:
             product = session.query(cls).filter(cls.asin == asin).first()
             if product is None:
-                keepa_product = cls(asin=asin, sales_drops_90=drops, price_data=price_json, rank_data=rank_json)
+                keepa_product = cls(asin=asin, sales_drops_90=drops, price_data=price_data, rank_data=rank_data)
                 try:
                     session.add(keepa_product)
                 except IntegrityError as ex:
@@ -64,7 +65,18 @@ class KeepaProducts(Base):
             else:
                 product.sales_drops_90 = drops
                 product.modified = datetime.date.today()
+                product.price_data = price_data
+                product.rank_data = rank_data
             return True
+    
+    @classmethod
+    def get_product_price_data_is_None(cls, get_product_num: int = 100):
+        with session_scope() as session:
+            products = session.query(cls).filter(cls.price_data == None, cls.rank_data == None).limit(get_product_num).all()
+            if products:
+                return products
+            else:
+                return None
 
     @property
     def value(self):
