@@ -83,6 +83,15 @@ def keepa_get_drops(products: list):
     return df
 
 
+def get_next_file_path():
+    path = [path for path in pathlib.Path(settings.MWS_SAVE_PATH).iterdir()]
+    if not path:
+        return None
+    else:
+        path = sorted(path, key=lambda x: x.stat().st_mtime)
+        return path[0]
+
+
 def main(products: list):
     logger.info('action=main status=run')
     search_drop_list = []
@@ -107,10 +116,10 @@ def main(products: list):
 
 def keepa_worker():
     logger.info('action=keepa_worker status=run')
+
     while True:
-        try:
-            path = next(pathlib.Path(settings.MWS_SAVE_PATH).iterdir())
-        except StopIteration:
+        path = get_next_file_path()
+        if path is None:
             logger.info('amazon_result_path is None')
             tokens = check_keepa_tokens()
             if tokens > 100:
@@ -120,15 +129,16 @@ def keepa_worker():
                     keepa_get_drops(asin_list)
             time.sleep(60)
             continue
-        df = pd.read_pickle(str(path))
-        drops = main(list(df['asin']))
-        df = df.merge(drops, on='asin', how='inner').sort_values('drops', ascending=False).drop_duplicates()
-        if not df.empty:
-            df.to_excel(os.path.join(settings.KEEPA_SAVE_PATH, f'{path.stem}.xlsx'), index=False)
-        try:
-            time.sleep(1)
-            shutil.move(str(path), settings.MWS_DONE_SAVE_PATH)
-        except Exception as e:
-            logger.error(f'action=shutil.move error={e}')
-            os.remove(str(path))
-            pass
+        else:
+            df = pd.read_pickle(str(path))
+            drops = main(list(df['asin']))
+            df = df.merge(drops, on='asin', how='inner').sort_values('drops', ascending=False).drop_duplicates()
+            if not df.empty:
+                df.to_excel(os.path.join(settings.KEEPA_SAVE_PATH, f'{path.stem}.xlsx'), index=False)
+            try:
+                time.sleep(1)
+                shutil.move(str(path), settings.MWS_DONE_SAVE_PATH)
+            except Exception as e:
+                logger.error(f'action=shutil.move error={e}')
+                os.remove(str(path))
+                pass
