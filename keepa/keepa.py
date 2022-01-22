@@ -129,15 +129,16 @@ def keepa_worker():
                     keepa_get_drops(asin_list)
             time.sleep(60)
             continue
-        df = pd.read_pickle(str(path))
-        drops = main(list(df['asin']))
-        df = df.merge(drops, on='asin', how='inner').sort_values('drops', ascending=False).drop_duplicates()
-        if not df.empty:
-            df.to_excel(os.path.join(settings.KEEPA_SAVE_PATH, f'{path.stem}.xlsx'), index=False)
-        try:
-            time.sleep(1)
-            shutil.move(str(path), settings.MWS_DONE_SAVE_PATH)
-        except Exception as e:
-            logger.error(f'action=shutil.move error={e}')
-            os.remove(str(path))
-            pass
+        else:
+            df = pd.read_pickle(str(path))
+            drops = main(list(df['asin']))
+            df = df.merge(drops, on='asin', how='inner').sort_values('drops', ascending=False).drop_duplicates()
+            if not df.empty:
+                df.to_excel(os.path.join(settings.KEEPA_SAVE_PATH, f'{path.stem}.xlsx'), index=False)
+            try:
+                time.sleep(1)
+                shutil.move(str(path), settings.MWS_DONE_SAVE_PATH)
+            except Exception as e:
+                logger.error(f'action=shutil.move error={e}')
+                os.remove(str(path))
+                pass
