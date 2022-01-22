@@ -83,6 +83,15 @@ def keepa_get_drops(products: list):
     return df
 
 
+def get_next_file_path():
+    path = [path for path in pathlib.Path(settings.MWS_SAVE_PATH).iterdir()]
+    if not path:
+        return None
+    else:
+        path = sorted(path, key=lambda x: x.stat().st_mtime)
+        return path[0]
+
+
 def main(products: list):
     logger.info('action=main status=run')
     search_drop_list = []
@@ -107,10 +116,10 @@ def main(products: list):
 
 def keepa_worker():
     logger.info('action=keepa_worker status=run')
+
     while True:
-        try:
-            path = next(pathlib.Path(settings.MWS_SAVE_PATH).iterdir())
-        except StopIteration:
+        path = get_next_file_path()
+        if path is None:
             logger.info('amazon_result_path is None')
             tokens = check_keepa_tokens()
             if tokens > 100:
