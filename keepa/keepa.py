@@ -64,6 +64,7 @@ def keepa_get_drops(products: list):
         for product in response.get('products'):
             asin = product.get('asin')
             drops = int(product.get('stats').get('salesRankDrops90'))
+
             try:
                 price_data = product.get('csv')[PRICE_DATA_NUM]
                 price_data = {date: price for date, price in zip(price_data[0::2], price_data[1::2])}
@@ -76,6 +77,7 @@ def keepa_get_drops(products: list):
             except TypeError as ex:
                 logger.error(f"{asin} hasn't rank data {ex}")
                 rank_data = {'-1': -1}
+            
             KeepaProducts.update_or_insert(asin, drops, price_data, rank_data)
             data.append([asin, drops])
 
