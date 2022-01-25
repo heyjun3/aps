@@ -48,15 +48,16 @@ def keepa_get_drops(products: list):
         asin_csv = ','.join(asin_list)
         url = f'https://api.keepa.com/product?key={settings.KEEPA_ACCESS_KEY}&domain=5&asin={asin_csv}&stats=90'
 
-        while True:
-            token = check_keepa_tokens()
-            if token > len(asin_list):
-                break
-            time.sleep(60)
+        token_count = check_keepa_tokens()
+        if token_count < len(asin_list):
+            interval_sec = (len(asin_list) - token_count) * 12 + 60
+        else:
+            interval_sec = 2
+        time.sleep(interval_sec)
+            
 
         response = request(url)
         response = response.json()
-        time.sleep(2)
 
         PRICE_DATA_NUM = 1
         RANK_DATA_NUM = 3
