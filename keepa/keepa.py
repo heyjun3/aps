@@ -19,12 +19,17 @@ logger = getLogger(__name__)
 
 def request(url):
     for _ in range(60):
-        response = requests.post(url)
-        if response.status_code == 200:
-            return response
-        logger.error(f'Request Error code {response.status_code}')
-        logger.error(response.json())
-        time.sleep(60)
+        try:
+            response = requests.post(url)
+            if response.status_code == 200:
+                return response
+            else:
+                logger.error(f'Request Error code {response.status_code}')
+                raise Exception
+        except Exception as ex:
+            logger.error(ex)
+            logger.error(response.json())
+            time.sleep(60)
 
 
 def check_keepa_tokens():
