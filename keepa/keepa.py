@@ -28,7 +28,6 @@ def request(url):
                 raise Exception
         except Exception as ex:
             logger.error(ex)
-            logger.error(response.json())
             time.sleep(60)
 
 
