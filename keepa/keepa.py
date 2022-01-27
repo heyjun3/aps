@@ -1,10 +1,9 @@
 import time
 from logging import getLogger
-import configparser
 import os
 import pathlib
 import shutil
-from typing import Type
+import datetime
 
 import pandas as pd
 import json
@@ -149,3 +148,9 @@ def keepa_worker():
                 logger.error(f'action=shutil.move error={e}')
                 os.remove(str(path))
                 pass
+
+
+def convert_keepa_time_to_datetime_date(keepa_time: int):
+    unix_time = (keepa_time + 21564000) * 60
+    date_time = datetime.datetime.fromtimestamp(unix_time)
+    return date_time.date()
