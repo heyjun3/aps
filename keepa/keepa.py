@@ -19,12 +19,16 @@ logger = getLogger(__name__)
 
 def request(url):
     for _ in range(60):
-        response = requests.post(url)
-        if response.status_code == 200:
-            return response
-        logger.error(f'Request Error code {response.status_code}')
-        logger.error(response.json())
-        time.sleep(60)
+        try:
+            response = requests.post(url)
+            if response.status_code == 200:
+                return response
+            else:
+                logger.error(f'Request Error code {response.status_code}')
+                raise Exception
+        except Exception as ex:
+            logger.error(ex)
+            time.sleep(60)
 
 
 def check_keepa_tokens():
@@ -48,15 +52,16 @@ def keepa_get_drops(products: list):
         asin_csv = ','.join(asin_list)
         url = f'https://api.keepa.com/product?key={settings.KEEPA_ACCESS_KEY}&domain=5&asin={asin_csv}&stats=90'
 
-        while True:
-            token = check_keepa_tokens()
-            if token > len(asin_list):
-                break
-            time.sleep(60)
+        token_count = check_keepa_tokens()
+        if token_count < len(asin_list):
+            interval_sec = (len(asin_list) - token_count) * 12 + 60
+        else:
+            interval_sec = 2
+        time.sleep(interval_sec)
+            
 
         response = request(url)
         response = response.json()
-        time.sleep(2)
 
         PRICE_DATA_NUM = 1
         RANK_DATA_NUM = 3
@@ -64,6 +69,7 @@ def keepa_get_drops(products: list):
         for product in response.get('products'):
             asin = product.get('asin')
             drops = int(product.get('stats').get('salesRankDrops90'))
+
             try:
                 price_data = product.get('csv')[PRICE_DATA_NUM]
                 price_data = {date: price for date, price in zip(price_data[0::2], price_data[1::2])}
@@ -76,6 +82,7 @@ def keepa_get_drops(products: list):
             except TypeError as ex:
                 logger.error(f"{asin} hasn't rank data {ex}")
                 rank_data = {'-1': -1}
+            
             KeepaProducts.update_or_insert(asin, drops, price_data, rank_data)
             data.append([asin, drops])
 
