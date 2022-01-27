@@ -1,8 +1,9 @@
 <html>
 	<head>
 	  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+	  <link rel="stylesheet" href="{{ url_for('static', filename='chart.css') }}">
+	  {% for product in products %}
 	  <script type="text/javascript">
-		{% for product in products %}
 		google.charts.load('current', {'packages':['corechart', 'line']});
 		google.charts.setOnLoadCallback(drawChart);
   
@@ -23,7 +24,7 @@
   
 		  var materialOptions = {
 			chart: {
-				title: '{{ title }} , ASIN:{{ asin }}'
+				title: '{{ title }} , ASIN:{{ product.asin }}'
 			},
 			width: 1000,
 			height: 600,
@@ -46,12 +47,13 @@
 		  chart.draw(data, materialOptions);
 		//   chart_1.draw(data, options);
 		}
-		{% endfor %}
 	  </script>
+	  {% endfor %}
 	</head>
 	<body>
 	{% for product in products %}
-	  <div id="{{ product.asin }}" style="width: 900px; height: 500px"></div>
+	  <h3>ASIN : {{ product.asin }}<h3>
+	  <div class="graph" id="{{ product.asin }}" style="width: 900px; height: 400px"></div>
 	{% endfor %}
 	  {# <div id="curve_chart_1" style="width: 900px; height: 500px"></div> #}
 	</body>
