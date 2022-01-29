@@ -1,0 +1,50 @@
+<html>
+	<head>
+	  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+	  <link rel="stylesheet" href="{{ url_for('static', filename='chart.css') }}">
+	  {% for product in products %}
+	  <script type="text/javascript">
+		google.charts.load('current', {'packages':['corechart', 'line']});
+		google.charts.setOnLoadCallback(drawChart);
+  
+		function drawChart() {
+		  var data = google.visualization.arrayToDataTable([
+			['Date', 'Rank', 'Price'],
+			{% for item in product.product %}
+				["{{ item.date }}", {{ item.rank }}, {{ item.price }}],
+			{% endfor %}
+		  ]);
+  
+		  var materialOptions = {
+			chart: {
+			  title: ''
+			},
+			width: 1000,
+			height: 600,
+			colors: ['green', 'blue'],
+			series: {
+			// Gives each series an axis name that matches the Y-axis below.
+			  0: {axis: 'Rank'},
+			  1: {axis: 'Price'}
+			},
+			axes: {
+			// Adds labels to each axis; they don't have to match the axis names.
+			  y: {
+				Rank: {label: 'Rank'},
+				Price: {label: 'Price'}
+			  }
+			}
+		  };
+          var chart = new google.charts.Line(document.getElementById("{{ product.asin }}"));
+		  chart.draw(data, materialOptions);
+		}
+	  </script>
+	  {% endfor %}
+	</head>
+	<body>
+	{% for product in products %}
+	  <h3>ASIN : {{ product.asin }}<h3>
+	  <div class="graph" id="{{ product.asin }}" style="width: 900px; height: 400px"></div>
+	{% endfor %}
+	</body>
+  </html>

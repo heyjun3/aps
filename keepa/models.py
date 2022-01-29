@@ -78,6 +78,15 @@ class KeepaProducts(Base):
             else:
                 return None
 
+    @classmethod
+    def get_keepa_product(cls, asin: str):
+        with session_scope() as session:
+            product = session.query(cls).filter(cls.asin == asin).first()
+            if product:
+                return product
+            else:
+                return None
+
     @property
     def value(self):
         return {

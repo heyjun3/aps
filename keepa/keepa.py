@@ -1,10 +1,10 @@
 import time
 from logging import getLogger
-import configparser
 import os
 import pathlib
 import shutil
-from typing import Type
+import datetime
+from itsdangerous import serializer
 
 import pandas as pd
 import json
@@ -109,6 +109,8 @@ def main(products: list):
 
         if not db_object:
             search_drop_list.append(asin)
+        elif db_object.price_data is None or db_object.rank_data is None:
+            search_drop_list.append(asin)
         else:
             data.append([db_object.asin, db_object.sales_drops_90])
 
@@ -149,3 +151,9 @@ def keepa_worker():
                 logger.error(f'action=shutil.move error={e}')
                 os.remove(str(path))
                 pass
+
+
+def convert_keepa_time_to_datetime_date(keepa_time: int):
+    unix_time = (keepa_time + 21564000) * 60
+    date_time = datetime.datetime.fromtimestamp(unix_time)
+    return date_time.date()
