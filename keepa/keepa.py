@@ -4,6 +4,7 @@ import os
 import pathlib
 import shutil
 import datetime
+from itsdangerous import serializer
 
 import pandas as pd
 import json
@@ -107,6 +108,8 @@ def main(products: list):
         db_object = KeepaProducts.object_get_db_asin(asin)
 
         if not db_object:
+            search_drop_list.append(asin)
+        elif db_object.price_data is None or db_object.rank_data is None:
             search_drop_list.append(asin)
         else:
             data.append([db_object.asin, db_object.sales_drops_90])
