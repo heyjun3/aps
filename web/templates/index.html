@@ -1,0 +1,9 @@
+<html>
+    <head>
+    </head>
+    <body>
+        {% for path in save_path %}
+        <a href="{{ url_for('view_graph', filename=path) }}">{{ path }}</a><br>
+        {% endfor %}
+    </body>
+</html>

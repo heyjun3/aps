@@ -43,7 +43,7 @@
 	</head>
 	<body>
 	{% for product in products %}
-	  <h3>ASIN : {{ product.asin }}<h3>
+	  <h3><a href="https://www.amazon.co.jp/dp/{{ product.asin }}" target="_blank" rel="noopener noreferrer">ASIN : {{ product.asin }}</a><h3>
 	  <div class="graph" id="{{ product.asin }}" style="width: 900px; height: 400px"></div>
 	{% endfor %}
 	</body>

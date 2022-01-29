@@ -15,6 +15,9 @@ PORT = config['DB']['PORT']
 DB = config['DB']['DB']
 DB_URL = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB}"
 
+# WEB settings
+HOST = 'localhost'
+
 # SAVE PATH
 BASE_SAVE_PATH = os.path.join(BASE_PATH, 'scrape_files')
 SCRAPE_SAVE_PATH = os.path.join(BASE_SAVE_PATH, 'scrape')
