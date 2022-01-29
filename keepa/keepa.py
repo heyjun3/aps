@@ -4,7 +4,6 @@ import os
 import pathlib
 import shutil
 import datetime
-from itsdangerous import serializer
 
 import pandas as pd
 import json
