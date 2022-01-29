@@ -1,6 +1,6 @@
-from collections import defaultdict
 import datetime
 import pathlib
+import os
 
 from flask import Flask
 from flask import render_template
@@ -34,25 +34,17 @@ def convert_price_rank_data(price_data, rank_data):
 
 @app.route('/')
 def index():
-    asin = 'B08F59Z1B8'
-    asin_1 = 'B08L3HDFST'
-    product_1 = KeepaProducts.get_keepa_product(asin)
-    product_2 = KeepaProducts.get_keepa_product(asin_1)
-
-    p_1 = convert_price_rank_data(product_1.price_data, product_1.rank_data)
-    p_2 = convert_price_rank_data(product_2.price_data, product_2.rank_data)
-    product_list = []
-    product_list.append({'product': p_1, 'asin': asin})
-    product_list.append({'product': p_2, 'asin': asin_1})
-
-
-    return render_template('chart.html', products=product_list)
-
-
-@app.route('/graph')
-def view_graph():
     path = list(pathlib.Path(settings.KEEPA_SAVE_PATH).iterdir())
-    df = pd.read_excel(path[0])
+    path = list(map(lambda x: x.stem, path))
+    print(path)
+
+    return render_template('index.html', save_path=path)
+
+
+@app.route('/graph/<string:filename>', methods=['GET'])
+def view_graph(filename):
+    path = os.path.join(settings.KEEPA_SAVE_PATH, f'{filename}.xlsx')
+    df = pd.read_excel(path)
     asin_list = list(df['asin'])
     print(len(asin_list))
     products_list = []
@@ -68,7 +60,7 @@ def view_graph():
 
 
 def start():
-    app.run(host='127.0.0.1', port='8080', threaded=True, debug=True)
+    app.run(host=settings.HOST, port='8080', threaded=True, debug=True)
 
 
 
