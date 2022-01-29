@@ -1,5 +1,6 @@
 from collections import defaultdict
 import datetime
+import pathlib
 
 from flask import Flask
 from flask import render_template
@@ -7,6 +8,7 @@ import pandas as pd
 
 from keepa.models import KeepaProducts
 from keepa import keepa 
+import settings
 
 
 app = Flask(__name__)
@@ -31,7 +33,7 @@ def convert_price_rank_data(price_data, rank_data):
 
 
 @app.route('/')
-def hello():
+def index():
     asin = 'B08F59Z1B8'
     asin_1 = 'B08L3HDFST'
     product_1 = KeepaProducts.get_keepa_product(asin)
@@ -47,5 +49,26 @@ def hello():
     return render_template('chart.html', products=product_list)
 
 
+@app.route('/graph')
+def view_graph():
+    path = list(pathlib.Path(settings.KEEPA_SAVE_PATH).iterdir())
+    df = pd.read_excel(path[0])
+    asin_list = list(df['asin'])
+    print(len(asin_list))
+    products_list = []
+    for asin in asin_list:
+        keepa_product = KeepaProducts.get_keepa_product(asin)
+        if keepa_product is None or keepa_product.price_data is None or keepa_product.rank_data is None:
+            print(asin)
+            continue
+        price_rank_data = convert_price_rank_data(keepa_product.price_data, keepa_product.rank_data)
+        products_list.append({'product': price_rank_data, 'asin': asin})
+    print(len(products_list))
+    return render_template('chart.html', products=products_list)
+
+
 def start():
     app.run(host='127.0.0.1', port='8080', threaded=True, debug=True)
+
+
+
