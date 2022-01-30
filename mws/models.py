@@ -31,7 +31,7 @@ class MWS(Base):
     def save(cls):
         with session_scope() as session:
             try:
-                session.add()
+                session.add(cls)
             except IntegrityError as ex:
                 logger.error(ex)
                 return False
