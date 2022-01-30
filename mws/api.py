@@ -20,6 +20,7 @@ import pandas as pd
 from lxml import etree
 
 from mws import multiprocess
+from mws.models import MWS
 import settings
 
 
@@ -99,7 +100,7 @@ class AmazonClient:
         logger.debug('action=create_request_url status=done')
         return url
 
-    def get_matching_product_for_id(self, products: list, price_que=None, fee_que=None, manager=None):
+    def get_matching_product_for_id(self, products: list, filename: str, price_que=None, fee_que=None, manager=None):
         """Searching Asin code for Jan code
         share memory list append searching object
         share.append([jan, cost, asin, rank, quantity])"""
@@ -119,6 +120,7 @@ class AmazonClient:
 
             url = self.create_request_url(data_dict=data_dict)
             response = request_api(url)
+            response.encoding = response.apparent_encoding
             logger.info('action=get_matching_product_for_id status=run')
             # import xml.dom.minidom
             # x = xml.dom.minidom.parseString(response.text)
@@ -133,12 +135,15 @@ class AmazonClient:
                         asin = item.find(".//ASIN", tree.nsmap).text
                         unit = int(item.find(".//{*}PackageQuantity").text)
                         jan = result.attrib.get('Id')
+                        title = item.find(".//{*}Title").text
                     except AttributeError as e:
                         logger.debug(e)
                         continue
                     logger.debug(asin, unit, jan)
                     data.append([asin, unit, jan])
                     asin_lst.append(asin)
+                    mws = MWS(asin=asin, title=title, jan=jan, unit=unit, filename=filename)
+                    mws.save()
 
             if price_que is not None and fee_que is not None:
                 price_que.put(asin_lst)
@@ -149,7 +154,7 @@ class AmazonClient:
         manager['matching_df'] = df
 
 
-    def get_competitive_pricing_for_asin(self, products):
+    def get_competitive_pricing_for_asin(self, products, filename: str):
         logger.info('action=get_competitive_pricing_for_asin status=run')
         data = []
 
@@ -176,11 +181,12 @@ class AmazonClient:
                     continue
                 logger.debug(asin, price)
                 data.append([asin, price])
+                MWS.update_price(asin=asin, filename=filename, price=price)
 
         logger.info('action=get_competitive_pricing_for_asin status=done')
         return data
 
-    def get_fee_my_fees_estimate(self, products):
+    def get_fee_my_fees_estimate(self, products, filename: str):
         logger.info('action=get_fee_my_fees_estimate status=run')
         data = []
 
@@ -310,10 +316,11 @@ def main():
             fee_que = Queue()
             manager = Manager()
             manager = manager.dict()
+            filename = file.stem
 
-            get_matching_prodcut_for_id_process = Process(target=client.get_matching_product_for_id, args=(list(products_df['jan']), price_que, fee_que, manager))
-            get_competitive_pricing_for_asin_process = Process(target=multiprocess.get_competitive_pricing_for_asin_worker, args=(price_que, manager))
-            get_fee_my_fees_estimate_process = Process(target=multiprocess.get_fee_my_fees_estimate_worker, args=(fee_que, manager))
+            get_matching_prodcut_for_id_process = Process(target=client.get_matching_product_for_id, args=(list(products_df['jan']), filename, price_que, fee_que, manager))
+            get_competitive_pricing_for_asin_process = Process(target=multiprocess.get_competitive_pricing_for_asin_worker, args=(filename, price_que, manager))
+            get_fee_my_fees_estimate_process = Process(target=multiprocess.get_fee_my_fees_estimate_worker, args=(filename, fee_que, manager))
 
             get_matching_prodcut_for_id_process.start()
             get_competitive_pricing_for_asin_process.start()
