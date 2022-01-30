@@ -13,7 +13,7 @@ from sqlalchemy.ext.declarative import declarative_base
 import settings
 
 engine = create_engine(settings.DB_URL)
-Session = sessionmaker(engine=engine)
+Session = sessionmaker(bind=engine)
 Base = declarative_base()
 logger = getLogger(__name__)
 
@@ -21,19 +21,47 @@ logger = getLogger(__name__)
 class MWS(Base):
     __tablename__ = 'mws_products'
     asin = Column(String, primary_key=True, nullable=False)
+    filename = Column(String, primary_key=True, nullable=False)
+    title = Column(String)
     jan = Column(String)
     unit = Column(Integer)
     price = Column(Integer)
     fee_rate = Column(Float)
     shipping_fee = Column(Integer)
+    profit = Column(Integer)
+    profit_rate = Column(Float)
 
-    @classmethod
-    def save(cls):
+    def save(self):
         with session_scope() as session:
             try:
-                session.add(cls)
+                session.add(self)
             except IntegrityError as ex:
                 logger.error(ex)
+                return False
+            return True
+
+    @classmethod
+    def update_price(cls, asin: str, filename: str, price: int):
+        with session_scope() as session:
+            mws = session.query(cls).filter(cls.asin == asin, cls.filename == filename).first()
+            try:
+                mws.price = price
+            except Exception as ex:
+                logger.error(f'action=update_price error={ex}')
+                return False
+            return True
+
+    @classmethod
+    def update_fee_and_profit(cls, asin: str, filename: str, fee_rate: float, shipping_fee: int, profit: int, profit_rate: float):
+        with session_scope() as session:
+            mws = session.query(cls).filter(cls.asin == asin, cls.filename == filename).first()
+            try:
+                mws.fee_rate = fee_rate
+                mws.shipping_fee = shipping_fee
+                mws.profit = profit
+                mws.profit_rate = profit_rate
+            except Exception as ex:
+                logger.error(f'action=update_fee_and_profit error={ex}')
                 return False
             return True
 
@@ -62,5 +90,6 @@ def session_scope():
     finally:
         session.expire_on_commit = True
 
+
 def init_db():
-    Base.metadata.create_all(bin=engine)
+    Base.metadata.create_all(bind=engine)
