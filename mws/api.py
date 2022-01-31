@@ -100,12 +100,13 @@ class AmazonClient:
         logger.debug('action=create_request_url status=done')
         return url
 
-    def get_matching_product_for_id(self, products: list, filename: str, price_que=None, fee_que=None, manager=None):
+    def get_matching_product_for_id(self, products_dict: dict, filename: str, price_que=None, fee_que=None, manager=None):
         """Searching Asin code for Jan code
         share memory list append searching object
         share.append([jan, cost, asin, rank, quantity])"""
         logger.info('action=get_matching_product_for_id status=run')
         data = []
+        products = list(products_dict.keys())
 
         while products:
             product = [products.pop() for _ in range(5) if products]
@@ -142,7 +143,8 @@ class AmazonClient:
                     logger.debug(asin, unit, jan)
                     data.append([asin, unit, jan])
                     asin_lst.append(asin)
-                    mws = MWS(asin=asin, title=title, jan=jan, unit=unit, filename=filename)
+                    cost = products_dict.get(jan)
+                    mws = MWS(asin=asin, title=title, jan=jan, unit=unit, filename=filename, cost=cost)
                     mws.save()
 
             if price_que is not None and fee_que is not None:
@@ -227,6 +229,7 @@ class AmazonClient:
                 asin = item.find('.//FeesEstimateIdentifier//IdValue', tree.nsmap).text
                 logger.debug(asin, fee_rate, ship_fee)
                 data.append([asin, fee_rate, ship_fee])
+                MWS.update_fee(asin=asin, filename=filename, fee_rate=fee_rate, shipping_fee=ship_fee)
 
         logger.info('action=get_fee_my_fees_estimate status=done')
         return data
@@ -312,13 +315,14 @@ def main():
         if file:
             client = AmazonClient()
             products_df = pd.read_excel(str(file), dtype={'JAN': str}).rename(columns={'JAN': 'jan', 'Cost': 'cost'}).drop_duplicates()
+            product_dict = {jan: cost for jan, cost in zip(products_df['jan'], products_df['cost'])}
             price_que = Queue()
             fee_que = Queue()
             manager = Manager()
             manager = manager.dict()
             filename = file.stem
 
-            get_matching_prodcut_for_id_process = Process(target=client.get_matching_product_for_id, args=(list(products_df['jan']), filename, price_que, fee_que, manager))
+            get_matching_prodcut_for_id_process = Process(target=client.get_matching_product_for_id, args=(product_dict, filename, price_que, fee_que, manager))
             get_competitive_pricing_for_asin_process = Process(target=multiprocess.get_competitive_pricing_for_asin_worker, args=(filename, price_que, manager))
             get_fee_my_fees_estimate_process = Process(target=multiprocess.get_fee_my_fees_estimate_worker, args=(filename, fee_que, manager))
 

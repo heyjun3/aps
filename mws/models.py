@@ -26,10 +26,9 @@ class MWS(Base):
     jan = Column(String)
     unit = Column(Integer)
     price = Column(Integer)
+    cost = Column(Integer)
     fee_rate = Column(Float)
     shipping_fee = Column(Integer)
-    profit = Column(Integer)
-    profit_rate = Column(Float)
 
     def save(self):
         with session_scope() as session:
@@ -52,14 +51,12 @@ class MWS(Base):
             return True
 
     @classmethod
-    def update_fee_and_profit(cls, asin: str, filename: str, fee_rate: float, shipping_fee: int, profit: int, profit_rate: float):
+    def update_fee(cls, asin: str, filename: str, fee_rate: float, shipping_fee: int):
         with session_scope() as session:
             mws = session.query(cls).filter(cls.asin == asin, cls.filename == filename).first()
             try:
                 mws.fee_rate = fee_rate
                 mws.shipping_fee = shipping_fee
-                mws.profit = profit
-                mws.profit_rate = profit_rate
             except Exception as ex:
                 logger.error(f'action=update_fee_and_profit error={ex}')
                 return False
@@ -69,12 +66,25 @@ class MWS(Base):
     def value(self):
         return {
             'asin': self.asin,
+            'filename': self.filename,
             'jan': self.jan,
             'unit': self.unit,
+            'cost': self.cost,
+            'title': self.title,
             'price': self.price,
             'fee_rate': self.fee_rate,
             'shipping_fee': self.shipping_fee,
+            'profit': self.profit,
+            'profit_rate': self.profit_rate,
         }
+
+    @property
+    def profit(self):
+        return int(self.price - (self.cost * self.unit) - ((self.price * self.fee_rate) * 1.1) - self.shipping_fee)
+
+    @property
+    def profit_rate(self):
+        return round(self.profit / self.price, 2)
 
 
 @contextmanager
