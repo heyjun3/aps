@@ -58,4 +58,3 @@ def view_graph(filename):
 
 def start():
     app.run(host=settings.HOST, port=settings.PORT, threaded=True, debug=True)
-
