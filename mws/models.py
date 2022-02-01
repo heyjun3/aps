@@ -1,5 +1,7 @@
 from contextlib import contextmanager
 from logging import getLogger
+import threading
+from tkinter import E
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column
@@ -12,9 +14,10 @@ from sqlalchemy.ext.declarative import declarative_base
 
 import settings
 
-engine = create_engine(settings.DB_URL)
+engine = create_engine(settings.DB_URL, pool_pre_ping=True)
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
+lock = threading.Lock()
 logger = getLogger(__name__)
 
 
@@ -38,6 +41,31 @@ class MWS(Base):
                 logger.error(ex)
                 return False
             return True
+
+    @classmethod
+    def get(cls, asin):
+        with session_scope() as session:
+            profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
+            profit_rate = profit / cls.price
+            mws = session.query(cls, profit, profit_rate).filter(cls.asin == asin).first()
+            if mws:
+                return mws
+            else:
+                return None
+
+    @classmethod
+    def get_asin_to_request_keepa(cls):
+        with session_scope() as session:
+            profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
+            profit_rate = profit / cls.price
+            try:
+                asin_list = session.query(cls.asin).filter(profit > 200, profit_rate > 0.1).all()
+                asin_list = list(map(lambda x: x[0], asin_list))
+            except Exception as ex:
+                logger.error(f'action=get_asin_to_request_keepa error={ex}')
+                return None
+            return asin_list
+
 
     @classmethod
     def update_price(cls, asin: str, filename: str, price: int):
@@ -92,6 +120,7 @@ def session_scope():
     session = Session()
     session.expire_on_commit = False
     try:
+        lock.acquire()
         yield session
         session.commit()
     except Exception as ex:
@@ -99,6 +128,7 @@ def session_scope():
         session.rollback()
     finally:
         session.expire_on_commit = True
+        lock.release()
 
 
 def init_db():
