@@ -36,7 +36,7 @@ def convert_price_rank_data(price_data, rank_data):
 def index():
     path = list(pathlib.Path(settings.KEEPA_SAVE_PATH).iterdir())
     path = list(map(lambda x: x.stem, path))
-    print(path)
+    path = sorted(path, key=lambda x: x)
 
     return render_template('index.html', save_path=path)
 
@@ -46,18 +46,15 @@ def view_graph(filename):
     path = os.path.join(settings.KEEPA_SAVE_PATH, f'{filename}.xlsx')
     df = pd.read_excel(path)
     asin_list = list(df['asin'])
-    print(len(asin_list))
     products_list = []
     for asin in asin_list:
         keepa_product = KeepaProducts.get_keepa_product(asin)
         if keepa_product is None or keepa_product.price_data is None or keepa_product.rank_data is None:
-            print(asin)
             continue
         price_rank_data = convert_price_rank_data(keepa_product.price_data, keepa_product.rank_data)
         products_list.append({'product': price_rank_data, 'asin': asin})
-    print(len(products_list))
     return render_template('chart.html', products=products_list)
 
 
 def start():
-    app.run(host=settings.HOST, port='8080', threaded=True, debug=True)
+    app.run(host=settings.HOST, port=settings.PORT, threaded=True, debug=True)
