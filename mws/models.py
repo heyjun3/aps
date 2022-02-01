@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import datetime
 from logging import getLogger
 import threading
 from tkinter import E
@@ -8,9 +9,12 @@ from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import Integer
 from sqlalchemy import Float
+from sqlalchemy import or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
+
+from keepa.models import KeepaProducts
 
 import settings
 
@@ -54,12 +58,15 @@ class MWS(Base):
                 return None
 
     @classmethod
-    def get_asin_to_request_keepa(cls):
+    def get_asin_to_request_keepa(cls, term=30):
         with session_scope() as session:
             profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
             profit_rate = profit / cls.price
+            past_date = datetime.date.today() - datetime.timedelta(days=term)
             try:
-                asin_list = session.query(cls.asin).filter(profit > 200, profit_rate > 0.1).all()
+                asin_list = session.query(cls.asin).filter(profit > 200, profit_rate > 0.1)\
+                .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
+                .filter(or_(KeepaProducts.asin is None, KeepaProducts.modified < past_date)).all()
                 asin_list = list(map(lambda x: x[0], asin_list))
             except Exception as ex:
                 logger.error(f'action=get_asin_to_request_keepa error={ex}')
