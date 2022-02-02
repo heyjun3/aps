@@ -188,6 +188,38 @@ class AmazonClient:
         logger.info('action=get_competitive_pricing_for_asin status=done')
         return data
 
+    def get_lowest_priced_offer_listtings_for_asin(self, products: list, filename: str):
+        logger.info('action=get_lowest_priced_offer_listtings_for_asin status=run')
+        data = []
+
+        while products:
+            product = [products.pop() for _ in range(20) if products]
+            data_dict = dict(self.data)
+            data_dict['MarketplaceId'] = settings.MARKETPLACEID
+            data_dict['ItemCondition'] = 'New'
+            data_dict['Action'] = 'GetLowestOfferListingsForASIN'
+            for index, asin in enumerate(product):
+                data_dict[f'ASINList.ASIN.{str(index+1)}'] = asin
+
+            url = self.create_request_url(data_dict=data_dict)
+            response = request_api(url)
+            time.sleep(0.1 * len(product))
+            tree = etree.fromstring(response.text)
+
+            for item in tree.findall('.//{*}Product'):
+                try:
+                    asin = item.find('.//{*}ASIN').text
+                    price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
+                except AttributeError as e:
+                    logger.debug(e)
+                    continue
+                logger.debug(asin, price)
+                data.append([asin, price])
+                MWS.update_price(asin=asin, filename=filename, price=price)
+
+        logger.info('action=get_competitive_pricing_for_asin status=done')
+        return data
+
     def get_fee_my_fees_estimate(self, products, filename: str):
         logger.info('action=get_fee_my_fees_estimate status=run')
         data = []
