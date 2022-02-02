@@ -12,12 +12,14 @@ import logging.config
 import os
 import pathlib
 import shutil
+import urllib.parse
 
 import openpyxl
 import requests
 import xml.etree.ElementTree as et
 import pandas as pd
 from lxml import etree
+from bs4 import BeautifulSoup
 
 from mws import multiprocess
 from mws.models import MWS
@@ -31,13 +33,14 @@ def datetime_encode(dt):
     return dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
-def request_api(url):
+def request_api(url, data=None):
     logger.info('action=request_api status=run')
 
     for _ in range(60):
         try:
-            response = requests.post(url, timeout=30.0)
+            response = requests.post(url, data=data, timeout=30.0)
             if not response.status_code == 200 or response is None:
+                logger.error(response.text)
                 raise Exception
             logger.info('action=request_api status=done')
             return response
@@ -84,7 +87,6 @@ class AmazonClient:
 
         query_string = '&'.join('{}={}'.format(
             n, urllib.parse.quote(v, safe='')) for n, v in sorted(data_dict.items()))
-
         canonical = "{}\n{}\n{}\n{}".format(
             'POST', self.domain, self.endpoint, query_string)
 
@@ -220,6 +222,28 @@ class AmazonClient:
         logger.info('action=get_competitive_pricing_for_asin status=done')
         return data
 
+    def get_lowest_priced_offers_for_asin(self, asin: str, interval_sec: int = 1) -> tuple:
+        logger.info('action=get_lowest_priced_offers_for_asin status=run')
+
+        data_dict = dict(self.data)
+        data_dict['MarketplaceId'] = settings.MARKETPLACEID
+        data_dict['ItemCondition'] = 'New'
+        data_dict['Action'] = 'GetLowestPricedOffersForASIN'
+        data_dict['ASIN'] = asin
+
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(self.create_request_url(data_dict=data_dict)).query)
+        url = "https://mws.amazonservices.jp/Products/2011-10-01"
+
+        response = request_api(url=url, data=query)
+        time.sleep(interval_sec)
+
+        soup = BeautifulSoup(response.text, 'lxml')
+        asin = soup.select_one('Identifier ASIN').text
+        price = int(float(soup.select_one('LandedPrice Amount').text))
+
+        logger.info('action=get_lowest_priced_offers_for_asin status=done')
+        return (asin, price)
+
     def get_fee_my_fees_estimate(self, products, filename: str):
         logger.info('action=get_fee_my_fees_estimate status=run')
         data = []
@@ -265,6 +289,16 @@ class AmazonClient:
 
         logger.info('action=get_fee_my_fees_estimate status=done')
         return data
+
+    def pool_get_lowest_priced_offers_for_asin(self):
+        logger.info('action=pool_get_lowest_priced_offers_for_asin status=run')
+
+        mws_products_list = MWS.get_price_is_None_products()
+        for product in mws_products_list:
+            asin, price = self.get_lowest_priced_offers_for_asin(product.asin)
+            MWS.update_price(asin=asin, filename=product.filename, price=price)
+
+        logger.info('action=pool_get_lowest_priced_offers_for_asin status=done')
 
     def request_report(self, report_type: str, start_date, end_date):
         logger.info('action=request_report status=run')
