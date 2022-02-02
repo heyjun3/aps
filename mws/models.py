@@ -42,7 +42,7 @@ class MWS(Base):
             try:
                 session.add(self)
             except IntegrityError as ex:
-                logger.error(ex)
+                logger.debug(ex)
                 return False
             return True
 
