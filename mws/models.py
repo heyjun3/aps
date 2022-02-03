@@ -9,6 +9,7 @@ from sqlalchemy import String
 from sqlalchemy import Integer
 from sqlalchemy import Float
 from sqlalchemy import or_
+from sqlalchemy import distinct
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
@@ -55,6 +56,12 @@ class MWS(Base):
                 return mws
             else:
                 return None
+
+    @classmethod
+    def get_completion_filename_list(cls):
+        with session_scope() as session:
+            filename_list = session.query(cls.filename).distinct(cls.filename).all()
+            return filename_list
 
     @classmethod
     def get_asin_to_request_keepa(cls, term=30):
