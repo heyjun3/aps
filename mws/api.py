@@ -1,6 +1,7 @@
 from datetime import datetime
 import urllib.parse
 import hmac
+from xml.dom.minidom import Attr
 import six
 import hashlib
 import base64
@@ -179,10 +180,15 @@ class AmazonClient:
             for item in tree.findall('.//{*}Product'):
                 try:
                     asin = item.find('.//{*}ASIN').text
-                    price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
-                except AttributeError as e:
-                    logger.debug(e)
+                except AttributeError as ex:
+                    logger.error(ex)
+                    logger.error('asin is None')
                     continue
+                try:
+                    price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
+                except AttributeError as ex:
+                    logger.debug(ex)
+                    price = 0
                 logger.debug(asin, price)
                 data.append([asin, price])
                 MWS.update_price(asin=asin, filename=filename, price=price)
@@ -222,7 +228,7 @@ class AmazonClient:
         logger.info('action=get_competitive_pricing_for_asin status=done')
         return data
 
-    def get_lowest_priced_offers_for_asin(self, asin: str, interval_sec: int = 1) -> tuple:
+    def get_lowest_priced_offers_for_asin(self, asin: str, interval_sec: int = 1) -> int:
         logger.info('action=get_lowest_priced_offers_for_asin status=run')
 
         data_dict = dict(self.data)
@@ -238,11 +244,14 @@ class AmazonClient:
         time.sleep(interval_sec)
 
         soup = BeautifulSoup(response.text, 'lxml')
-        asin = soup.select_one('Identifier ASIN').text
-        price = int(float(soup.select_one('LandedPrice Amount').text))
+        try:
+            price = int(float(soup.select_one('LandedPrice Amount').text))
+        except AttributeError as ex:
+            logger.error(f'error={ex}')
+            return None
 
         logger.info('action=get_lowest_priced_offers_for_asin status=done')
-        return (asin, price)
+        return price
 
     def get_fee_my_fees_estimate(self, products, filename: str):
         logger.info('action=get_fee_my_fees_estimate status=run')
@@ -295,8 +304,9 @@ class AmazonClient:
 
         mws_products_list = MWS.get_price_is_None_products()
         for product in mws_products_list:
-            asin, price = self.get_lowest_priced_offers_for_asin(product.asin)
-            MWS.update_price(asin=asin, filename=product.filename, price=price)
+            price = self.get_lowest_priced_offers_for_asin(product.asin)
+            if price is not None:
+                MWS.update_price(asin=product.asin, filename=product.filename, price=price)
 
         logger.info('action=pool_get_lowest_priced_offers_for_asin status=done')
 

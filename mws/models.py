@@ -65,14 +65,19 @@ class MWS(Base):
             past_date = datetime.date.today() - datetime.timedelta(days=term)
             try:
                 asin_list = session.query(cls.asin).filter(profit > 200, profit_rate > 0.1)\
-                .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
-                .filter(or_(KeepaProducts.asin is None, KeepaProducts.modified < past_date)).all()
+                            .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
+                            .filter(or_(KeepaProducts.asin is None, KeepaProducts.modified < past_date)).all()
                 asin_list = list(map(lambda x: x[0], asin_list))
             except Exception as ex:
                 logger.error(f'action=get_asin_to_request_keepa error={ex}')
                 return None
             return asin_list
 
+    @classmethod
+    def get_price_is_None_products(cls):
+        with session_scope() as session:
+            products = session.query(cls).filter(cls.price == None).all()
+            return products
 
     @classmethod
     def update_price(cls, asin: str, filename: str, price: int):
