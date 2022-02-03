@@ -2,7 +2,6 @@ from contextlib import contextmanager
 import datetime
 from logging import getLogger
 import threading
-from tkinter import E
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column
