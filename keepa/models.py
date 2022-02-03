@@ -43,7 +43,7 @@ class KeepaProducts(Base):
             return False
 
     @classmethod
-    def object_get_db_asin(cls, asin, delay=90):
+    def object_get_db_asin(cls, asin, delay=30):
         with session_scope() as session:
             delay_date = datetime.date.today() - datetime.timedelta(days=delay)
             product = session.query(cls).filter(cls.asin == asin, cls.modified >= delay_date).first()

@@ -1,6 +1,7 @@
 from datetime import datetime
 import urllib.parse
 import hmac
+from xml.dom.minidom import Attr
 import six
 import hashlib
 import base64
@@ -12,14 +13,17 @@ import logging.config
 import os
 import pathlib
 import shutil
+import urllib.parse
 
 import openpyxl
 import requests
 import xml.etree.ElementTree as et
 import pandas as pd
 from lxml import etree
+from bs4 import BeautifulSoup
 
 from mws import multiprocess
+from mws.models import MWS
 import settings
 
 
@@ -30,13 +34,14 @@ def datetime_encode(dt):
     return dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
-def request_api(url):
+def request_api(url, data=None):
     logger.info('action=request_api status=run')
 
     for _ in range(60):
         try:
-            response = requests.post(url, timeout=30.0)
+            response = requests.post(url, data=data, timeout=30.0)
             if not response.status_code == 200 or response is None:
+                logger.error(response.text)
                 raise Exception
             logger.info('action=request_api status=done')
             return response
@@ -83,7 +88,6 @@ class AmazonClient:
 
         query_string = '&'.join('{}={}'.format(
             n, urllib.parse.quote(v, safe='')) for n, v in sorted(data_dict.items()))
-
         canonical = "{}\n{}\n{}\n{}".format(
             'POST', self.domain, self.endpoint, query_string)
 
@@ -99,12 +103,13 @@ class AmazonClient:
         logger.debug('action=create_request_url status=done')
         return url
 
-    def get_matching_product_for_id(self, products: list, price_que=None, fee_que=None, manager=None):
+    def get_matching_product_for_id(self, products_dict: dict, filename: str, price_que=None, fee_que=None, manager=None):
         """Searching Asin code for Jan code
         share memory list append searching object
         share.append([jan, cost, asin, rank, quantity])"""
         logger.info('action=get_matching_product_for_id status=run')
         data = []
+        products = list(products_dict.keys())
 
         while products:
             product = [products.pop() for _ in range(5) if products]
@@ -119,6 +124,7 @@ class AmazonClient:
 
             url = self.create_request_url(data_dict=data_dict)
             response = request_api(url)
+            response.encoding = response.apparent_encoding
             logger.info('action=get_matching_product_for_id status=run')
             # import xml.dom.minidom
             # x = xml.dom.minidom.parseString(response.text)
@@ -133,12 +139,16 @@ class AmazonClient:
                         asin = item.find(".//ASIN", tree.nsmap).text
                         unit = int(item.find(".//{*}PackageQuantity").text)
                         jan = result.attrib.get('Id')
+                        title = item.find(".//{*}Title").text
                     except AttributeError as e:
                         logger.debug(e)
                         continue
                     logger.debug(asin, unit, jan)
                     data.append([asin, unit, jan])
                     asin_lst.append(asin)
+                    cost = products_dict.get(jan)
+                    mws = MWS(asin=asin, title=title, jan=jan, unit=unit, filename=filename, cost=cost)
+                    mws.save()
 
             if price_que is not None and fee_que is not None:
                 price_que.put(asin_lst)
@@ -149,7 +159,7 @@ class AmazonClient:
         manager['matching_df'] = df
 
 
-    def get_competitive_pricing_for_asin(self, products):
+    def get_competitive_pricing_for_asin(self, products, filename: str):
         logger.info('action=get_competitive_pricing_for_asin status=run')
         data = []
 
@@ -170,17 +180,80 @@ class AmazonClient:
             for item in tree.findall('.//{*}Product'):
                 try:
                     asin = item.find('.//{*}ASIN').text
+                except AttributeError as ex:
+                    logger.error(ex)
+                    logger.error('asin is None')
+                    continue
+                try:
+                    price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
+                except AttributeError as ex:
+                    logger.debug(ex)
+                    price = 0
+                logger.debug(asin, price)
+                data.append([asin, price])
+                MWS.update_price(asin=asin, filename=filename, price=price)
+
+        logger.info('action=get_competitive_pricing_for_asin status=done')
+        return data
+
+    def get_lowest_priced_offer_listtings_for_asin(self, products: list, filename: str):
+        logger.info('action=get_lowest_priced_offer_listtings_for_asin status=run')
+        data = []
+
+        while products:
+            product = [products.pop() for _ in range(20) if products]
+            data_dict = dict(self.data)
+            data_dict['MarketplaceId'] = settings.MARKETPLACEID
+            data_dict['ItemCondition'] = 'New'
+            data_dict['Action'] = 'GetLowestOfferListingsForASIN'
+            for index, asin in enumerate(product):
+                data_dict[f'ASINList.ASIN.{str(index+1)}'] = asin
+
+            url = self.create_request_url(data_dict=data_dict)
+            response = request_api(url)
+            time.sleep(0.1 * len(product))
+            tree = etree.fromstring(response.text)
+
+            for item in tree.findall('.//{*}Product'):
+                try:
+                    asin = item.find('.//{*}ASIN').text
                     price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
                 except AttributeError as e:
                     logger.debug(e)
                     continue
                 logger.debug(asin, price)
                 data.append([asin, price])
+                MWS.update_price(asin=asin, filename=filename, price=price)
 
         logger.info('action=get_competitive_pricing_for_asin status=done')
         return data
 
-    def get_fee_my_fees_estimate(self, products):
+    def get_lowest_priced_offers_for_asin(self, asin: str, interval_sec: int = 1) -> int:
+        logger.info('action=get_lowest_priced_offers_for_asin status=run')
+
+        data_dict = dict(self.data)
+        data_dict['MarketplaceId'] = settings.MARKETPLACEID
+        data_dict['ItemCondition'] = 'New'
+        data_dict['Action'] = 'GetLowestPricedOffersForASIN'
+        data_dict['ASIN'] = asin
+
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(self.create_request_url(data_dict=data_dict)).query)
+        url = "https://mws.amazonservices.jp/Products/2011-10-01"
+
+        response = request_api(url=url, data=query)
+        time.sleep(interval_sec)
+
+        soup = BeautifulSoup(response.text, 'lxml')
+        try:
+            price = int(float(soup.select_one('LandedPrice Amount').text))
+        except AttributeError as ex:
+            logger.error(f'error={ex}')
+            return None
+
+        logger.info('action=get_lowest_priced_offers_for_asin status=done')
+        return price
+
+    def get_fee_my_fees_estimate(self, products, filename: str):
         logger.info('action=get_fee_my_fees_estimate status=run')
         data = []
 
@@ -221,9 +294,21 @@ class AmazonClient:
                 asin = item.find('.//FeesEstimateIdentifier//IdValue', tree.nsmap).text
                 logger.debug(asin, fee_rate, ship_fee)
                 data.append([asin, fee_rate, ship_fee])
+                MWS.update_fee(asin=asin, filename=filename, fee_rate=fee_rate, shipping_fee=ship_fee)
 
         logger.info('action=get_fee_my_fees_estimate status=done')
         return data
+
+    def pool_get_lowest_priced_offers_for_asin(self):
+        logger.info('action=pool_get_lowest_priced_offers_for_asin status=run')
+
+        mws_products_list = MWS.get_price_is_None_products()
+        for product in mws_products_list:
+            price = self.get_lowest_priced_offers_for_asin(product.asin)
+            if price is not None:
+                MWS.update_price(asin=product.asin, filename=product.filename, price=price)
+
+        logger.info('action=pool_get_lowest_priced_offers_for_asin status=done')
 
     def request_report(self, report_type: str, start_date, end_date):
         logger.info('action=request_report status=run')
@@ -306,14 +391,16 @@ def main():
         if file:
             client = AmazonClient()
             products_df = pd.read_excel(str(file), dtype={'JAN': str}).rename(columns={'JAN': 'jan', 'Cost': 'cost'}).drop_duplicates()
+            product_dict = {jan: cost for jan, cost in zip(products_df['jan'], products_df['cost'])}
             price_que = Queue()
             fee_que = Queue()
             manager = Manager()
             manager = manager.dict()
+            filename = file.stem
 
-            get_matching_prodcut_for_id_process = Process(target=client.get_matching_product_for_id, args=(list(products_df['jan']), price_que, fee_que, manager))
-            get_competitive_pricing_for_asin_process = Process(target=multiprocess.get_competitive_pricing_for_asin_worker, args=(price_que, manager))
-            get_fee_my_fees_estimate_process = Process(target=multiprocess.get_fee_my_fees_estimate_worker, args=(fee_que, manager))
+            get_matching_prodcut_for_id_process = Process(target=client.get_matching_product_for_id, args=(product_dict, filename, price_que, fee_que, manager))
+            get_competitive_pricing_for_asin_process = Process(target=multiprocess.get_competitive_pricing_for_asin_worker, args=(filename, price_que, manager))
+            get_fee_my_fees_estimate_process = Process(target=multiprocess.get_fee_my_fees_estimate_worker, args=(filename, fee_que, manager))
 
             get_matching_prodcut_for_id_process.start()
             get_competitive_pricing_for_asin_process.start()
