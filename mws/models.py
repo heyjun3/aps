@@ -60,7 +60,16 @@ class MWS(Base):
     @classmethod
     def get_completion_filename_list(cls):
         with session_scope() as session:
-            filename_list = session.query(cls.filename).distinct(cls.filename).all()
+            profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
+            profit_rate = profit / cls.price
+
+            mws_sub_query = session.query(distinct(cls.filename)).filter(or_(cls.price == None, cls.fee_rate == None))
+            keepa_sub_query = session.query(distinct(cls.filename)).filter(profit > 200, profit_rate > 0.1)\
+                              .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).filter(KeepaProducts.asin == None)
+            
+            filename_list = session.query(distinct(cls.filename)).filter(cls.filename.notin_(mws_sub_query.union(keepa_sub_query))).all()
+            filename_list = sorted(list(map(lambda x: x[0], filename_list)), key=lambda x: x)
+
             return filename_list
 
     @classmethod
