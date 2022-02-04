@@ -73,6 +73,16 @@ class MWS(Base):
             return filename_list
 
     @classmethod
+    def get_render_data(cls, filename: str):
+        with session_scope() as session:
+            profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
+            profit_rate = profit / cls.price
+
+            rows = session.query(cls, KeepaProducts).filter(profit >= 200, profit_rate >= 0.1, cls.filename == filename)\
+                   .join(KeepaProducts, cls.asin == KeepaProducts.asin).filter(KeepaProducts.sales_drops_90 > 3).all()
+            return rows
+
+    @classmethod
     def get_asin_to_request_keepa(cls, term=30):
         with session_scope() as session:
             profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
