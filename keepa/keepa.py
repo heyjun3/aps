@@ -150,6 +150,3 @@ def keepa_worker():
                 logger.error(f'action=shutil.move error={e}')
                 os.remove(str(path))
                 pass
-
-
-

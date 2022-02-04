@@ -102,7 +102,7 @@ class KeepaProducts(Base):
         df = df.sort_values('date', ascending=True)
         products = df.to_dict('records')
     
-        return {'products': products}
+        return products
 
     @property
     def value(self):
