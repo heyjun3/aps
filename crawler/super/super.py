@@ -152,7 +152,7 @@ def list_to_excel_file(products: list, save_path: str):
     logger.info('action=list_to_excel_file status=done')
 
 
-def detail_page_selector(response: Response, sales_tax: float = 1.1):
+def detail_page_selector(response: Response, sales_tax: float = 1.1, save_flag = None):
     logger.info('action=detail_page_selector status=run')
     products = []
 
@@ -176,7 +176,8 @@ def detail_page_selector(response: Response, sales_tax: float = 1.1):
     for product in products.values():
         product.product_code = product_code
         product.shop_code = shop_code
-        product.save_or_update()
+        if save_flag is None:
+            product.save_or_update()
     
     products = list(products.values())
     
@@ -244,7 +245,7 @@ def next_page_selector(response):
     return next_page_url
 
 
-def collection_favorite_products():
+def collection_favorite_products(interval_sec: int = 2):
 
     collect_data = []
     url = 'https://www.superdelivery.com/p/wishlist/search.do'
@@ -252,7 +253,7 @@ def collection_favorite_products():
 
     while True:
         response = utils.request(url=url, session=session)
-        time.sleep(2)
+        time.sleep(interval_sec)
         products = scraping_favorite_page(response)
         url = next_page_selector(response)
         collect_data.extend(products)
@@ -263,15 +264,20 @@ def collection_favorite_products():
     df = pd.DataFrame(data=None, columns={'jan': str, 'cost': int})
     for item in collect_data:
         url, cost = item
-        products = Super.get_url(url)
+        product_code = url.split('/')[-2]
+        products = SuperProductDetails.get_objects_to_product_code(product_code)
+
         if products is None:
-            continue
-        else:
-            for product in products:
-                jan = product.jan
-                if not jan:
-                    print(product.value)
-                df = df.append({'jan': jan, 'cost': cost}, ignore_index=True)
+            response = utils.request(url=url, session=session)
+            time.sleep(interval_sec)
+            products = detail_page_selector(response, save_flag=True)
+
+        for product in products:
+                if product.jan:
+                    df = df.append({'jan': product.jan, 'cost': cost}, ignore_index=True)
+                else:
+                    logger.info(product.value)
+
     df = df.dropna()
     return df
 
