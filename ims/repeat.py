@@ -1,11 +1,8 @@
 import datetime
 import os
 
-import openpyxl
 import pandas as pd
 
-from ims.models import InactiveStock
-from ims.models import FavoriteProduct
 from ims.models import Product
 from mws.api import AmazonClient
 from crawler.netsea import netsea
@@ -37,14 +34,8 @@ def get_marchant_listings_inactive_data():
 def main():
 
     netsea_df = netsea.collect_favorite_products()
-    netsea_df.to_csv('./netsea.csv', index=False)
     super_df = super.collection_favorite_products()
-    super_df.to_csv('./super.csv', index=False)
-    # netsea_df = pd.read_csv('./netsea.csv', dtype={'jan': str}).dropna()
-    # super_df = pd.read_csv('./super.csv', dtype={'jan': str}).dropna()
     mws_df = get_marchant_listings_inactive_data()
-    mws_df.to_csv('./mws.csv', index=False)
-    # mws_df = pd.read_csv('./mws.csv')
     products = Product.get_all_objects()
     products = list(map(lambda x: x.value, products))
     product_df = pd.DataFrame(data=products)
