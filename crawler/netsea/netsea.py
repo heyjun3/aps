@@ -11,6 +11,7 @@ from requests import Session
 from bs4 import BeautifulSoup
 import openpyxl
 from requests import Response
+import pandas as pd
 
 import settings
 from crawler.netsea.models import Netsea
@@ -350,19 +351,20 @@ def discount_shops():
     return shop_ids
 
 
-def collect_favorite_products():
+def collect_favorite_products(interval_sec: int = 2):
     collect_data = []
     url = 'https://www.netsea.jp/bookmark?stock_option=in&page=1'
     session = login()
     while True:
         response = utils.request(session=session, url=url)
-        time.sleep(2)
+        time.sleep(interval_sec)
         products = scraping_favorite_list_page(response)
         url = scraping_next_url_favorite_list_page(response)
         collect_data.extend(products)
         if not url:
             break
 
+    df = pd.DataFrame(data=None, columns={'jan': str, 'cost': int})
     for product in collect_data:
         jan = ''
         url, price = product
@@ -378,9 +380,9 @@ def collect_favorite_products():
                 print(netsea_object.value)
             else:
                 jan = netsea_object.jan
-        FavoriteProduct.save(url=url, jan=jan, cost=price)
-
-    return
+        df = df.append({'jan': jan, 'cost': price}, ignore_index=True)
+    df = df.dropna()
+    return df
 
 
 def scraping_favorite_list_page(response: Response):

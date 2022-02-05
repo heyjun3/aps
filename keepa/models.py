@@ -9,7 +9,8 @@ from sqlalchemy import JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from contextlib import contextmanager
-from ims.models import NoneskuException
+import pandas as pd
+import numpy as np
 
 import settings
 
@@ -88,6 +89,25 @@ class KeepaProducts(Base):
                 return None
 
     @property
+    def render_price_rank_data(self):
+        rank_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.rank_data.items()}
+        price_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.price_data.items()}
+
+        rank_df = pd.DataFrame(data=list(rank_dict.items()), columns=['date', 'rank']).astype({'rank': int})
+        price_df = pd.DataFrame(data=list(price_dict.items()), columns=['date', 'price']).astype({'price': int})
+
+        df = pd.merge(rank_df, price_df, on='date', how='outer')
+        df = df.replace(-1.0, np.nan)
+        df = df.fillna(method='ffill')
+        df = df.fillna(method='bfill')
+        delay = datetime.datetime.now().date() - datetime.timedelta(days=90)
+        df = df[df['date'] > delay]
+        df = df.sort_values('date', ascending=True)
+        products = df.to_dict('records')
+    
+        return products
+
+    @property
     def value(self):
         return {
             'asin': self.asin,
@@ -118,3 +138,9 @@ def session_scope():
 
 def init_db():
     Base.metadata.create_all(bind=postgresql_engine)
+
+
+def convert_keepa_time_to_datetime_date(keepa_time: int):
+    unix_time = (keepa_time + 21564000) * 60
+    date_time = datetime.datetime.fromtimestamp(unix_time)
+    return date_time.date()

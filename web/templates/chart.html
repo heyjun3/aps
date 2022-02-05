@@ -2,7 +2,7 @@
 	<head>
 	  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 	  <link rel="stylesheet" href="{{ url_for('static', filename='chart.css') }}">
-	  {% for product in products %}
+	  {% for mws, keepa in products %}
 	  <script type="text/javascript">
 		google.charts.load('current', {'packages':['corechart', 'line']});
 		google.charts.setOnLoadCallback(drawChart);
@@ -10,7 +10,7 @@
 		function drawChart() {
 		  var data = google.visualization.arrayToDataTable([
 			['Date', 'Rank', 'Price'],
-			{% for item in product.product %}
+			{% for item in keepa.render_price_rank_data %}
 				["{{ item.date }}", {{ item.rank }}, {{ item.price }}],
 			{% endfor %}
 		  ]);
@@ -35,16 +35,17 @@
 			  }
 			}
 		  };
-          var chart = new google.charts.Line(document.getElementById("{{ product.asin }}"));
+          var chart = new google.charts.Line(document.getElementById("{{ keepa.asin }}"));
 		  chart.draw(data, materialOptions);
 		}
 	  </script>
 	  {% endfor %}
 	</head>
 	<body>
-	{% for product in products %}
-	  <div class="graph" id="{{ product.asin }}" style="width: 900px; height: 400px"></div>
-	  <h3><a href="https://www.amazon.co.jp/dp/{{ product.asin }}" target="_blank" rel="noopener noreferrer">ASIN : {{ product.asin }}</a><h3>
+	{% for mws, keepa in products %}
+	  <h2>{{ mws.title }}</h2>
+	  <div class="graph" id="{{ mws.asin }}" style="width: 900px; height: 400px"></div>
+	  <h3><a href="https://www.amazon.co.jp/dp/{{ mws.asin }}" target="_blank" rel="noopener noreferrer">ASIN : {{ mws.asin }}</a>  JAN : {{ mws.jan }}<h3>
 	{% endfor %}
 	</body>
   </html>

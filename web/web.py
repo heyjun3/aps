@@ -1,59 +1,33 @@
-import datetime
-import pathlib
-import os
-
 from flask import Flask
 from flask import render_template
-import pandas as pd
+from flask import redirect
+from flask import url_for
+from flask import request
 
-from keepa.models import KeepaProducts
-from keepa import keepa 
+from mws.models import MWS
 import settings
 
 
 app = Flask(__name__)
 
 
-def convert_price_rank_data(price_data, rank_data):
-
-    rank_dict = {keepa.convert_keepa_time_to_datetime_date(int(k)): v for k, v in rank_data.items()}
-    price_dict = {keepa.convert_keepa_time_to_datetime_date(int(k)): v for k, v in price_data.items()}
-
-    rank_df = pd.DataFrame(data=list(rank_dict.items()), columns=['date', 'rank']).astype({'rank': int})
-    price_df = pd.DataFrame(data=list(price_dict.items()), columns=['date', 'price']).astype({'price': int})
-
-    df = pd.merge(rank_df, price_df, on='date', how='outer')
-    df = df.fillna(method='ffill')
-    delay = datetime.datetime.now().date() - datetime.timedelta(days=90)
-    df = df[df['date'] > delay]
-    df = df.sort_values('date', ascending=True)
-    products = df.to_dict('records')
-    
-    return products
-
-
 @app.route('/')
 def index():
-    path = list(pathlib.Path(settings.KEEPA_SAVE_PATH).iterdir())
-    path = list(map(lambda x: x.stem, path))
-    path = sorted(path, key=lambda x: x)
+    filename_list = MWS.get_completion_filename_list()
 
-    return render_template('index.html', save_path=path)
+    return render_template('index.html', save_path=filename_list)
 
 
 @app.route('/graph/<string:filename>', methods=['GET'])
 def view_graph(filename):
-    path = os.path.join(settings.KEEPA_SAVE_PATH, f'{filename}.xlsx')
-    df = pd.read_excel(path)
-    asin_list = list(df['asin'])
-    products_list = []
-    for asin in asin_list:
-        keepa_product = KeepaProducts.get_keepa_product(asin)
-        if keepa_product is None or keepa_product.price_data is None or keepa_product.rank_data is None:
-            continue
-        price_rank_data = convert_price_rank_data(keepa_product.price_data, keepa_product.rank_data)
-        products_list.append({'product': price_rank_data, 'asin': asin})
+    products_list = MWS.get_render_data(filename=filename)
     return render_template('chart.html', products=products_list)
+
+
+@app.route('/delete/<string:filename>', methods=['POST'])
+def delete_filename(filename):
+    MWS.delete_objects(filename)
+    return redirect(url_for('index'))
 
 
 def start():

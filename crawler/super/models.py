@@ -92,6 +92,15 @@ class SuperProductDetails(Base):
                     return products
             return None
 
+    @classmethod
+    def get_objects_to_product_code(cls, product_code: str):
+        with session_scope() as session:
+            products = session.query(cls).filter(cls.product_code == product_code).all()
+            if products:
+                return products
+            else:
+                return None
+                
     def save(self):
         try:
             with session_scope() as session:

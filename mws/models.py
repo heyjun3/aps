@@ -60,8 +60,27 @@ class MWS(Base):
     @classmethod
     def get_completion_filename_list(cls):
         with session_scope() as session:
-            filename_list = session.query(cls.filename).distinct(cls.filename).all()
+            profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
+            profit_rate = profit / cls.price
+
+            mws_sub_query = session.query(distinct(cls.filename)).filter(or_(cls.price == None, cls.fee_rate == None))
+            keepa_sub_query = session.query(distinct(cls.filename)).filter(profit > 200, profit_rate > 0.1)\
+                              .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).filter(KeepaProducts.asin == None)
+            
+            filename_list = session.query(distinct(cls.filename)).filter(cls.filename.notin_(mws_sub_query.union(keepa_sub_query))).all()
+            filename_list = sorted(list(map(lambda x: x[0], filename_list)), key=lambda x: x)
+
             return filename_list
+
+    @classmethod
+    def get_render_data(cls, filename: str):
+        with session_scope() as session:
+            profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
+            profit_rate = profit / cls.price
+
+            rows = session.query(cls, KeepaProducts).filter(profit >= 200, profit_rate >= 0.1, cls.filename == filename)\
+                   .join(KeepaProducts, cls.asin == KeepaProducts.asin).filter(KeepaProducts.sales_drops_90 > 3).all()
+            return rows
 
     @classmethod
     def get_asin_to_request_keepa(cls, term=30):
@@ -106,6 +125,12 @@ class MWS(Base):
             except Exception as ex:
                 logger.error(f'action=update_fee_and_profit error={ex}')
                 return False
+            return True
+
+    @classmethod
+    def delete_objects(cls, filename: str):
+        with session_scope() as session:
+            session.query(cls).filter(cls.filename == filename).delete()
             return True
 
     @property
