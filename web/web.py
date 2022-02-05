@@ -1,5 +1,8 @@
 from flask import Flask
 from flask import render_template
+from flask import redirect
+from flask import url_for
+from flask import request
 
 from mws.models import MWS
 import settings
@@ -19,6 +22,12 @@ def index():
 def view_graph(filename):
     products_list = MWS.get_render_data(filename=filename)
     return render_template('chart.html', products=products_list)
+
+
+@app.route('/delete/<string:filename>', methods=['POST'])
+def delete_filename(filename):
+    MWS.delete_objects(filename)
+    return redirect(url_for('index'))
 
 
 def start():
