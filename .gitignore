@@ -8,3 +8,4 @@ todo.txt
 *.log
 test*.html
 tmp.py
+*.csv
