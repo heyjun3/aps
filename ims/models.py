@@ -66,6 +66,12 @@ class Product(Base):
             return False
 
     @classmethod
+    def get_all_objects(cls):
+        with session_scope() as session:
+            products = session.query(cls).all()
+            return products
+
+    @classmethod
     def sku_get_detail(cls, sku):
         with session_scope() as session:
             product = session.query(cls).filter(cls.sku == sku).first()

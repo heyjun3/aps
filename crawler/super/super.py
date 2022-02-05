@@ -259,7 +259,8 @@ def collection_favorite_products():
         logger.debug(url)
         if url is None:
             break
-
+    
+    df = pd.DataFrame(data=None, columns={'jan': str, 'cost': int})
     for item in collect_data:
         url, cost = item
         products = Super.get_url(url)
@@ -270,8 +271,9 @@ def collection_favorite_products():
                 jan = product.jan
                 if not jan:
                     print(product.value)
-                FavoriteProduct.save(url=url, jan=jan, cost=cost)
-    return None
+                df = df.append({'jan': jan, 'cost': cost}, ignore_index=True)
+    df = df.dropna()
+    return df
 
 
 def scraping_favorite_page(response: Response):

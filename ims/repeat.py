@@ -2,9 +2,11 @@ import datetime
 import os
 
 import openpyxl
+import pandas as pd
 
 from ims.models import InactiveStock
 from ims.models import FavoriteProduct
+from ims.models import Product
 from mws.api import AmazonClient
 from crawler.netsea import netsea
 from crawler.super import super
@@ -25,33 +27,33 @@ def get_marchant_listings_inactive_data():
     report_id = amazon_client.get_report_request_list(request_id=request_id)
     inventory_data = amazon_client.get_report(report_id)
 
+    df = pd.DataFrame(data=None, columns={'sku': str, 'asin': str})
     for data in inventory_data[1:-1]:
         sku, asin = data[2], data[11]
-        InactiveStock.save(sku, asin)
+        df = df.append({'sku': sku, 'asin': asin}, ignore_index=True)
 
+    return df
 
 def main():
-    InactiveStock.delete()
-    FavoriteProduct.delete()
 
-    netsea.collect_favorite_products()
-    super.collection_favorite_products()
-    get_marchant_listings_inactive_data()
+    netsea_df = netsea.collect_favorite_products()
+    netsea_df.to_csv('./netsea.csv', index=False)
+    super_df = super.collection_favorite_products()
+    super_df.to_csv('./super.csv', index=False)
+    # netsea_df = pd.read_csv('./netsea.csv', dtype={'jan': str}).dropna()
+    # super_df = pd.read_csv('./super.csv', dtype={'jan': str}).dropna()
+    mws_df = get_marchant_listings_inactive_data()
+    mws_df.to_csv('./mws.csv', index=False)
+    # mws_df = pd.read_csv('./mws.csv')
+    products = Product.get_all_objects()
+    products = list(map(lambda x: x.value, products))
+    product_df = pd.DataFrame(data=products)
 
-    data = {}
-    products = InactiveStock.get_asin_cost()
-    for product in products:
-        inactive, master, favorite = product
-        data[master.jan] = favorite.cost
-
-    workbook = openpyxl.Workbook()
-    sheet = workbook['Sheet']
-    sheet.append(['JAN', 'Cost'])
-
-    for key, value in data.items():
-        sheet.append([key, value])
+    df_concat = pd.concat([netsea_df, super_df])
+    df = pd.merge(mws_df, product_df, on='asin', how='inner')
+    df = pd.merge(df, df_concat, on='jan', how='inner')
+    df = df[['jan', 'cost']].dropna().rename(columns={'jan': 'JAN', 'cost': 'Cost'})
 
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     save_path = os.path.join(settings.SCRAPE_SCHEDULE_SAVE_PATH, f'repeatedly{timestamp}.xlsx')
-    workbook.save(save_path)
-    workbook.close()
+    df.to_excel(save_path, index=False)
