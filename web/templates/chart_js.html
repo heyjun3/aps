@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang='ja'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <script src="{{ url_for('static', filename='node_modules/chart.js/dist/chart.js') }}"></script>
+    <title>Chart.js</title>
+</head>
+<body>
+    <div style="width:50%;">
+        <canvas id="myChart" width="400px" height="400px"></canvas>
+    </div>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>

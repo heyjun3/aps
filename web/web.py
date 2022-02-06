@@ -30,5 +30,10 @@ def delete_filename(filename):
     return redirect(url_for('index'))
 
 
+@app.route('/chart', methods=['GET'])
+def chart():
+    return render_template('chart_js.html')
+
+
 def start():
     app.run(host=settings.HOST, port=settings.PORT, threaded=True, debug=True)
