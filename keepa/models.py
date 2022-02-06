@@ -88,24 +88,6 @@ class KeepaProducts(Base):
             else:
                 return None
 
-    @property
-    def render_price_rank_data(self):
-        rank_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.rank_data.items()}
-        price_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.price_data.items()}
-
-        rank_df = pd.DataFrame(data=list(rank_dict.items()), columns=['date', 'rank']).astype({'rank': int})
-        price_df = pd.DataFrame(data=list(price_dict.items()), columns=['date', 'price']).astype({'price': int})
-
-        df = pd.merge(rank_df, price_df, on='date', how='outer')
-        df = df.replace(-1.0, np.nan)
-        df = df.fillna(method='ffill')
-        df = df.fillna(method='bfill')
-        delay = datetime.datetime.now().date() - datetime.timedelta(days=90)
-        df = df[df['date'] > delay]
-        df = df.sort_values('date', ascending=True)
-        products = df.to_dict('records')
-    
-        return products
     
     @property
     def render_price_rank_data_list(self):

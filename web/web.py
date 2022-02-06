@@ -18,12 +18,6 @@ def index():
     return render_template('index.html', save_path=filename_list)
 
 
-@app.route('/graph/<string:filename>', methods=['GET'])
-def view_graph(filename):
-    products_list = MWS.get_render_data(filename=filename)
-    return render_template('chart.html', products=products_list)
-
-
 @app.route('/delete/<string:filename>', methods=['POST'])
 def delete_filename(filename):
     MWS.delete_objects(filename)
@@ -47,7 +41,7 @@ def chart(filename):
         }
         render_data_list.append(product)
 
-    return render_template('chart_js.html', products_list=render_data_list)
+    return render_template('chart.html', products_list=render_data_list)
 
 
 def start():
