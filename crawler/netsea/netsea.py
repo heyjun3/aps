@@ -223,7 +223,6 @@ def list_to_excel_file(products: list, save_path: str) -> None:
 
 def shop_list_page_selector(response: Response):
     logger.info('action=shop_list_page_selector status=run')
-    new_shop_urls = []
 
     soup = BeautifulSoup(response.text, 'html.parser')
     shops = soup.select('.supNameList a')
@@ -233,25 +232,25 @@ def shop_list_page_selector(response: Response):
         shop_name = shop.text
         shop_url = shop.attrs['href']
         shop_id = int(shop_url.split('/')[-1])
-        create_bool = NetseaShop.create(name=shop_name, shop_id=shop_id, url=shop_url,
-                                        quantity=None, category=category)
-        if create_bool:
-            new_shop_urls.append(shop_url)
-
+        NetseaShop.create(name=shop_name, shop_id=shop_id, url=shop_url, quantity=None, category=category)
+    
     next_url = response.url.replace(category, str(int(category)+1))
     if category == '9':
-        next_url = None
+        return None
 
-    return new_shop_urls, next_url
+    return next_url
 
 
-# def new_shop_search():
-#     logger.info('action=new_shop_search status=run')
-#     session = requests.session()
-#     start_url = 'https://www.netsea.jp/shop?category_id=1&sort=NEW'
-#     new_shop_urls = common.common_pool_list_page(shop_list_page_selector, session, start_url)
-#     for url in new_shop_urls:
-#         run_netsea(url)
+def new_shop_search():
+    logger.info('action=new_shop_search status=run')
+    session = login()
+    url = 'https://www.netsea.jp/shop?category_id=1&sort=NEW'
+    while True:
+        response = utils.request(url=url, session=session)
+        url = shop_list_page_selector(response)
+        if url is None:
+            logger.info('action=new_shop_search status=done')
+            break
 
 
 # def get_product_count(session: Session, url: str):
@@ -419,3 +418,10 @@ def scraping_next_url_favorite_list_page(response: Response):
 
     logger.info('action=scraping_next_url_favorite_list_page status=done')
     return next_url
+
+
+def netsea_all():
+    new_shop_search()
+    shops = NetseaShop.get_all_info()
+    for shop in shops:
+        run_netsea(shop.url)
