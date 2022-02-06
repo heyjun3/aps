@@ -9,3 +9,4 @@ todo.txt
 test*.html
 tmp.py
 *.csv
+node_modules

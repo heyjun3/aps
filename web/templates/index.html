@@ -3,7 +3,7 @@
     </head>
     <body>
         {% for path in save_path %}
-        <a href="{{ url_for('view_graph', filename=path) }}">{{ path }}</a>
+        <a href="{{ url_for('chart', filename=path) }}">{{ path }}</a>
         <form action="{{ url_for('delete_filename', filename=path) }}" method="post">
           <input class="danger" type="submit" value="Delete" onclick="return confirm('Are you sure?');">
         </form>
