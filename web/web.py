@@ -28,6 +28,9 @@ def delete_filename(filename):
 def chart(filename):
     render_data_list = []
     products_list = MWS.get_render_data(filename=filename)
+    if not products_list:
+        return redirect(url_for('index'))
+        
     for mws, keepa in products_list:
         date, rank, price = keepa.render_price_rank_data_list
         date = list(map(lambda x: x.isoformat(), date))
