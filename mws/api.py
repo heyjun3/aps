@@ -103,61 +103,40 @@ class AmazonClient:
         logger.debug('action=create_request_url status=done')
         return url
 
-    def get_matching_product_for_id(self, products_dict: dict, filename: str, price_que=None, fee_que=None, manager=None):
-        """Searching Asin code for Jan code
-        share memory list append searching object
-        share.append([jan, cost, asin, rank, quantity])"""
+    def get_matching_product_for_id(self, products_dict: dict, interval_sec: int = 1):
         logger.info('action=get_matching_product_for_id status=run')
-        data = []
+        mws_object_list = []
+        
         products = list(products_dict.keys())
+        data_dict = dict(self.data)
+        data_dict['MarketplaceId'] = settings.MARKETPLACEID
+        data_dict['IdType'] = 'JAN'
+        data_dict['Action'] = 'GetMatchingProductForId'
+        for index, jan in enumerate(products):
+            data_dict[f'IdList.Id.{str(index+1)}'] = str(jan)
 
-        while products:
-            product = [products.pop() for _ in range(5) if products]
+        url = self.create_request_url(data_dict=data_dict)
+        response = request_api(url)
+        response.encoding = response.apparent_encoding
+        time.sleep(interval_sec)
+        tree = etree.fromstring(response.text)
 
-            data_dict = dict(self.data)
-            data_dict['MarketplaceId'] = settings.MARKETPLACEID
-            data_dict['IdType'] = 'JAN'
-            data_dict['Action'] = 'GetMatchingProductForId'
-            for index, jan in enumerate(product):
-                data_dict[f'IdList.Id.{str(index+1)}'] = str(jan)
-            logger.debug(data_dict)
+        for result in tree.findall(".//GetMatchingProductForIdResult", tree.nsmap):
+            for item in result.findall(".//Product", tree.nsmap):
+                try:
+                    asin = item.find(".//ASIN", tree.nsmap).text
+                    unit = int(item.find(".//{*}PackageQuantity").text)
+                    jan = result.attrib.get('Id')
+                    title = item.find(".//{*}Title").text
+                except AttributeError as e:
+                    logger.debug(e)
+                    continue
 
-            url = self.create_request_url(data_dict=data_dict)
-            response = request_api(url)
-            response.encoding = response.apparent_encoding
-            logger.info('action=get_matching_product_for_id status=run')
-            # import xml.dom.minidom
-            # x = xml.dom.minidom.parseString(response.text)
-            # print(x.toprettyxml())
-            time.sleep(1)
-            tree = etree.fromstring(response.text)
+                cost = products_dict.get(jan)
+                mws = MWS(asin=asin, title=title, jan=jan, unit=unit, cost=cost)
+                mws_object_list.append(mws)
 
-            asin_lst = []
-            for result in tree.findall(".//GetMatchingProductForIdResult", tree.nsmap):
-                for item in result.findall(".//Product", tree.nsmap):
-                    try:
-                        asin = item.find(".//ASIN", tree.nsmap).text
-                        unit = int(item.find(".//{*}PackageQuantity").text)
-                        jan = result.attrib.get('Id')
-                        title = item.find(".//{*}Title").text
-                    except AttributeError as e:
-                        logger.debug(e)
-                        continue
-                    logger.debug(asin, unit, jan)
-                    data.append([asin, unit, jan])
-                    asin_lst.append(asin)
-                    cost = products_dict.get(jan)
-                    mws = MWS(asin=asin, title=title, jan=jan, unit=unit, filename=filename, cost=cost)
-                    mws.save()
-
-            if price_que is not None and fee_que is not None:
-                price_que.put(asin_lst)
-                fee_que.put(asin_lst)
-
-        df = pd.DataFrame(data=data, columns=['asin', 'unit', 'jan']).astype({'unit': int})
-        logger.info('action=get_matching_product_for_id status=done')
-        manager['matching_df'] = df
-
+        return mws_object_list
 
     def get_competitive_pricing_for_asin(self, products, filename: str):
         logger.info('action=get_competitive_pricing_for_asin status=run')
@@ -298,6 +277,19 @@ class AmazonClient:
 
         logger.info('action=get_fee_my_fees_estimate status=done')
         return data
+    
+    def pool_get_matching_product_for_id(self, products_list: list, filename: str) -> None:
+        logger.info('action=pool_get_matching_product_for_id status=run')
+
+        while products_list:
+            products_five = [products_list.pop() for _ in range(5) if products_list]
+            products_five_dict = {jan: cost for jan, cost in products_five}
+            print(products_five_dict)
+
+            mws_objects_list = self.get_competitive_pricing_for_asin(products_five_dict)
+            for mws_object in mws_objects_list:
+                mws_object.filename = filename
+                mws_object.save()
 
     def pool_get_lowest_priced_offers_for_asin(self):
         logger.info('action=pool_get_lowest_priced_offers_for_asin status=run')
@@ -372,7 +364,7 @@ def open_excel_file(filepath: str) -> dict:
     return dict(sorted(list(worksheet.values), key=lambda x: x[1], reverse=True))
 
 
-def get_file_path():
+def get_file_path() -> pathlib.Path:
     try:
         path = next(pathlib.Path(settings.SCRAPE_SCHEDULE_SAVE_PATH).iterdir())
     except StopIteration:
@@ -428,3 +420,17 @@ def main():
             shutil.move(str(file), os.path.join(settings.SCRAPE_DONE_SAVE_PATH, file.name))
         else:
             time.sleep(60)
+
+def main_get_matching_asin_for_jan(interval_sec: int = 60) -> None:
+    logger.info('action=main_get_matching_asin_for_jan status=run')
+    
+    while True:
+        filepath = get_file_path()
+        if filepath:
+            df = pd.read_excel(str(filepath), dtype={'JAN': str}).drop_duplicates()
+            product_list = df.to_numpy().tolist()
+            client = AmazonClient()
+            client.pool_get_matching_product_for_id(products_list=product_list, filename=filepath.stem)
+            shutil.move(str(filepath), os.path.join(settings.SCRAPE_DONE_SAVE_PATH, filepath.name))
+        else:
+            time.sleep(interval_sec)
