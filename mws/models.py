@@ -65,7 +65,8 @@ class MWS(Base):
 
             mws_sub_query = session.query(distinct(cls.filename)).filter(or_(cls.price == None, cls.fee_rate == None))
             keepa_sub_query = session.query(distinct(cls.filename)).filter(profit > 200, profit_rate > 0.1)\
-                              .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).filter(KeepaProducts.asin == None)
+                              .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
+                              .filter(or_(KeepaProducts.asin == None, KeepaProducts.rank_data == None, KeepaProducts.price_data == None))
             
             filename_list = session.query(distinct(cls.filename)).filter(cls.filename.notin_(mws_sub_query.union(keepa_sub_query))).all()
             filename_list = sorted(list(map(lambda x: x[0], filename_list)), key=lambda x: x)
