@@ -1,13 +1,10 @@
 from datetime import datetime
 import urllib.parse
 import hmac
-from xml.dom.minidom import Attr
 import six
 import hashlib
 import base64
 import time
-from multiprocessing import Queue
-from multiprocessing import Manager
 from multiprocessing import Process
 import logging.config
 import os
@@ -15,14 +12,12 @@ import pathlib
 import shutil
 import urllib.parse
 
-import openpyxl
 import requests
 import xml.etree.ElementTree as et
 import pandas as pd
 from lxml import etree
 from bs4 import BeautifulSoup
 
-from mws import multiprocess
 from mws.models import MWS
 import settings
 
@@ -69,15 +64,9 @@ class AmazonClient:
         logger.info('action=request status=run')
 
         url = self.create_request_url(data_dict)
-
         response = request_api(url)
         response_text = response.content.decode()
-        # print(response_text)
         response_xml = et.fromstring(response_text)
-        # xml = et.fromstring(response_text)
-        # xml = parse(response_text)
-        # xml = xml.getroot()
-
         return response_xml
 
     def create_request_url(self, data_dict):
@@ -138,74 +127,69 @@ class AmazonClient:
 
         return mws_object_list
 
-    def get_competitive_pricing_for_asin(self, products, filename: str):
+    def get_competitive_pricing_for_asin(self, products: list) -> list:
         logger.info('action=get_competitive_pricing_for_asin status=run')
-        data = []
+        asin_price_dict = {}
 
-        while products:
-            product = [products.pop() for _ in range(20) if products]
-            data_dict = dict(self.data)
-            data_dict['MarketplaceId'] = settings.MARKETPLACEID
-            data_dict['IdType'] = 'ASIN'
-            data_dict['Action'] = 'GetCompetitivePricingForASIN'
-            for index, asin in enumerate(product):
-                data_dict[f'ASINList.ASIN.{str(index+1)}'] = asin
+        data_dict = dict(self.data)
+        data_dict['MarketplaceId'] = settings.MARKETPLACEID
+        data_dict['IdType'] = 'ASIN'
+        data_dict['Action'] = 'GetCompetitivePricingForASIN'
+        for index, asin in enumerate(products):
+            data_dict[f'ASINList.ASIN.{str(index+1)}'] = asin
 
-            url = self.create_request_url(data_dict=data_dict)
-            response = request_api(url)
-            time.sleep(0.1 * len(product))
-            tree = etree.fromstring(response.text)
+        url = self.create_request_url(data_dict=data_dict)
+        response = request_api(url)
+        time.sleep(0.1 * len(products))
+        tree = etree.fromstring(response.text)
 
-            for item in tree.findall('.//{*}Product'):
-                try:
-                    asin = item.find('.//{*}ASIN').text
-                except AttributeError as ex:
-                    logger.error(ex)
-                    logger.error('asin is None')
-                    continue
-                try:
-                    price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
-                except AttributeError as ex:
-                    logger.debug(ex)
-                    price = 0
-                logger.debug(asin, price)
-                data.append([asin, price])
-                MWS.update_price(asin=asin, filename=filename, price=price)
+        for item in tree.findall('.//{*}Product'):
+            try:
+                asin = item.find('.//{*}ASIN').text
+            except AttributeError as ex:
+                logger.error(ex)
+                logger.error('asin is None')
+                continue
+            try:
+                price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
+            except AttributeError as ex:
+                logger.debug(ex)
+                price = 0
+            logger.debug(asin, price)
+            asin_price_dict[asin] = price
 
         logger.info('action=get_competitive_pricing_for_asin status=done')
-        return data
 
-    def get_lowest_priced_offer_listtings_for_asin(self, products: list, filename: str):
+        return asin_price_dict
+
+    def get_lowest_priced_offer_listtings_for_asin(self, products: list) -> dict:
         logger.info('action=get_lowest_priced_offer_listtings_for_asin status=run')
-        data = []
+        asin_price_dict = {}
 
-        while products:
-            product = [products.pop() for _ in range(20) if products]
-            data_dict = dict(self.data)
-            data_dict['MarketplaceId'] = settings.MARKETPLACEID
-            data_dict['ItemCondition'] = 'New'
-            data_dict['Action'] = 'GetLowestOfferListingsForASIN'
-            for index, asin in enumerate(product):
-                data_dict[f'ASINList.ASIN.{str(index+1)}'] = asin
+        data_dict = dict(self.data)
+        data_dict['MarketplaceId'] = settings.MARKETPLACEID
+        data_dict['ItemCondition'] = 'New'
+        data_dict['Action'] = 'GetLowestOfferListingsForASIN'
+        for index, asin in enumerate(products):
+            data_dict[f'ASINList.ASIN.{str(index+1)}'] = asin
 
-            url = self.create_request_url(data_dict=data_dict)
-            response = request_api(url)
-            time.sleep(0.1 * len(product))
-            tree = etree.fromstring(response.text)
+        url = self.create_request_url(data_dict=data_dict)
+        response = request_api(url)
+        time.sleep(0.1 * len(products))
+        tree = etree.fromstring(response.text)
 
-            for item in tree.findall('.//{*}Product'):
-                try:
-                    asin = item.find('.//{*}ASIN').text
-                    price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
-                except AttributeError as e:
-                    logger.debug(e)
-                    continue
-                logger.debug(asin, price)
-                data.append([asin, price])
-                MWS.update_price(asin=asin, filename=filename, price=price)
+        for item in tree.findall('.//{*}Product'):
+            try:
+                asin = item.find('.//{*}ASIN').text
+                price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
+            except AttributeError as e:
+                logger.debug(e)
+                continue
+            asin_price_dict[asin] = price
 
         logger.info('action=get_competitive_pricing_for_asin status=done')
-        return data
+
+        return asin_price_dict
 
     def get_lowest_priced_offers_for_asin(self, asin: str, interval_sec: int = 1) -> int:
         logger.info('action=get_lowest_priced_offers_for_asin status=run')
@@ -232,51 +216,47 @@ class AmazonClient:
         logger.info('action=get_lowest_priced_offers_for_asin status=done')
         return price
 
-    def get_fee_my_fees_estimate(self, products, filename: str):
+    def get_fee_my_fees_estimate(self, products: list) -> list:
         logger.info('action=get_fee_my_fees_estimate status=run')
-        data = []
+        asin_fees_list = []
 
-        while products:
-            product = [products.pop() for _ in range(5) if products]
-            data_dict = dict(self.data)
-            data_dict['Action'] = 'GetMyFeesEstimate'
-            params = 'FeesEstimateRequestList.FeesEstimateRequest'
-            for index, asin in enumerate(product):
-                idx = str(index+1)
-                data_dict[f'{params}.{idx}.IdType'] = 'ASIN'
-                data_dict[f'{params}.{idx}.IdValue'] = asin
-                data_dict[f'{params}.{idx}.Identifier'] = f'{idx}'
-                data_dict[f'{params}.{idx}.IsAmazonFulfilled'] = 'true'
-                data_dict[f'{params}.{idx}.MarketplaceId'] = 'A1VC38T7YXB528'
-                data_dict[f'{params}.{idx}.PriceToEstimateFees.ListingPrice.Amount'] = '10000'
-                data_dict[f'{params}.{idx}.PriceToEstimateFees.ListingPrice.CurrencyCode'] = 'JPY'
+        data_dict = dict(self.data)
+        data_dict['Action'] = 'GetMyFeesEstimate'
+        params = 'FeesEstimateRequestList.FeesEstimateRequest'
+        for index, asin in enumerate(products):
+            idx = str(index+1)
+            data_dict[f'{params}.{idx}.IdType'] = 'ASIN'
+            data_dict[f'{params}.{idx}.IdValue'] = asin
+            data_dict[f'{params}.{idx}.Identifier'] = f'{idx}'
+            data_dict[f'{params}.{idx}.IsAmazonFulfilled'] = 'true'
+            data_dict[f'{params}.{idx}.MarketplaceId'] = 'A1VC38T7YXB528'
+            data_dict[f'{params}.{idx}.PriceToEstimateFees.ListingPrice.Amount'] = '10000'
+            data_dict[f'{params}.{idx}.PriceToEstimateFees.ListingPrice.CurrencyCode'] = 'JPY'
 
-            url = self.create_request_url(data_dict=data_dict)
-            response = request_api(url)
-            time.sleep(0.1 * len(product))
+        url = self.create_request_url(data_dict=data_dict)
+        response = request_api(url)
+        time.sleep(0.1 * len(products))
 
+        try:
+            tree = etree.fromstring(response.text)
+        except etree.XMLSyntaxError as e:
+            logger.error(e)
+            logger.error(response.text)
+            raise Exception
+
+        for item in tree.findall(".//FeesEstimateResult", tree.nsmap):
             try:
-                tree = etree.fromstring(response.text)
-            except etree.XMLSyntaxError as e:
-                logger.error(e)
-                logger.error(response.text)
-                raise Exception
-
-            for item in tree.findall(".//FeesEstimateResult", tree.nsmap):
-                try:
-                    fee_rate = float(item.find(".//FeeDetailList//Amount", tree.nsmap).text) / 10000
-                    ship_fee = int(float(item.find('.//IncludedFeeDetailList//Amount', tree.nsmap).text))
-                except AttributeError as e:
-                    logger.debug(e)
-                    fee_rate = 0.1
-                    ship_fee = 500
-                asin = item.find('.//FeesEstimateIdentifier//IdValue', tree.nsmap).text
-                logger.debug(asin, fee_rate, ship_fee)
-                data.append([asin, fee_rate, ship_fee])
-                MWS.update_fee(asin=asin, filename=filename, fee_rate=fee_rate, shipping_fee=ship_fee)
+                fee_rate = float(item.find(".//FeeDetailList//Amount", tree.nsmap).text) / 10000
+                ship_fee = int(float(item.find('.//IncludedFeeDetailList//Amount', tree.nsmap).text))
+            except AttributeError as e:
+                logger.debug(e)
+                fee_rate = 0.1
+                ship_fee = 500
+            asin = item.find('.//FeesEstimateIdentifier//IdValue', tree.nsmap).text
+            asin_fees_list.append((asin, fee_rate, ship_fee))
 
         logger.info('action=get_fee_my_fees_estimate status=done')
-        return data
+        return asin_fees_list
     
     def pool_get_matching_product_for_id(self, products_list: list, filename: str) -> None:
         logger.info('action=pool_get_matching_product_for_id status=run')
@@ -284,13 +264,23 @@ class AmazonClient:
         while products_list:
             products_five = [products_list.pop() for _ in range(5) if products_list]
             products_five_dict = {jan: cost for jan, cost in products_five}
-            print(products_five_dict)
 
             mws_objects_list = self.get_competitive_pricing_for_asin(products_five_dict)
             for mws_object in mws_objects_list:
                 mws_object.filename = filename
                 mws_object.save()
+    
+    def pool_get_competitive_pricing_for_asin(self, asin_list: list) -> None:
+        logger.info('action=pool_get_competitive_pricing_for_asin status=run')
 
+        while asin_list:
+            asin_list_twenty = [asin_list.pop() for _ in range(20) if asin_list]
+            asin_price_dict = self.get_competitive_pricing_for_asin(asin_list_twenty)
+            for asin, price in asin_price_dict.items():
+                MWS.update_price(asin=asin, price=price)
+
+        logger.info('action=pool_get_competitive_pricing_for_asin status=done')
+            
     def pool_get_lowest_priced_offers_for_asin(self):
         logger.info('action=pool_get_lowest_priced_offers_for_asin status=run')
 
@@ -301,6 +291,15 @@ class AmazonClient:
                 MWS.update_price(asin=product.asin, filename=product.filename, price=price)
 
         logger.info('action=pool_get_lowest_priced_offers_for_asin status=done')
+
+    def pool_get_fee_my_fees_estimate(self, asin_list: list):
+        logger.info('action=pool_get_fee_my_fees_estimate status=run')
+
+        while asin_list:
+            asin_list_five = [asin_list.pop() for _ in range(5) if asin_list]
+            asin_fees_list = self.get_fee_my_fees_estimate(asin_list_five)
+            for asin, fee_rate, ship_fee in asin_fees_list:
+                MWS.update_fee(asin=asin, fee_rate=fee_rate, ship_fee=ship_fee)
 
     def request_report(self, report_type: str, start_date, end_date):
         logger.info('action=request_report status=run')
@@ -354,16 +353,6 @@ class AmazonClient:
         return result
 
 
-def open_excel_file(filepath: str) -> dict:
-    """Open excel file Return row list object"""
-    workbook = openpyxl.load_workbook(filepath)
-    worksheet = workbook[workbook.sheetnames[0]]
-    worksheet.delete_rows(1)
-    # values = list(set(list(worksheet.values)))
-    # return list(map(list, values))
-    return dict(sorted(list(worksheet.values), key=lambda x: x[1], reverse=True))
-
-
 def get_file_path() -> pathlib.Path:
     try:
         path = next(pathlib.Path(settings.SCRAPE_SCHEDULE_SAVE_PATH).iterdir())
@@ -378,48 +367,18 @@ def get_file_path() -> pathlib.Path:
 
 def main():
     logger.info('action=main status=run')
-    while True:
-        file = get_file_path()
-        if file:
-            client = AmazonClient()
-            products_df = pd.read_excel(str(file), dtype={'JAN': str}).rename(columns={'JAN': 'jan', 'Cost': 'cost'}).drop_duplicates()
-            product_dict = {jan: cost for jan, cost in zip(products_df['jan'], products_df['cost'])}
-            price_que = Queue()
-            fee_que = Queue()
-            manager = Manager()
-            manager = manager.dict()
-            filename = file.stem
 
-            get_matching_prodcut_for_id_process = Process(target=client.get_matching_product_for_id, args=(product_dict, filename, price_que, fee_que, manager))
-            get_competitive_pricing_for_asin_process = Process(target=multiprocess.get_competitive_pricing_for_asin_worker, args=(filename, price_que, manager))
-            get_fee_my_fees_estimate_process = Process(target=multiprocess.get_fee_my_fees_estimate_worker, args=(filename, fee_que, manager))
+    get_matching_asin_for_jan_process = Process(target=main_get_matching_asin_for_jan)
+    get_lowest_price_process = Process(target=main_get_lowest_price)
+    get_fees_process = Process(target=main_get_fees)
 
-            get_matching_prodcut_for_id_process.start()
-            get_competitive_pricing_for_asin_process.start()
-            get_fee_my_fees_estimate_process.start()
+    get_matching_asin_for_jan_process.start()
+    get_lowest_price_process.start()
+    get_fees_process.start()
 
-            get_matching_prodcut_for_id_process.join()
-            price_que.put(None)
-            fee_que.put(None)
-
-            get_competitive_pricing_for_asin_process.join()
-            get_fee_my_fees_estimate_process.join()
-
-            matching_df = manager.get('matching_df')
-            price_df = manager.get('price_df')
-            fees_df = manager.get('fees_df')
-
-            df = matching_df.merge(products_df, on='jan', how='inner').merge(price_df, on='asin', how='inner')\
-                .merge(fees_df, on='asin', how='inner')
-
-            df['profit'] = df['price'] - (df['cost'] * df['unit']) - ((df['price'] * df['fee_rate']) * 1.1) - df['ship_fee']
-            df['profit_rate'] = df['profit'] / df['price']
-
-            df = df.query('profit >= 200 and profit_rate >= 0.1').astype({'profit': int})
-            df.to_pickle(os.path.join(settings.MWS_SAVE_PATH, f'{file.stem}.pickle'))
-            shutil.move(str(file), os.path.join(settings.SCRAPE_DONE_SAVE_PATH, file.name))
-        else:
-            time.sleep(60)
+    get_matching_asin_for_jan_process.join()
+    get_lowest_price_process.join()
+    get_fees_process.join()
 
 def main_get_matching_asin_for_jan(interval_sec: int = 60) -> None:
     logger.info('action=main_get_matching_asin_for_jan status=run')
@@ -432,5 +391,31 @@ def main_get_matching_asin_for_jan(interval_sec: int = 60) -> None:
             client = AmazonClient()
             client.pool_get_matching_product_for_id(products_list=product_list, filename=filepath.stem)
             shutil.move(str(filepath), os.path.join(settings.SCRAPE_DONE_SAVE_PATH, filepath.name))
+        else:
+            time.sleep(interval_sec)
+
+
+def main_get_lowest_price(interval_sec: int = 60) -> None:
+    logger.info('action=main_get_lowest_price status=run')
+
+    while True:
+        asin_list = MWS.get_price_is_None_products()
+        asin_list = list(map(lambda x: x[0], asin_list))
+        if asin_list:
+            client = AmazonClient()
+            client.pool_get_competitive_pricing_for_asin(asin_list)
+        else:
+            time.sleep(interval_sec)
+
+
+def main_get_fees(interval_sec: int = 60) -> None:
+    logger.info('action=main_get_lowest_price status=run')
+
+    while True:
+        asin_list = MWS.get_fee_is_None_products()
+        asin_list = list(map(lambda x: x[0], asin_list))
+        if asin_list:
+            client = AmazonClient()
+            client.pool_get_fee_my_fees_estimate(asin_list)
         else:
             time.sleep(interval_sec)

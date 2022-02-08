@@ -102,30 +102,38 @@ class MWS(Base):
     @classmethod
     def get_price_is_None_products(cls):
         with session_scope() as session:
-            products = session.query(cls).filter(cls.price == None).all()
+            products = session.query(cls.asin).filter(cls.price == None).all()
             return products
 
     @classmethod
-    def update_price(cls, asin: str, filename: str, price: int):
+    def get_fee_is_None_products(cls):
         with session_scope() as session:
-            mws = session.query(cls).filter(cls.asin == asin, cls.filename == filename).first()
-            try:
-                mws.price = price
-            except Exception as ex:
-                logger.error(f'action=update_price error={ex}')
-                return False
+            products = session.query(cls.asin).filter(or_(cls.fee_rate == None, cls.shipping_fee == None)).all()
+            return products
+
+    @classmethod
+    def update_price(cls, asin: str, price: int):
+        with session_scope() as session:
+            mws_list = session.query(cls).filter(cls.asin == asin).all()
+            for mws in mws_list:
+                try:
+                    mws.price = price
+                except Exception as ex:
+                    logger.error(f'action=update_price error={ex}')
+                    continue
             return True
 
     @classmethod
-    def update_fee(cls, asin: str, filename: str, fee_rate: float, shipping_fee: int):
+    def update_fee(cls, asin: str, fee_rate: float, shipping_fee: int):
         with session_scope() as session:
-            mws = session.query(cls).filter(cls.asin == asin, cls.filename == filename).first()
-            try:
-                mws.fee_rate = fee_rate
-                mws.shipping_fee = shipping_fee
-            except Exception as ex:
-                logger.error(f'action=update_fee_and_profit error={ex}')
-                return False
+            mws_list = session.query(cls).filter(cls.asin == asin).all()
+            for mws in mws_list:
+                try:
+                    mws.fee_rate = fee_rate
+                    mws.shipping_fee = shipping_fee
+                except Exception as ex:
+                    logger.error(f'action=update_fee_and_profit error={ex}')
+                    continue
             return True
 
     @classmethod
