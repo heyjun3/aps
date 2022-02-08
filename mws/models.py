@@ -6,8 +6,8 @@ import threading
 from sqlalchemy import create_engine
 from sqlalchemy import Column
 from sqlalchemy import String
-from sqlalchemy import Integer
 from sqlalchemy import Float
+from sqlalchemy import BigInteger
 from sqlalchemy import or_
 from sqlalchemy import distinct
 from sqlalchemy.orm import sessionmaker
@@ -31,11 +31,11 @@ class MWS(Base):
     filename = Column(String, primary_key=True, nullable=False)
     title = Column(String)
     jan = Column(String)
-    unit = Column(Integer)
-    price = Column(Integer)
-    cost = Column(Integer)
+    unit = Column(BigInteger)
+    price = Column(BigInteger)
+    cost = Column(BigInteger)
     fee_rate = Column(Float)
-    shipping_fee = Column(Integer)
+    shipping_fee = Column(BigInteger)
 
     def save(self):
         with session_scope() as session:
@@ -61,7 +61,7 @@ class MWS(Base):
     def get_completion_filename_list(cls):
         with session_scope() as session:
             profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
-            profit_rate = profit / cls.price
+            profit_rate = (profit / cls.price)
 
             mws_sub_query = session.query(distinct(cls.filename)).filter(or_(cls.price == None, cls.fee_rate == None))
             keepa_sub_query = session.query(distinct(cls.filename)).filter(profit > 200, profit_rate > 0.1)\
