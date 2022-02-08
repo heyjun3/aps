@@ -84,7 +84,7 @@ class MWS(Base):
             return rows
 
     @classmethod
-    def get_asin_to_request_keepa(cls, term=30):
+    def get_keepa_objects_None_products(cls, term=30):
         with session_scope() as session:
             profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
             profit_rate = profit / cls.price
@@ -92,7 +92,7 @@ class MWS(Base):
             try:
                 asin_list = session.query(cls.asin).filter(profit > 200, profit_rate > 0.1)\
                             .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
-                            .filter(or_(KeepaProducts.asin is None, KeepaProducts.modified < past_date)).all()
+                            .filter(or_(KeepaProducts.asin == None, KeepaProducts.modified < past_date, KeepaProducts.rank_data == None, KeepaProducts.price_data == None)).all()
                 asin_list = list(map(lambda x: x[0], asin_list))
             except Exception as ex:
                 logger.error(f'action=get_asin_to_request_keepa error={ex}')
