@@ -127,7 +127,7 @@ class AmazonClient:
 
         return mws_object_list
 
-    def get_competitive_pricing_for_asin(self, products: list) -> list:
+    def get_competitive_pricing_for_asin(self, products: list, interval_sec: int = 2) -> list:
         logger.info('action=get_competitive_pricing_for_asin status=run')
         asin_price_dict = {}
 
@@ -140,7 +140,7 @@ class AmazonClient:
 
         url = self.create_request_url(data_dict=data_dict)
         response = request_api(url)
-        time.sleep(0.1 * len(products))
+        time.sleep(interval_sec)
         tree = etree.fromstring(response.text)
 
         for item in tree.findall('.//{*}Product'):
@@ -162,7 +162,7 @@ class AmazonClient:
 
         return asin_price_dict
 
-    def get_lowest_priced_offer_listtings_for_asin(self, products: list) -> dict:
+    def get_lowest_priced_offer_listtings_for_asin(self, products: list, interval_sec: int = 2) -> dict:
         logger.info('action=get_lowest_priced_offer_listtings_for_asin status=run')
         asin_price_dict = {}
 
@@ -175,7 +175,7 @@ class AmazonClient:
 
         url = self.create_request_url(data_dict=data_dict)
         response = request_api(url)
-        time.sleep(0.1 * len(products))
+        time.sleep(interval_sec)
         tree = etree.fromstring(response.text)
 
         for item in tree.findall('.//{*}Product'):
@@ -216,7 +216,7 @@ class AmazonClient:
         logger.info('action=get_lowest_priced_offers_for_asin status=done')
         return price
 
-    def get_fee_my_fees_estimate(self, products: list) -> list:
+    def get_fee_my_fees_estimate(self, products: list, interval_sec: float = 0.5) -> list:
         logger.info('action=get_fee_my_fees_estimate status=run')
         asin_fees_list = []
 
@@ -235,7 +235,7 @@ class AmazonClient:
 
         url = self.create_request_url(data_dict=data_dict)
         response = request_api(url)
-        time.sleep(0.1 * len(products))
+        time.sleep(interval_sec)
 
         try:
             tree = etree.fromstring(response.text)
@@ -265,7 +265,7 @@ class AmazonClient:
             products_five = [products_list.pop() for _ in range(5) if products_list]
             products_five_dict = {jan: cost for jan, cost in products_five}
 
-            mws_objects_list = self.get_competitive_pricing_for_asin(products_five_dict)
+            mws_objects_list = self.get_matching_product_for_id(products_five_dict)
             for mws_object in mws_objects_list:
                 mws_object.filename = filename
                 mws_object.save()
@@ -299,7 +299,7 @@ class AmazonClient:
             asin_list_five = [asin_list.pop() for _ in range(5) if asin_list]
             asin_fees_list = self.get_fee_my_fees_estimate(asin_list_five)
             for asin, fee_rate, ship_fee in asin_fees_list:
-                MWS.update_fee(asin=asin, fee_rate=fee_rate, ship_fee=ship_fee)
+                MWS.update_fee(asin=asin, fee_rate=fee_rate, shipping_fee=ship_fee)
 
     def request_report(self, report_type: str, start_date, end_date):
         logger.info('action=request_report status=run')
@@ -409,7 +409,7 @@ def main_get_lowest_price(interval_sec: int = 60) -> None:
 
 
 def main_get_fees(interval_sec: int = 60) -> None:
-    logger.info('action=main_get_lowest_price status=run')
+    logger.info('action=main_get_fees status=run')
 
     while True:
         asin_list = MWS.get_fee_is_None_products()

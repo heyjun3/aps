@@ -18,7 +18,7 @@ from keepa.models import KeepaProducts
 
 import settings
 
-engine = create_engine(settings.DB_URL, pool_pre_ping=True)
+engine = create_engine(settings.DB_URL, pool_pre_ping=True, pool_size=10, connect_args={'connect_timeout': 10})
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
 lock = threading.Lock()
@@ -67,9 +67,12 @@ class MWS(Base):
             keepa_sub_query = session.query(distinct(cls.filename)).filter(profit > 200, profit_rate > 0.1)\
                               .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
                               .filter(or_(KeepaProducts.asin == None, KeepaProducts.rank_data == None, KeepaProducts.price_data == None))
+            # print(keepa_sub_query)
+            # print(mws_sub_query)
             
             filename_list = session.query(distinct(cls.filename)).filter(cls.filename.notin_(mws_sub_query.union(keepa_sub_query))).all()
             filename_list = sorted(list(map(lambda x: x[0], filename_list)), key=lambda x: x)
+            print(filename_list)
 
             return filename_list
 
