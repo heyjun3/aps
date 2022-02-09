@@ -14,7 +14,7 @@
 </head>
 <body>
     {% for product in products_list %}
-    <div style="width:40%;">
+    <div style="width:65%;">
         <h2>{{ product.title }}</h2>
         <canvas id="{{ product.asin }}" width="300px" height="150px"></canvas>
 	    <h3 class="info">JAN : {{ product.jan }} <a href="https://www.amazon.co.jp/dp/{{ product.asin }}" target="_blank" rel="noopener noreferrer"> ASIN : {{ product.asin }}</a><h3>
