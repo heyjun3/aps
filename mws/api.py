@@ -400,8 +400,8 @@ def main_get_lowest_price(interval_sec: int = 60) -> None:
 
     while True:
         asin_list = MWS.get_price_is_None_products()
-        asin_list = list(map(lambda x: x[0], asin_list))
         if asin_list:
+            asin_list = list(map(lambda x: x[0], asin_list))
             client = AmazonClient()
             client.pool_get_competitive_pricing_for_asin(asin_list)
         else:
@@ -413,8 +413,8 @@ def main_get_fees(interval_sec: int = 60) -> None:
 
     while True:
         asin_list = MWS.get_fee_is_None_products()
-        asin_list = list(map(lambda x: x[0], asin_list))
         if asin_list:
+            asin_list = list(map(lambda x: x[0], asin_list))
             client = AmazonClient()
             client.pool_get_fee_my_fees_estimate(asin_list)
         else:

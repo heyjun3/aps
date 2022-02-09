@@ -49,6 +49,8 @@ def keepa_request_products(asin_list: list) -> dict:
         interval_sec = (len(asin_list) - token_count) * 12 + 60
     else:
         interval_sec = 2
+    
+    logger.info('Waiting recovery keepa tokens')
     time.sleep(interval_sec)
         
     response = request(url)
