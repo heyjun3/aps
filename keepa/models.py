@@ -88,8 +88,9 @@ class KeepaProducts(Base):
             else:
                 return None
 
+    
     @property
-    def render_price_rank_data(self):
+    def render_price_rank_data_list(self):
         rank_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.rank_data.items()}
         price_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.price_data.items()}
 
@@ -103,8 +104,8 @@ class KeepaProducts(Base):
         delay = datetime.datetime.now().date() - datetime.timedelta(days=90)
         df = df[df['date'] > delay]
         df = df.sort_values('date', ascending=True)
-        products = df.to_dict('records')
-    
+        products = (df['date'].to_list(), df['rank'].to_list(), df['price'].to_list())
+
         return products
 
     @property

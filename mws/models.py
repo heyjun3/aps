@@ -6,8 +6,8 @@ import threading
 from sqlalchemy import create_engine
 from sqlalchemy import Column
 from sqlalchemy import String
-from sqlalchemy import Integer
 from sqlalchemy import Float
+from sqlalchemy import BigInteger
 from sqlalchemy import or_
 from sqlalchemy import distinct
 from sqlalchemy.orm import sessionmaker
@@ -18,7 +18,7 @@ from keepa.models import KeepaProducts
 
 import settings
 
-engine = create_engine(settings.DB_URL, pool_pre_ping=True)
+engine = create_engine(settings.DB_URL, pool_pre_ping=True, pool_size=10, connect_args={'connect_timeout': 10})
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
 lock = threading.Lock()
@@ -31,11 +31,11 @@ class MWS(Base):
     filename = Column(String, primary_key=True, nullable=False)
     title = Column(String)
     jan = Column(String)
-    unit = Column(Integer)
-    price = Column(Integer)
-    cost = Column(Integer)
+    unit = Column(BigInteger)
+    price = Column(BigInteger)
+    cost = Column(BigInteger)
     fee_rate = Column(Float)
-    shipping_fee = Column(Integer)
+    shipping_fee = Column(BigInteger)
 
     def save(self):
         with session_scope() as session:
@@ -61,14 +61,18 @@ class MWS(Base):
     def get_completion_filename_list(cls):
         with session_scope() as session:
             profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
-            profit_rate = profit / cls.price
+            profit_rate = (profit / cls.price)
 
             mws_sub_query = session.query(distinct(cls.filename)).filter(or_(cls.price == None, cls.fee_rate == None))
             keepa_sub_query = session.query(distinct(cls.filename)).filter(profit > 200, profit_rate > 0.1)\
-                              .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).filter(KeepaProducts.asin == None)
+                              .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
+                              .filter(or_(KeepaProducts.asin == None, KeepaProducts.rank_data == None, KeepaProducts.price_data == None))
+            # print(keepa_sub_query)
+            # print(mws_sub_query)
             
             filename_list = session.query(distinct(cls.filename)).filter(cls.filename.notin_(mws_sub_query.union(keepa_sub_query))).all()
             filename_list = sorted(list(map(lambda x: x[0], filename_list)), key=lambda x: x)
+            print(filename_list)
 
             return filename_list
 
@@ -83,7 +87,7 @@ class MWS(Base):
             return rows
 
     @classmethod
-    def get_asin_to_request_keepa(cls, term=30):
+    def get_keepa_objects_None_products(cls, term=30):
         with session_scope() as session:
             profit = (cls.price - (cls.cost * cls.unit) - ((cls.price * cls.fee_rate) * 1.1) - cls.shipping_fee)
             profit_rate = profit / cls.price
@@ -91,7 +95,7 @@ class MWS(Base):
             try:
                 asin_list = session.query(cls.asin).filter(profit > 200, profit_rate > 0.1)\
                             .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
-                            .filter(or_(KeepaProducts.asin is None, KeepaProducts.modified < past_date)).all()
+                            .filter(or_(KeepaProducts.asin == None, KeepaProducts.modified < past_date, KeepaProducts.rank_data == None, KeepaProducts.price_data == None)).all()
                 asin_list = list(map(lambda x: x[0], asin_list))
             except Exception as ex:
                 logger.error(f'action=get_asin_to_request_keepa error={ex}')
@@ -101,30 +105,38 @@ class MWS(Base):
     @classmethod
     def get_price_is_None_products(cls):
         with session_scope() as session:
-            products = session.query(cls).filter(cls.price == None).all()
+            products = session.query(cls.asin).filter(cls.price == None).all()
             return products
 
     @classmethod
-    def update_price(cls, asin: str, filename: str, price: int):
+    def get_fee_is_None_products(cls):
         with session_scope() as session:
-            mws = session.query(cls).filter(cls.asin == asin, cls.filename == filename).first()
-            try:
-                mws.price = price
-            except Exception as ex:
-                logger.error(f'action=update_price error={ex}')
-                return False
+            products = session.query(cls.asin).filter(or_(cls.fee_rate == None, cls.shipping_fee == None)).all()
+            return products
+
+    @classmethod
+    def update_price(cls, asin: str, price: int):
+        with session_scope() as session:
+            mws_list = session.query(cls).filter(cls.asin == asin).all()
+            for mws in mws_list:
+                try:
+                    mws.price = price
+                except Exception as ex:
+                    logger.error(f'action=update_price error={ex}')
+                    continue
             return True
 
     @classmethod
-    def update_fee(cls, asin: str, filename: str, fee_rate: float, shipping_fee: int):
+    def update_fee(cls, asin: str, fee_rate: float, shipping_fee: int):
         with session_scope() as session:
-            mws = session.query(cls).filter(cls.asin == asin, cls.filename == filename).first()
-            try:
-                mws.fee_rate = fee_rate
-                mws.shipping_fee = shipping_fee
-            except Exception as ex:
-                logger.error(f'action=update_fee_and_profit error={ex}')
-                return False
+            mws_list = session.query(cls).filter(cls.asin == asin).all()
+            for mws in mws_list:
+                try:
+                    mws.fee_rate = fee_rate
+                    mws.shipping_fee = shipping_fee
+                except Exception as ex:
+                    logger.error(f'action=update_fee_and_profit error={ex}')
+                    continue
             return True
 
     @classmethod

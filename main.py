@@ -19,7 +19,7 @@ if __name__ == '__main__':
     args = sys.argv
 
     if args[1] == 'keepa':
-        keepa.keepa_worker()
+        keepa.main()
     elif args[1] == 'mws':
         api.main()
     elif args[1] == 'buffalo':
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     elif args[1] == 'super':
         super.super_all()
     elif args[1] == 'netsea':
-        netsea.new_product_search()
+        netsea.netsea_all()
     elif args[1] == 'repeat':
         repeat.main()
     else:
