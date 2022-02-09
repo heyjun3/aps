@@ -26,26 +26,31 @@ price_regex = re.compile('\\d+')
 jan_regex = re.compile('[0-9]{13}')
 
 
+def get_authentication_token() -> str:
+    logger.info('action=get_authentication_token status=run')
+    
+    response = utils.request(url=settings.NETSEA_LOGIN_URL)
+    soup = BeautifulSoup(response.text, 'lxml')
+    authenticity_token = soup.find(attrs={'name': '_token'}).get('value')
+
+    logger.info('action=get_authentication_token status=done')
+    return authenticity_token
+
 def login() -> Session:
-    try:
-        session = requests.session()
-        response = session.get(settings.NETSEA_LOGIN_URL)
-        soup = BeautifulSoup(response.text, 'html.parser')
+    logger.info('action=login status=run')
 
-        authenticity = soup.find(attrs={'name': '_token'}).get('value')
-        cookie = response.cookies
-        info = {
-            '_token': authenticity,
-            'login_id': settings.NETSEA_ID,
-            'password': settings.NETSEA_PASSWD,
-        }
-        session.post(settings.NETSEA_LOGIN_URL, data=info, cookies=cookie)
-        time.sleep(2)
-        return session
-    except Exception as e:
-        logger.error(f'action=login error={e}')
-        raise
+    token = get_authentication_token()
+    info = {
+        '_token': token,
+        'login_id': settings.NETSEA_ID,
+        'password': settings.NETSEA_PASSWD,
+    }
+    session = requests.Session()
+    response = utils.request(url=settings.NETSEA_LOGIN_URL, method='POST', session=session, data=info)
+    time.sleep(2)
 
+    logger.info('action=login status=done')
+    return session
 
 def list_page_selector(response, new_bool):
     logger.info('action=list_page_selector status=run')
