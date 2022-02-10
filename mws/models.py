@@ -70,7 +70,7 @@ class MWS(Base):
     @classmethod
     def get_render_data(cls, filename: str):
         with session_scope() as session:
-            rows = session.query(cls, KeepaProducts).filter(cls.profit >= 200, cls.profit_rate >= 0.1, cls.filename == filename)\
+            rows = session.query(cls, KeepaProducts.render_data).filter(cls.profit >= 200, cls.profit_rate >= 0.1, cls.filename == filename)\
                    .join(KeepaProducts, cls.asin == KeepaProducts.asin).filter(KeepaProducts.sales_drops_90 > 3).all()
             return rows
 
@@ -128,6 +128,14 @@ class MWS(Base):
         with session_scope() as session:
             session.query(cls).filter(cls.filename == filename).delete()
             return True
+
+    @classmethod
+    def set_profit(cls):
+        with session_scope() as session:
+            mws_products = session.query(cls).all()
+            for mws in mws_products:
+                mws.profit = mws.calc_profit()
+                mws.profit_rate = mws.calc_profit_rate()
 
     @property
     def value(self):

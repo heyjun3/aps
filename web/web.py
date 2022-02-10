@@ -32,17 +32,18 @@ def chart(filename):
         return redirect(url_for('index'))
         
     for mws, keepa in products_list:
-        date, rank, price = keepa.render_price_rank_data_list
-        date = list(map(lambda x: x.isoformat(), date))
-        product = {
-            'title': mws.title,
-            'asin': mws.asin,
-            'date': date,
-            'price': price,
-            'rank': rank,
-            'jan': mws.jan,
-        }
-        render_data_list.append(product)
+        if keepa is None:
+            continue
+        elif keepa.get('date') and keepa.get('rank') and keepa.get('price'):
+            product = {
+                'title': mws.title,
+                'asin': mws.asin,
+                'date': keepa.get('date'),
+                'price': keepa.get('price'),
+                'rank': keepa.get('rank'),
+                'jan': mws.jan,
+            }
+            render_data_list.append(product)
 
     return render_template('chart.html', products_list=render_data_list)
 

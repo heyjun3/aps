@@ -90,8 +90,19 @@ class KeepaProducts(Base):
                 return product
             else:
                 return None
+    
+    @classmethod
+    def set_render_data(cls):
+        with session_scope() as session:
+            asin_list = session.query(cls.asin).all()
+        for asin in asin_list:
+            with session_scope() as session:
+                keepa = session.query(cls).filter(cls.asin == asin[0]).first()
+                keepa.render_data = keepa.convert_render_price_rank_data()
 
     def convert_render_price_rank_data(self):
+        if self.rank_data is None or self.price_data is None:
+            return None
         rank_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.rank_data.items()}
         price_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.price_data.items()}
 
@@ -102,10 +113,11 @@ class KeepaProducts(Base):
         df = df.replace(-1.0, np.nan)
         df = df.fillna(method='ffill')
         df = df.fillna(method='bfill')
+        df = df.replace([np.nan], [None])
         delay = datetime.datetime.now().date() - datetime.timedelta(days=90)
         df = df[df['date'] > delay]
         df = df.sort_values('date', ascending=True)
-        products = {'data': df['date'].to_list(), 
+        products = {'date': list(map(lambda x: x.isoformat(), df['date'].to_list())), 
                     'rank': df['rank'].to_list(), 
                     'price': df['price'].to_list()}
 

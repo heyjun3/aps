@@ -154,7 +154,7 @@ class AmazonClient:
                 price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
             except AttributeError as ex:
                 logger.debug(ex)
-                price = 0
+                price = -1
             logger.debug(asin, price)
             asin_price_dict[asin] = price
 
