@@ -32,6 +32,7 @@ class KeepaProducts(Base):
     modified = Column(Date, default=datetime.date.today)
     price_data = Column(JSON)
     rank_data = Column(JSON)
+    render_data = Column(JSON)
 
     @classmethod
     def create(cls, asin, drops ,price_data, rank_data):
@@ -58,6 +59,7 @@ class KeepaProducts(Base):
             product = session.query(cls).filter(cls.asin == asin).first()
             if product is None:
                 keepa_product = cls(asin=asin, sales_drops_90=drops, price_data=price_data, rank_data=rank_data)
+                keepa_product.render_data = keepa_product.convert_render_price_rank_data()
                 try:
                     session.add(keepa_product)
                 except IntegrityError as ex:
@@ -68,6 +70,7 @@ class KeepaProducts(Base):
                 product.modified = datetime.date.today()
                 product.price_data = price_data
                 product.rank_data = rank_data
+                product.render_data = product.convert_render_price_rank_data()
             return True
     
     @classmethod
@@ -88,9 +91,7 @@ class KeepaProducts(Base):
             else:
                 return None
 
-    
-    @property
-    def render_price_rank_data_list(self):
+    def convert_render_price_rank_data(self):
         rank_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.rank_data.items()}
         price_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.price_data.items()}
 
@@ -104,7 +105,9 @@ class KeepaProducts(Base):
         delay = datetime.datetime.now().date() - datetime.timedelta(days=90)
         df = df[df['date'] > delay]
         df = df.sort_values('date', ascending=True)
-        products = (df['date'].to_list(), df['rank'].to_list(), df['price'].to_list())
+        products = {'data': df['date'].to_list(), 
+                    'rank': df['rank'].to_list(), 
+                    'price': df['price'].to_list()}
 
         return products
 
