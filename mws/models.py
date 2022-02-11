@@ -64,7 +64,6 @@ class MWS(Base):
             
             filename_list = session.query(distinct(cls.filename)).filter(cls.filename.notin_(mws_sub_query.union(keepa_sub_query))).all()
             filename_list = sorted(list(map(lambda x: x[0], filename_list)), key=lambda x: x)
-            print(filename_list)
 
             return filename_list
 
@@ -125,9 +124,9 @@ class MWS(Base):
             return True
 
     @classmethod
-    def delete_objects(cls, filename: str):
+    def delete_objects(cls, filename_list: list):
         with session_scope() as session:
-            session.query(cls).filter(cls.filename == filename).delete()
+            session.query(cls).filter(cls.filename.in_(filename_list)).delete()
             return True
 
     @classmethod

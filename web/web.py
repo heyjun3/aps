@@ -18,9 +18,12 @@ def index():
     return render_template('index.html', save_path=filename_list)
 
 
-@app.route('/delete/<string:filename>', methods=['POST'])
-def delete_filename(filename):
-    MWS.delete_objects(filename)
+@app.route('/delete', methods=['POST'])
+def delete_filename():
+    filename_list = request.form.getlist('filename')
+    if not filename_list:
+        return redirect(url_for('index'))
+    MWS.delete_objects(filename_list)
     return redirect(url_for('index'))
 
 
