@@ -39,6 +39,13 @@ ENDPOINT = '/Products/2011-10-01'
 XMLNS = '{http://mws.amazonservices.com/schema/Products/2011-10-01}'
 NS2 = '{http://mws.amazonservices.com/schema/Products/2011-10-01/default.xsd}'
 
+# SPAPI settings
+REFRESH_TOKEN = config['SPAPI']['REFRESH_TOKEN']
+CLIENT_ID = config['SPAPI']['CLIENT_ID']
+ClIENT_TOKEN = config['SPAPI']['CLIENT_SECRET']
+AWS_ACCESS_ID = config['SPAPI']['AWS_ACCESS_ID']
+AWS_SECRET_KEY = config['SPAPI']['AWS_SECRET_KEY']
+
 # BUFFALO settings
 BUFFALO_URL = 'https://www.buffalo-direct.com/'
 BUFFALO_START_URL = 'https://www.buffalo-direct.com/directshop/products/list_category.php?category_id=1181'
