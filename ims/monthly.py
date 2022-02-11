@@ -1,5 +1,3 @@
-import os
-
 import openpyxl
 import datetime
 from dateutil.relativedelta import relativedelta

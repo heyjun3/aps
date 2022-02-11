@@ -1,5 +1,4 @@
 import time
-from logging import getLogger
 
 import json
 import requests
@@ -7,9 +6,10 @@ import requests
 from keepa.models import KeepaProducts
 from mws.models import MWS
 import settings
+import log_settings
 
 
-logger = getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 
 
 def request(url):

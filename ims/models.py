@@ -15,9 +15,10 @@ from sqlalchemy.exc import IntegrityError
 from contextlib import contextmanager
 
 import settings
+import log_settings
 
 
-logger = logging.getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 lock = threading.Lock()
 postgresql_engine = create_engine(settings.DB_URL)
 Base = declarative_base()

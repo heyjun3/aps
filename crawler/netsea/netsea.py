@@ -1,9 +1,7 @@
 import time
 import re
 import os
-import logging
 import datetime
-import logging.config
 from urllib.parse import urljoin
 
 import requests
@@ -14,13 +12,13 @@ from requests import Response
 import pandas as pd
 
 import settings
+import log_settings
 from crawler.netsea.models import Netsea
 from crawler import utils
 from crawler.netsea.models import NetseaShop
-from ims.models import FavoriteProduct
 
 
-logger = logging.getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 
 price_regex = re.compile('\\d+')
 jan_regex = re.compile('[0-9]{13}')
@@ -112,7 +110,7 @@ def next_page_url_selector(response):
             supplier_id = ''.join(price_regex.findall(supplier_id))
             next_page_url = urljoin(settings.NETSEA_NEXT_URL, f"?supplier_id={supplier_id}&sort=PD&facet_price_to={price}")
         except IndexError as e:
-            logging.error(f'action=next_page_selector status={e}')
+            logger.error(f'action=next_page_selector status={e}')
             return None
 
     return next_page_url

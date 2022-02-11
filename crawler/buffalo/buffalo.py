@@ -1,5 +1,4 @@
 import re
-import logging
 import time
 import datetime
 import os
@@ -12,8 +11,9 @@ from bs4 import BeautifulSoup
 from crawler import utils
 from crawler.buffalo.models import BuffaloProduct
 import settings
+import log_settings
 
-logger = logging.getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 
 
 class Crawler():

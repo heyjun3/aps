@@ -2,8 +2,6 @@
 This file is Rakuten api main file
 
 """
-
-import logging
 import re
 import time
 import datetime
@@ -15,10 +13,11 @@ from bs4 import BeautifulSoup
 
 from crawler.rakuten.models import RakutenProduct
 import settings
+import log_settings
 
 SHOP_CODES = ['ksdenki', 'dj', 'e-zoa', 'reckb', 'jtus', 'ioplaza', 'ikebe']
 
-logger = logging.getLogger('rakuten')
+logger = log_settings.get_logger(__name__)
 
 
 def jan_selector(item: dict) -> list:

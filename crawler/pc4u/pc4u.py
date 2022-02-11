@@ -1,5 +1,4 @@
 import re
-import logging
 import datetime
 import time
 import urllib
@@ -12,9 +11,10 @@ import pandas as pd
 from crawler.pc4u.models import Pc4u
 from crawler import utils
 import settings
+import log_settings
 
 
-logger = logging.getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 
 PC4U_SHOPCODE = 'https://www.pc4u.co.jp'
 

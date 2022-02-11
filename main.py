@@ -1,4 +1,3 @@
-import logging.config
 import sys
 
 from mws import api
@@ -9,12 +8,9 @@ from crawler.rakuten import rakuten
 from crawler.super import super
 from crawler.netsea import netsea
 from ims import repeat
-from settings import LOGGING_CONF_PATH
 
 
 if __name__ == '__main__':
-    logging.config.fileConfig(LOGGING_CONF_PATH, disable_existing_loggers=False)
-    logger = logging.getLogger(__name__)
 
     args = sys.argv
 

@@ -1,4 +1,3 @@
-from sqlalchemy.sql.functions import mode
 from crawler.super import models
 
 

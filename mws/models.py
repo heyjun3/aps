@@ -15,14 +15,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 
 from keepa.models import KeepaProducts
-
 import settings
+import log_settings
+
 
 engine = create_engine(settings.DB_URL, pool_pre_ping=True, pool_size=10, connect_args={'connect_timeout': 10})
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
 lock = threading.Lock()
-logger = getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 
 
 class NonePriceError(Exception):
@@ -168,6 +169,9 @@ def session_scope():
         lock.acquire()
         yield session
         session.commit()
+    except IntegrityError as ex:
+        logger.debug(f'action=session_scope error={ex}')
+        session.rollback()
     except Exception as ex:
         logger.error(f'action=session_scope error={ex}')
         session.rollback()

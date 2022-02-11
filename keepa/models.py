@@ -1,4 +1,3 @@
-import logging
 import threading
 import datetime
 
@@ -13,10 +12,10 @@ import pandas as pd
 import numpy as np
 
 import settings
+import log_settings
 
 
-logger = logging.getLogger('sqlalchemy.engine')
-logger.setLevel(logging.WARNING)
+logger = log_settings.get_logger(__name__)
 lock = threading.Lock()
 postgresql_engine = create_engine(settings.DB_URL)
 Base = declarative_base()

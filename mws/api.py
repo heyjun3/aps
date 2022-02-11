@@ -20,9 +20,10 @@ from bs4 import BeautifulSoup
 
 from mws.models import MWS
 import settings
+import log_settings
 
 
-logger = logging.getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 
 
 def datetime_encode(dt):
