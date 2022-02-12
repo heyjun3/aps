@@ -20,7 +20,7 @@ ENDPOINT = 'https://sellingpartnerapi-fe.amazon.com'
 
 
 def request(req: requests.Request) -> requests.Response:
-    for _ in range(69):
+    for _ in range(60):
         try:
             session = requests.Session()
             response = session.send(req.prepare())
@@ -44,6 +44,11 @@ class SPAPI:
         self.aws_access_key = settings.AWS_ACCESS_ID
 
         self.marketplace_id = settings.MARKETPLACEID
+
+        self.headers = {
+            'host': urllib.parse.urlparse(ENDPOINT).netloc,
+            'user-agent': 'My SPAPI Client tool /1.0(Language=python/3.10)',
+        }
 
     def sign(self, key, msg):
         return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
@@ -93,12 +98,12 @@ class SPAPI:
         if  req.json:
             body = json.dumps(req.json)
 
-        t = datetime.datetime.utcnow()
-        amz_date = t.strftime('%Y%m%dT%H%M%SZ')
-        datestamp = t.strftime('%Y%m%d')
-        canonical_header_values = [host, user_agent, req.headers.get('x-amz-access-token'), f'{amz_date}\n']
+        utcnow = datetime.datetime.utcnow()
+        amz_date = utcnow.strftime('%Y%m%dT%H%M%SZ')
+        datestamp = utcnow.strftime('%Y%m%d')
+        amz_access_token = self.get_spapi_access_token()
+        canonical_header_values = [host, user_agent, amz_access_token, f'{amz_date}\n']
         
-
         canonical_headers = '\n'.join([f'{head}:{value}' for head, value in zip(signed_headers.split(';'), canonical_header_values)])
         payload_hash = hashlib.sha256(body.encode('utf-8')).hexdigest()
         canonical_querystring = ''
@@ -116,6 +121,7 @@ class SPAPI:
         
         req.headers['x-amz-date'] = amz_date
         req.headers['Authorization'] = authorization_header
+        req.headers['x-amz-access-token'] = amz_access_token
 
         return req
 
@@ -138,12 +144,7 @@ class SPAPI:
                 'MarketplaceId': self.marketplace_id, 
             }
         }
-        headers = {
-            'host': urllib.parse.urlparse(ENDPOINT).netloc,
-            'user-agent': 'My SPAPI Client tool /1.0(Language=python/3.10)',
-            'x-amz-access-token': self.get_spapi_access_token(),
-        }
-        req = requests.Request(method=method, url=url, json=body, headers=headers)
+        req = requests.Request(method=method, url=url, json=body, headers=self.headers)
         req = self.create_authorization_headers(req)
         response = request(req)
 
@@ -158,12 +159,7 @@ class SPAPI:
             'ItemType': item_type,
             'MarketplaceId': self.marketplace_id,
         }
-        headers = {
-            'host': urllib.parse.urlparse(ENDPOINT).netloc,
-            'user-agent': 'My SPAPI Client tool /1.0(Language=python/3.10)',
-            'x-amz-access-token': self.get_spapi_access_token(),
-        }
-        req = requests.Request(method=method, url=url, params=query, headers=headers)
+        req = requests.Request(method=method, url=url, params=query, headers=self.headers)
         req = self.create_authorization_headers(req)
         response = request(req)
 
