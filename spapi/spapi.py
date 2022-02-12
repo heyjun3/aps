@@ -1,5 +1,6 @@
 import urllib
 import datetime
+import json
 
 import requests
 
@@ -9,10 +10,12 @@ import log_settings
 
 logger = log_settings.get_logger(__name__)
 
+    
+ENDPOINT = 'https://sellingpartnerapi-fe.amazon.com'
+
 
 def get_my_fees_estimate_for_asin():
-    ENDPOINT = 'https://sellingpartnerapi-fe.amazon.com'
-    asin = 'B074X15BG5'
+    asin = 'B074X15BG5,B00UNA7CF8'
     price = 28500
     currency_code = 'JPY'
     is_fba = True
@@ -31,21 +34,17 @@ def get_my_fees_estimate_for_asin():
             'MarketplaceId': marketplace_id, 
             }
         }
-    # query = urllib.parse.urlencode(body)
-    # headers = {
-    #     'host': urllib.parse.urlparse(ENDPOINT).netloc,
-    #     'user-agent': 'My SPAPI Client tool /1.0(Language=python/3.10',
-    #     'x-amz-access-token': get_spapi_access_token(),
-    #     'x-amz-date': datetime.datetime.now().strftime('%Y%m%dT%H%M%SZ')
+    # query = {
+    #     'Asins': asin,
+    #     'ItemType': 'Asin',
+    #     'MarketplaceId': settings.MARKETPLACEID,
+
     # }
-    # print(query)
-    query = urllib.parse.urlencode(body)
-    print(query)
-    url = urllib.parse.urlparse(query)
-    print(url)
+    access_token = get_spapi_access_token()
+    headers = create_signature(access_token=access_token)
     url = urllib.parse.urljoin(ENDPOINT, f'/products/fees/v0/items/{asin}/feesEstimate')
-    # response = requests.get(url, params=body)
-    # print(response.url)
+    response = requests.post(url, json=body, headers=headers)
+    print(response.text)
 
 
 import hmac
@@ -63,25 +62,43 @@ def get_signature_key(key, dateStamp, regionName, serviceName):
     return kSigning
 
 
-def create_signature():
+def create_signature(access_token: str):
     asin = 'B074X15BG5'
     region = 'us-west-2'
     service = 'execute-api'
     method = 'POST'
     canonical_uri = f'/products/fees/v0/items/{asin}/feesEstimate'
     secret_key = settings.AWS_SECRET_KEY
+    access_key = settings.AWS_ACCESS_ID
+    host = 'sellingpartnerapi-fe.amazon.com'
+    user_agent = 'My SPAPI Client tool /1.0(Language=python/3.10'
 
     t = datetime.datetime.utcnow()
     amz_date = t.strftime('%Y%m%dT%H%M%SZ') 
     datestamp = t.strftime('%Y%m%d')
     algorithm = 'AWS4-HMAC-SHA256'
+    canonical_headers = 'host:' + host + '\n' + 'user-agent:' + user_agent + '\n' + 'x-amz-access-token:' + access_token + '\n' + 'x-amz-date:' + amz_date + '\n'
+    signed_headers = 'host;user-agent;x-amz-access-token;x-amz-date'
+    payload_hash = hashlib.sha256(('').encode('utf-8')).hexdigest()
+
+    canonical_querystring = ' '
+
     canonical_request = method + '\n' + canonical_uri + '\n' + canonical_querystring + '\n' + canonical_headers + '\n' + signed_headers + '\n' + payload_hash
     credential_scope = datestamp + '/' + region + '/' + service + '/' + 'aws4_request'
     signing_key = get_signature_key(secret_key, datestamp, region, service)
     string_to_sign = algorithm + '\n' +  amz_date + '\n' +  credential_scope + '\n' +  hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()
     
     signature = hmac.new(signing_key, (string_to_sign).encode('utf-8'), hashlib.sha256).hexdigest()
-    pass
+    authorization_header = algorithm + ' ' + 'Credential=' + access_key + '/' + credential_scope + ', ' +  'SignedHeaders=' + signed_headers + ', ' + 'Signature=' + signature
+    print(authorization_header)
+    headers = {
+        'host': host,
+        'user-agent': 'My SPAPI Client tool /1.0(Language=python/3.10',
+        'x-amz-access-token': access_token,
+        'x-amz-date': amz_date,
+        'Authorization': authorization_header,
+    }
+    return headers
 
 
 def get_spapi_access_token():
