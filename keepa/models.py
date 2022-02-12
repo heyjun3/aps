@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Date
 from sqlalchemy import JSON
+from sqlalchemy import or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from contextlib import contextmanager
@@ -73,10 +74,11 @@ class KeepaProducts(Base):
             return True
     
     @classmethod
-    def get_product_price_data_is_None(cls, get_product_num: int = 100):
+    def get_asin_list_price_data_is_None(cls, max_count: int = 100):
         with session_scope() as session:
-            products = session.query(cls).filter(cls.price_data == None, cls.rank_data == None).limit(get_product_num).all()
+            products = session.query(cls.asin).filter(or_(cls.price_data == None, cls.rank_data == None)).limit(max_count).all()
             if products:
+                products = list(map(lambda x: x[0], products))
                 return products
             else:
                 return None
