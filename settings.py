@@ -42,7 +42,7 @@ NS2 = '{http://mws.amazonservices.com/schema/Products/2011-10-01/default.xsd}'
 # SPAPI settings
 REFRESH_TOKEN = config['SPAPI']['REFRESH_TOKEN']
 CLIENT_ID = config['SPAPI']['CLIENT_ID']
-ClIENT_TOKEN = config['SPAPI']['CLIENT_SECRET']
+CLIENT_SECRET = config['SPAPI']['CLIENT_SECRET']
 AWS_ACCESS_ID = config['SPAPI']['AWS_ACCESS_ID']
 AWS_SECRET_KEY = config['SPAPI']['AWS_SECRET_KEY']
 
