@@ -86,11 +86,11 @@ class SPAPI:
         host = urllib.parse.urlparse(ENDPOINT).netloc
 
         t = datetime.datetime.utcnow()
-        amz_date = t.strftime('%Y%m%dT%H%M%SZ') 
+        amz_date = t.strftime('%Y%m%dT%H%M%SZ')
         datestamp = t.strftime('%Y%m%d')
 
         canonical_headers = 'host:' + host + '\n' + 'user-agent:' + user_agent + '\n' + 'x-amz-access-token:' + access_token + '\n' + 'x-amz-date:' + amz_date + '\n'
-        payload_hash = hashlib.sha256(json.dumps(body)).encode('utf-8').hexdigest()
+        payload_hash = hashlib.sha256(json.dumps(body).encode('utf-8')).hexdigest()
 
         canonical_querystring = urllib.parse.urlencode(query)
 
@@ -136,6 +136,6 @@ class SPAPI:
         # }
         access_token = self.get_spapi_access_token()
         url = urllib.parse.urljoin(ENDPOINT, path)
-        headers = self.create_signature(method, url, access_token=access_token, body=body)
+        headers = self.create_signature(method, canonical_uri=path, access_token=access_token, body=body)
         response = requests.post(url, json=body, headers=headers)
         print(response.text)
