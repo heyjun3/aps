@@ -8,6 +8,7 @@ from crawler.rakuten import rakuten
 from crawler.super import super
 from crawler.netsea import netsea
 from ims import repeat
+from ims import monthly
 
 
 if __name__ == '__main__':
@@ -30,5 +31,7 @@ if __name__ == '__main__':
         netsea.netsea_all()
     elif args[1] == 'repeat':
         repeat.main()
+    elif args[1] == 'monthly':
+        monthly.main()
     else:
         sys.stdout.write(f'{args[1]} is not a command')
