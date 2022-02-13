@@ -1,3 +1,4 @@
+from base64 import decode
 import datetime
 import hmac
 import hashlib
@@ -6,7 +7,7 @@ import os
 import time
 import urllib.parse
 
-
+import redis
 import requests
 
 import settings
@@ -14,8 +15,7 @@ import log_settings
 
 
 logger = log_settings.get_logger(__name__)
-
-    
+redis_client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB)
 ENDPOINT = 'https://sellingpartnerapi-fe.amazon.com'
 
 
@@ -45,8 +45,6 @@ class SPAPI:
 
         self.marketplace_id = settings.MARKETPLACEID
 
-
-
     def sign(self, key, msg):
         return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
 
@@ -57,7 +55,11 @@ class SPAPI:
         kSigning = self.sign(kService, 'aws4_request')
         return kSigning
 
-    def get_spapi_access_token(self):
+    def get_spapi_access_token(self, timeout_sec: int = 3500):
+
+        access_token = redis_client.get('access_token')
+        if access_token is not None:
+            return access_token.decode()
 
         URL = 'https://api.amazon.com/auth/o2/token'
         headers = {
@@ -77,7 +79,9 @@ class SPAPI:
         
         if access_token is None:
             logger.error(response.text)
-            return None
+            raise Exception
+
+        redis_client.set('access_token', access_token, ex=timeout_sec)
 
         return access_token
 
