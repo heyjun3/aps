@@ -45,10 +45,7 @@ class SPAPI:
 
         self.marketplace_id = settings.MARKETPLACEID
 
-        self.headers = {
-            'host': urllib.parse.urlparse(ENDPOINT).netloc,
-            'user-agent': 'My SPAPI Client tool /1.0(Language=python/3.10)',
-        }
+
 
     def sign(self, key, msg):
         return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
@@ -89,10 +86,10 @@ class SPAPI:
         service = 'execute-api'
         algorithm = 'AWS4-HMAC-SHA256'
         signed_headers = 'host;user-agent;x-amz-access-token;x-amz-date'
+        user_agent = 'My SPAPI Client tool /1.0(Language=python/3.10)'
 
         host = urllib.parse.urlparse(ENDPOINT).netloc
         canonical_uri = urllib.parse.urlparse(req.url).path
-        user_agent = req.headers.get('user-agent')
         body = ''
 
         if  req.json:
@@ -119,9 +116,13 @@ class SPAPI:
         signature = hmac.new(signing_key, (string_to_sign).encode('utf-8'), hashlib.sha256).hexdigest()
         authorization_header = f'{algorithm} Credential={self.aws_access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}'
         
-        req.headers['x-amz-date'] = amz_date
-        req.headers['Authorization'] = authorization_header
-        req.headers['x-amz-access-token'] = amz_access_token
+        req.headers = {
+            'host': urllib.parse.urlparse(ENDPOINT).netloc,
+            'user-agent': user_agent,
+            'x-amz-date': amz_date,
+            'Authorization': authorization_header,
+            'x-amz-access-token': amz_access_token,
+        }
 
         return req
 
@@ -144,7 +145,7 @@ class SPAPI:
                 'MarketplaceId': self.marketplace_id, 
             }
         }
-        req = requests.Request(method=method, url=url, json=body, headers=self.headers)
+        req = requests.Request(method=method, url=url, json=body)
         req = self.create_authorization_headers(req)
         response = request(req)
 
@@ -159,7 +160,7 @@ class SPAPI:
             'ItemType': item_type,
             'MarketplaceId': self.marketplace_id,
         }
-        req = requests.Request(method=method, url=url, params=query, headers=self.headers)
+        req = requests.Request(method=method, url=url, params=query)
         req = self.create_authorization_headers(req)
         response = request(req)
 
