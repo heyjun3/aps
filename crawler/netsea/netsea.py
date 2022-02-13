@@ -24,10 +24,10 @@ price_regex = re.compile('\\d+')
 jan_regex = re.compile('[0-9]{13}')
 
 
-def get_authentication_token() -> str:
+def get_authentication_token(session: requests.Session) -> str:
     logger.info('action=get_authentication_token status=run')
     
-    response = utils.request(url=settings.NETSEA_LOGIN_URL)
+    response = utils.request(url=settings.NETSEA_LOGIN_URL, session=session)
     soup = BeautifulSoup(response.text, 'lxml')
     authenticity_token = soup.find(attrs={'name': '_token'}).get('value')
 
@@ -37,13 +37,13 @@ def get_authentication_token() -> str:
 def login() -> Session:
     logger.info('action=login status=run')
 
-    token = get_authentication_token()
+    session = requests.Session()
+    token = get_authentication_token(session)
     info = {
         '_token': token,
         'login_id': settings.NETSEA_ID,
         'password': settings.NETSEA_PASSWD,
     }
-    session = requests.Session()
     response = utils.request(url=settings.NETSEA_LOGIN_URL, method='POST', session=session, data=info)
     time.sleep(2)
 
