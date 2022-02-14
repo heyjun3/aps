@@ -1,5 +1,4 @@
 import time
-from logging import getLogger
 
 import json
 import requests
@@ -7,9 +6,10 @@ import requests
 from keepa.models import KeepaProducts
 from mws.models import MWS
 import settings
+import log_settings
 
 
-logger = getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 
 
 def request(url):
@@ -26,11 +26,11 @@ def request(url):
             time.sleep(60)
 
 
-def check_keepa_tokens():
+def check_keepa_tokens(interval_sec: int = 1):
     logger.info('action=check_keepa_tokens status=run')
     url = f'https://api.keepa.com/token?key={settings.KEEPA_ACCESS_KEY}'
     response = request(url)
-    time.sleep(1)
+    time.sleep(interval_sec)
     response = response.content.decode()
     response = json.loads(response)
     logger.info(f'tokens:{response["tokensLeft"]}')
@@ -90,13 +90,14 @@ def main(interval_sec: int = 60):
     logger.info('action=main status=run')
 
     while True:
-        asin_list = MWS.get_keepa_objects_None_products()
+        asin_list = MWS.get_asin_list_None_products()
+        if not asin_list:
+            asin_list = KeepaProducts.get_asin_list_price_data_is_None()
+
         if asin_list:
-            while asin_list:
-                asin_list_hundred = [asin_list.pop() for _ in range(100) if asin_list]
-                response = keepa_request_products(asin_list_hundred)
-                keepa_products = scrape_keepa_request(response)
-                for asin, drops, price_data, rank_data in keepa_products:
-                    KeepaProducts.update_or_insert(asin, drops, price_data, rank_data)
+            response = keepa_request_products(asin_list)
+            keepa_products = scrape_keepa_request(response)
+            for asin, drops, price_data, rank_data in keepa_products:
+                KeepaProducts.update_or_insert(asin, drops, price_data, rank_data)
         else:
             time.sleep(interval_sec)

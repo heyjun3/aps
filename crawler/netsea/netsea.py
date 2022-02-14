@@ -1,9 +1,7 @@
 import time
 import re
 import os
-import logging
 import datetime
-import logging.config
 from urllib.parse import urljoin
 
 import requests
@@ -14,22 +12,22 @@ from requests import Response
 import pandas as pd
 
 import settings
+import log_settings
 from crawler.netsea.models import Netsea
 from crawler import utils
 from crawler.netsea.models import NetseaShop
-from ims.models import FavoriteProduct
 
 
-logger = logging.getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 
 price_regex = re.compile('\\d+')
 jan_regex = re.compile('[0-9]{13}')
 
 
-def get_authentication_token() -> str:
+def get_authentication_token(session: requests.Session) -> str:
     logger.info('action=get_authentication_token status=run')
     
-    response = utils.request(url=settings.NETSEA_LOGIN_URL)
+    response = utils.request(url=settings.NETSEA_LOGIN_URL, session=session)
     soup = BeautifulSoup(response.text, 'lxml')
     authenticity_token = soup.find(attrs={'name': '_token'}).get('value')
 
@@ -39,13 +37,13 @@ def get_authentication_token() -> str:
 def login() -> Session:
     logger.info('action=login status=run')
 
-    token = get_authentication_token()
+    session = requests.Session()
+    token = get_authentication_token(session)
     info = {
         '_token': token,
         'login_id': settings.NETSEA_ID,
         'password': settings.NETSEA_PASSWD,
     }
-    session = requests.Session()
     response = utils.request(url=settings.NETSEA_LOGIN_URL, method='POST', session=session, data=info)
     time.sleep(2)
 
@@ -112,7 +110,7 @@ def next_page_url_selector(response):
             supplier_id = ''.join(price_regex.findall(supplier_id))
             next_page_url = urljoin(settings.NETSEA_NEXT_URL, f"?supplier_id={supplier_id}&sort=PD&facet_price_to={price}")
         except IndexError as e:
-            logging.error(f'action=next_page_selector status={e}')
+            logger.error(f'action=next_page_selector status={e}')
             return None
 
     return next_page_url

@@ -1,6 +1,5 @@
 import re
 import time
-import copy
 import os
 import urllib
 from datetime import datetime
@@ -14,14 +13,14 @@ from bs4 import BeautifulSoup
 import pandas as pd
 
 import settings
+import log_settings
 from crawler import utils
 from crawler.super.models import Super
 from crawler.super.models import SuperShop
 from crawler.super.models import SuperProductDetails
-from ims.models import FavoriteProduct
 
 
-logger = logging.getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 
 
 number_regex = re.compile('\\d+')

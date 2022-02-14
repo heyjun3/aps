@@ -1,5 +1,3 @@
-from logging import getLogger
-
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import BigInteger
@@ -8,13 +6,14 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import and_
 
+import log_settings
 from crawler.models import Base
 from crawler.models import session_scope
 from crawler.models import Shop
 from crawler.models import postgresql_engine
 
 
-logger = getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 
 
 class Super(Base):

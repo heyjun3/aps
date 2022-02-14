@@ -10,3 +10,4 @@ test*.html
 tmp.py
 *.csv
 node_modules
+logs

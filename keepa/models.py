@@ -1,4 +1,3 @@
-import logging
 import threading
 import datetime
 
@@ -6,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Date
 from sqlalchemy import JSON
+from sqlalchemy import or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from contextlib import contextmanager
@@ -13,10 +13,10 @@ import pandas as pd
 import numpy as np
 
 import settings
+import log_settings
 
 
-logger = logging.getLogger('sqlalchemy.engine')
-logger.setLevel(logging.WARNING)
+logger = log_settings.get_logger(__name__)
 lock = threading.Lock()
 postgresql_engine = create_engine(settings.DB_URL)
 Base = declarative_base()
@@ -32,6 +32,7 @@ class KeepaProducts(Base):
     modified = Column(Date, default=datetime.date.today)
     price_data = Column(JSON)
     rank_data = Column(JSON)
+    render_data = Column(JSON)
 
     @classmethod
     def create(cls, asin, drops ,price_data, rank_data):
@@ -58,6 +59,7 @@ class KeepaProducts(Base):
             product = session.query(cls).filter(cls.asin == asin).first()
             if product is None:
                 keepa_product = cls(asin=asin, sales_drops_90=drops, price_data=price_data, rank_data=rank_data)
+                keepa_product.render_data = keepa_product.convert_render_price_rank_data()
                 try:
                     session.add(keepa_product)
                 except IntegrityError as ex:
@@ -68,13 +70,15 @@ class KeepaProducts(Base):
                 product.modified = datetime.date.today()
                 product.price_data = price_data
                 product.rank_data = rank_data
+                product.render_data = product.convert_render_price_rank_data()
             return True
     
     @classmethod
-    def get_product_price_data_is_None(cls, get_product_num: int = 100):
+    def get_asin_list_price_data_is_None(cls, max_count: int = 100):
         with session_scope() as session:
-            products = session.query(cls).filter(cls.price_data == None, cls.rank_data == None).limit(get_product_num).all()
+            products = session.query(cls.asin).filter(or_(cls.price_data == None, cls.rank_data == None)).limit(max_count).all()
             if products:
+                products = list(map(lambda x: x[0], products))
                 return products
             else:
                 return None
@@ -87,10 +91,19 @@ class KeepaProducts(Base):
                 return product
             else:
                 return None
-
     
-    @property
-    def render_price_rank_data_list(self):
+    @classmethod
+    def set_render_data(cls):
+        with session_scope() as session:
+            asin_list = session.query(cls.asin).all()
+        for asin in asin_list:
+            with session_scope() as session:
+                keepa = session.query(cls).filter(cls.asin == asin[0]).first()
+                keepa.render_data = keepa.convert_render_price_rank_data()
+
+    def convert_render_price_rank_data(self):
+        if self.rank_data is None or self.price_data is None:
+            return None
         rank_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.rank_data.items()}
         price_dict = {convert_keepa_time_to_datetime_date(int(k)): v for k, v in self.price_data.items()}
 
@@ -101,10 +114,13 @@ class KeepaProducts(Base):
         df = df.replace(-1.0, np.nan)
         df = df.fillna(method='ffill')
         df = df.fillna(method='bfill')
+        df = df.replace([np.nan], [None])
         delay = datetime.datetime.now().date() - datetime.timedelta(days=90)
         df = df[df['date'] > delay]
         df = df.sort_values('date', ascending=True)
-        products = (df['date'].to_list(), df['rank'].to_list(), df['price'].to_list())
+        products = {'date': list(map(lambda x: x.isoformat(), df['date'].to_list())), 
+                    'rank': df['rank'].to_list(), 
+                    'price': df['price'].to_list()}
 
         return products
 

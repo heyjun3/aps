@@ -20,9 +20,10 @@ from bs4 import BeautifulSoup
 
 from mws.models import MWS
 import settings
+import log_settings
 
 
-logger = logging.getLogger(__name__)
+logger = log_settings.get_logger(__name__)
 
 
 def datetime_encode(dt):
@@ -154,7 +155,7 @@ class AmazonClient:
                 price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
             except AttributeError as ex:
                 logger.debug(ex)
-                price = 0
+                price = -1
             logger.debug(asin, price)
             asin_price_dict[asin] = price
 
