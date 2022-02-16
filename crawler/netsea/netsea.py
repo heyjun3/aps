@@ -13,7 +13,7 @@ import pandas as pd
 
 import settings
 import log_settings
-from crawler.netsea.models import Netsea
+from crawler.netsea.models import NetseaProduct
 from crawler import utils
 from crawler.netsea.models import NetseaShop
 
@@ -24,119 +24,128 @@ price_regex = re.compile('\\d+')
 jan_regex = re.compile('[0-9]{13}')
 
 
-def get_authentication_token(session: requests.Session) -> str:
-    logger.info('action=get_authentication_token status=run')
-    
-    response = utils.request(url=settings.NETSEA_LOGIN_URL, session=session)
-    soup = BeautifulSoup(response.text, 'lxml')
-    authenticity_token = soup.find(attrs={'name': '_token'}).get('value')
+class Netsea(object):
 
-    logger.info('action=get_authentication_token status=done')
-    return authenticity_token
+    def __init__(self, url):
+        self.url = url
 
-def login() -> Session:
-    logger.info('action=login status=run')
+    def get_authentication_token(self, session: requests.Session) -> str:
+        logger.info('action=get_authentication_token status=run')
+        
+        response = utils.request(url=settings.NETSEA_LOGIN_URL, session=session)
+        soup = BeautifulSoup(response.text, 'lxml')
+        authenticity_token = soup.find(attrs={'name': '_token'}).get('value')
 
-    session = requests.Session()
-    token = get_authentication_token(session)
-    info = {
-        '_token': token,
-        'login_id': settings.NETSEA_ID,
-        'password': settings.NETSEA_PASSWD,
-    }
-    response = utils.request(url=settings.NETSEA_LOGIN_URL, method='POST', session=session, data=info)
-    time.sleep(2)
+        logger.info('action=get_authentication_token status=done')
+        return authenticity_token
 
-    logger.info('action=login status=done')
-    return session
+    def login(self) -> Session:
+        logger.info('action=login status=run')
 
-def list_page_selector(response, new_bool):
-    logger.info('action=list_page_selector status=run')
+        session = requests.Session()
+        token = self.get_authentication_token(session)
+        info = {
+            '_token': token,
+            'login_id': settings.NETSEA_ID,
+            'password': settings.NETSEA_PASSWD,
+        }
+        response = utils.request(url=settings.NETSEA_LOGIN_URL, method='POST', session=session, data=info)
+        time.sleep(2)
 
-    result_list = []
-    new_flag = True
+        logger.info('action=login status=done')
+        return session
 
-    soup = BeautifulSoup(response.content, 'lxml')
-    product_list = soup.select('.showcaseType01')
+import urllib.parse
+    def scrape_product_list_page(self, response: requests.Response, new_product_search: bool = False):
+        logger.info('action=list_page_selector status=run')
 
-    for product in product_list:
-        url = product.select_one('.showcaseHd a')
-        price = product.select_one('.price')
-        flag = product.select_one('.labelType04')
+        SHOP_CODE_NUM = -2
+        PRODUCT_CODE_NUM = -1
 
-        if new_bool and flag is None:
-            new_flag = False
-            return result_list, new_flag
+        netsea_product_list = []
+        soup = BeautifulSoup(response.content, 'lxml')
+        product_list = soup.select('.showcaseType01')
 
-        if url is None or price is None:
-            logger.info('url_title or price is None')
-            continue
-
-        item = Netsea()
-        item.name = url.text.strip()
-        item.price = int(int(''.join(price_regex.findall(price.text))) * 1.1)
-        item.url = url.attrs['href'].split('?')[0]
-        item.shop_code = item.url.split('/')[-2]
-        item.product_code = item.url.split('/')[-1]
-        result_list.append(item)
-
-    return result_list, new_flag
+        for product in product_list:
+            url = product.select_one('.showcaseHd a')
+            price = product.select_one('.price')
+            flag = product.select_one('.labelType04')
 
 
-def next_page_url_selector(response):
-    logger.info('action=next_page_url_selector status=run')
+            if url is None or price is None:
+                logger.info('url_title or price is None')
+                continue
+            title = product.select_one('.showcaseHd a').text.strip()
+            price = int(int(''.join(price_regex.findall(product.select_one('.price').text))) * 1.1)
+            url = urllib.parse.urlparse(product.select_one('.showcaseHd a').attrs.get('href'))
+            shopcode = url.path.split('/')[SHOP_CODE_NUM]
+            product_code = url.path.split('/')[PRODUCT_CODE_NUM]
 
-    soup = BeautifulSoup(response.content, 'lxml')
-    try:
-        next_page_url = soup.select_one('.next a')
-        current = soup.select_one('.current').text.strip()
-        products = soup.select('.showcaseType01')
-        is_beginner_trade_false = soup.select('.priceHide')
-    except AttributeError as e:
-        logger.error(f"action=next_page_url_selector status={e}")
-        return None
+            item = NetseaProduct()
+            item.name = url.text.strip()
+            item.price = int(int(''.join(price_regex.findall(price.text))) * 1.1)
+            item.url = url.attrs['href'].split('?')[0]
+            item.shop_code = item.url.split('/')[-2]
+            item.product_code = item.url.split('/')[-1]
+            result_list.append(item)
 
-    if len(products) == len(is_beginner_trade_false):
-        return None
+        return result_list, new_flag
 
-    if next_page_url:
-        next_page_url = urljoin(settings.NETSEA_NEXT_URL, next_page_url.attrs['href'])
 
-    if current == '166' and len(products) == 60:
-        price = products[-1].select_one('.price')
-        price = ''.join(price_regex.findall(price.text))
+    def next_page_url_selector(response):
+        logger.info('action=next_page_url_selector status=run')
+
+        soup = BeautifulSoup(response.content, 'lxml')
         try:
-            supplier_id = re.findall('supplier_id=[\\d]+', response.url)[0]
-            supplier_id = ''.join(price_regex.findall(supplier_id))
-            next_page_url = urljoin(settings.NETSEA_NEXT_URL, f"?supplier_id={supplier_id}&sort=PD&facet_price_to={price}")
-        except IndexError as e:
-            logger.error(f'action=next_page_selector status={e}')
+            next_page_url = soup.select_one('.next a')
+            current = soup.select_one('.current').text.strip()
+            products = soup.select('.showcaseType01')
+            is_beginner_trade_false = soup.select('.priceHide')
+        except AttributeError as e:
+            logger.error(f"action=next_page_url_selector status={e}")
             return None
 
-    return next_page_url
+        if len(products) == len(is_beginner_trade_false):
+            return None
+
+        if next_page_url:
+            next_page_url = urljoin(settings.NETSEA_NEXT_URL, next_page_url.attrs['href'])
+
+        if current == '166' and len(products) == 60:
+            price = products[-1].select_one('.price')
+            price = ''.join(price_regex.findall(price.text))
+            try:
+                supplier_id = re.findall('supplier_id=[\\d]+', response.url)[0]
+                supplier_id = ''.join(price_regex.findall(supplier_id))
+                next_page_url = urljoin(settings.NETSEA_NEXT_URL, f"?supplier_id={supplier_id}&sort=PD&facet_price_to={price}")
+            except IndexError as e:
+                logger.error(f'action=next_page_selector status={e}')
+                return None
+
+        return next_page_url
 
 
-def get_url_cost_list_page(session: Session, url: str, new_bool=False) -> list:
-    logger.info('action=get_url_cost_list_page status=run')
+    def get_url_cost_list_page(session: Session, url: str, new_bool=False) -> list:
+        logger.info('action=get_url_cost_list_page status=run')
 
-    result_list = []
-    while True:
-        response = utils.request(session=session, url=url)
-        time.sleep(2)
-        products, new_flag = list_page_selector(response, new_bool)
-        next_page_url = next_page_url_selector(response)
-        result_list.extend(products)
+        result_list = []
+        while True:
+            response = utils.request(session=session, url=url)
+            time.sleep(2)
+            products, new_flag = list_page_selector(response, new_bool)
+            next_page_url = next_page_url_selector(response)
+            result_list.extend(products)
 
-        if not new_flag:
-            logger.info('new products end')
-            break
+            if not new_flag:
+                logger.info('new products end')
+                break
 
-        if next_page_url is None:
-            logger.info('next_page_url is None. break all_url_cost_list')
-            break
-        url = next_page_url
+            if next_page_url is None:
+                logger.info('next_page_url is None. break all_url_cost_list')
+                break
+            url = next_page_url
 
-    return result_list
+        return result_list
 
 
 def classify_exist_jan_url(products: list):
@@ -167,7 +176,7 @@ def classify_exist_db(products: list):
     not_exist_list, exist_list = [], []
 
     for product in products:
-        db_response = Netsea.get(product.url)
+        db_response = NetseaProduct.get(product.url)
         if not db_response:
             not_exist_list.append(product)
         else:
@@ -324,7 +333,7 @@ def shop_product_quantity_selector(response):
     return int(product_quantity)
 
 
-def calc_discount_price(product: Netsea, discount_rate: float):
+def calc_discount_price(product: NetseaProduct, discount_rate: float):
     product.price = int(int(product.price) * discount_rate)
     return product
 
@@ -374,7 +383,7 @@ def collect_favorite_products(interval_sec: int = 2):
         if re.fullmatch('[0-9]{13}', product_id):
             jan = product_id
         else:
-            netsea_object = Netsea.get(url)
+            netsea_object = NetseaProduct.get(url)
             if netsea_object is None:
                 print(product)
                 continue

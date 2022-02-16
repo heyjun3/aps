@@ -15,7 +15,7 @@ from crawler.models import Shop
 logger = log_settings.get_logger(__name__)
 
 
-class Netsea(Product, Base):
+class NetseaProduct(Product, Base):
     __tablename__ = 'netsea_products'
 
 
