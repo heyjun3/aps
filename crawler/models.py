@@ -22,10 +22,7 @@ Session = sessionmaker(bind=postgresql_engine)
 
 class Shop:
     name = Column(String)
-    shop_id = Column(Integer, primary_key=True, nullable=False)
-    url = Column(String)
-    product_quantity = Column(Integer)
-    category_id = Column(Integer)
+    shop_id = Column(String, primary_key=True, nullable=False)
 
     @classmethod
     def create(cls, name, shop_id, url, quantity, category):
@@ -56,9 +53,6 @@ class Shop:
         return {
             'name': self.name,
             'shop_id': self.shop_id,
-            'url': self.url,
-            'product_quantity': self.product_quantity,
-            'category_id': self.category_id,
         }
 
     def save(self):

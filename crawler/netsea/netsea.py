@@ -188,37 +188,26 @@ class NetseaHTMLPage(object):
         logger.info('action=scrape_next_page_url status=done')
         return next_page_url
 
+    @classmethod
+    def scrape_shop_list_page(cls, response: str) -> list[NetseaShop]:
+        logger.info('action=shop_list_page_selector status=run')
 
-def shop_list_page_selector(response: Response):
-    logger.info('action=shop_list_page_selector status=run')
+        SHOP_ID_NUM = -1
+        shop_list = []
+        soup = BeautifulSoup(response, 'lxml')
+        shops = soup.select('.supNameList a')
 
-    soup = BeautifulSoup(response.text, 'html.parser')
-    shops = soup.select('.supNameList a')
-    category = re.search('[0-9]', response.url).group()
-
-    for shop in shops:
-        shop_name = shop.text
-        shop_url = shop.attrs['href']
-        shop_id = int(shop_url.split('/')[-1])
-        NetseaShop.create(name=shop_name, shop_id=shop_id, url=shop_url, quantity=None, category=category)
-    
-    next_url = response.url.replace(category, str(int(category)+1))
-    if category == '9':
-        return None
-
-    return next_url
+        for shop in shops:
+            shop_name = shop.text
+            shop_url = shop.attrs.get('href')
+            shop_id = os.path.split(urlparse(shop_url).path)[SHOP_ID_NUM]
+            netsea_shop = NetseaShop(name=shop_name, shop_id=shop_id)
+            shop_list.append(netsea_shop)
+        
+        return shop_list
 
 
-def new_shop_search():
-    logger.info('action=new_shop_search status=run')
-    session = login()
-    url = 'https://www.netsea.jp/shop?category_id=1&sort=NEW'
-    while True:
-        response = utils.request(url=url, session=session)
-        url = shop_list_page_selector(response)
-        if url is None:
-            logger.info('action=new_shop_search status=done')
-            break
+
 
 
 # def get_product_count(session: Session, url: str):
