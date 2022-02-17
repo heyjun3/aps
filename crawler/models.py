@@ -79,28 +79,8 @@ class Product:
     name = Column(String)
     jan = Column(String)
     price = Column(BigInteger)
-    shop_code = Column(String)
-    url = Column(String, primary_key=True, nullable=False)
-    product_code = Column(String)
-
-    @classmethod
-    def create(cls, name=None, jan=None, price=None, shop_code=None, url=None, product_code=None):
-        product = cls()
-        product.name = name
-        product.jan = jan
-        product.price = price
-        product.shop_code = shop_code
-        product.url = url
-        product.product_code = product_code
-        return product
-
-    @classmethod
-    def get(cls, url):
-        with session_scope() as session:
-            product = session.query(cls).filter(cls.url == url).first()
-            if product is None:
-                return None
-            return product
+    shop_code = Column(String, primary_key=True, nullable=False)
+    product_code = Column(String, primary_key=True, nullable=False)
 
     @classmethod
     def get_jan(cls, jan):
@@ -117,8 +97,8 @@ class Product:
             return products
 
     @classmethod
-    def get_object_filter_productcode_shopcode(cls, product_code, shop_code):
-        print('action=get_object_filter_productcode_shopcode status=run')
+    def get_object_filter_productcode_and_shopcode(cls, product_code, shop_code):
+        print('action=get_object_filter_productcode_and_shopcode status=run')
         with session_scope() as session:
             product = session.query(cls).filter(and_(cls.product_code == product_code, cls.shop_code == shop_code)).first()
             if product is None:
