@@ -98,7 +98,7 @@ class Product:
 
     @classmethod
     def get_object_filter_productcode_and_shopcode(cls, product_code, shop_code):
-        print('action=get_object_filter_productcode_and_shopcode status=run')
+        logger.info('action=get_object_filter_productcode_and_shopcode status=run')
         with session_scope() as session:
             product = session.query(cls).filter(and_(cls.product_code == product_code, cls.shop_code == shop_code)).first()
             if product is None:

@@ -62,6 +62,7 @@ KEEPA_ACCESS_KEY = config['KEEPA']['KEEPA_ACCESS_KEY']
 NETSEA_LOGIN_URL = 'https://www.netsea.jp/login'
 NETSEA_NEXT_URL = 'https://www.netsea.jp/search/'
 NETSEA_SHOP_URL = 'https://www.netsea.jp/shop/'
+NETSEA_ENDPOINT = 'https://www.netsea.jp'
 NETSEA_ID = config['NETSEA']['ID']
 NETSEA_PASSWD = config['NETSEA']['PASSWD']
 

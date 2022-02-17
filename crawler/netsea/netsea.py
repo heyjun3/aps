@@ -1,12 +1,11 @@
+import json
 import time
 import re
 import os
 import datetime
 from urllib.parse import urljoin
 from urllib.parse import urlparse
-from urllib.parse import urlencode
 from urllib.parse import parse_qs
-from xml.dom.minidom import Attr
 
 import requests
 from requests import Session
@@ -17,6 +16,7 @@ import pandas as pd
 
 import settings
 import log_settings
+from mq import MQ
 from crawler.netsea.models import NetseaProduct
 from crawler import utils
 from crawler.netsea.models import NetseaShop
@@ -30,10 +30,11 @@ jan_regex = re.compile('[0-9]{13}')
 
 class Netsea(object):
 
-    def __init__(self, url):
-        self.url = url
+    def __init__(self, url, params: dict = None):
+        self.url = requests.Request(method='GET', url=url, params=params).prepare().url
         self.netsea_product_list = []
-        self.next_page_url = ''
+        self.mq = MQ('mws')
+        self.session = self.login()
 
     def get_authentication_token(self, session: requests.Session) -> str:
         logger.info('action=get_authentication_token status=run')
@@ -61,20 +62,69 @@ class Netsea(object):
         logger.info('action=login status=done')
         return session
 
-    def scrape_product_list_page(self, response: requests.Response) -> None:
-        logger.info('action=list_page_selector status=run')
+    def pool_product_list_page(self, is_new_product_search: bool = False, interval_sec: int = 2) -> None:
+        logger.info('action=pool_product_list_page status=run')
 
+        while self.url is not None:
+            response = utils.request(session=self.session, url=self.url)
+            time.sleep(interval_sec)
+            self.netsea_product_list.extend(NetseaHTMLPage.scrape_product_list_page(response.text))
+            self.url = NetseaHTMLPage.scrape_next_page_url(response.text, response.url, is_new_product_search)
+        
+        logger.info('action=pool_product_list_page status=done')
+
+    def pool_product_detail_page(self, interval_sec: int = 2, datetime: datetime.datetime = datetime.datetime.now()):
+        logger.info('action=pool_product_detail_page status=run')
+
+        for netsea_product in self.netsea_product_list:
+            product = NetseaProduct.get_object_filter_productcode_and_shopcode(netsea_product.product_code, netsea_product.shop_code)
+            if product:
+                netsea_product.jan = product.jan
+            elif re.fullmatch('[\d]{13}', netsea_product.product_code):
+                netsea_product.jan = netsea_product.product_code
+                netsea_product.save()
+            else:
+                url = urljoin(settings.NETSEA_SHOP_URL, f'{netsea_product.shop_code}/{netsea_product.product_code}')
+                response = utils.request(session=self.session, url=url)
+                time.sleep(interval_sec)
+                netsea_product.jan = NetseaHTMLPage.scrape_product_detail_page(response.text)
+                netsea_product.save()
+            params = {
+                'filename': f'netsea_{datetime.strftime("%Y%m%d_%H%M%S")}',
+                'jan': netsea_product.jan,
+                'cost': netsea_product.price
+            }
+            self.mq.publish(json.dumps(params))
+
+        logger.info('action=pool_product_detail_page status=done')
+
+    def start_search_products(self):
+        logger.info('action=start_search_products status=run')
+
+        self.pool_product_list_page()
+        self.pool_product_detail_page()
+
+        logger.info('action=start_search_products status=done')
+
+
+class NetseaHTMLPage(object):
+
+    @classmethod
+    def scrape_product_list_page(cls, response: str) -> list[NetseaProduct]:
+        logger.info('action=scrape_product_list_page status=run')
+
+        netsea_product_list = []
         SHOP_CODE_NUM = -2
         PRODUCT_CODE_NUM = -1
 
-        soup = BeautifulSoup(response.content, 'lxml')
+        soup = BeautifulSoup(response, 'lxml')
         product_list = soup.select('.showcaseType01')
 
         for product in product_list:
             try:
                 title = product.select_one('.showcaseHd a').text.strip()
             except AttributeError as ex:
-                logger.error('title is None')
+                logger.error(f'title is None error={ex}')
                 continue
 
             try:
@@ -88,50 +138,15 @@ class Netsea(object):
             product_code = url.path.split('/')[PRODUCT_CODE_NUM]
             netsea_product = NetseaProduct(name=title, price=price, shop_code=shop_code, product_code=product_code)
 
-            self.netsea_product_list.append(netsea_product)
+            netsea_product_list.append(netsea_product)
+        
+        logger.info('action=scrape_product_list_page status=done')
+        return netsea_product_list
 
-    def scrape_next_page_url(self, response: requests.Response, is_new_product_search: bool = False) -> None:
-        logger.info('action=next_page_url_selector status=run')
-
-        soup = BeautifulSoup(response.content, 'lxml')
-        try:
-            next_page_url_tag = soup.select_one('.next a')
-            products = soup.select('.showcaseType01')
-            new_product_count = soup.select('.labelType04')
-        except AttributeError as e:
-            logger.error(f"action=next_page_url_selector status={e}")
-            self.next_page_url = None
-
-        if is_new_product_search and not len(new_product_count) == 60:
-            self.next_page_url = None
-
-        if next_page_url_tag:
-            self.next_page_url = urljoin(settings.NETSEA_NEXT_URL, next_page_url_tag.attrs.get('href'))
-        elif len(products) == 60:
-            price = ''.join(price_regex.findall(products[-1].select_one('.price').text))
-            current_url = urlparse(response.url)
-            query = parse_qs(current_url.query)
-            query['page'] = ['1']
-            query['facet_price_to'] = price
-            self.next_page_url = requests.Request(url=settings.NETSEA_NEXT_URL, params=query).prepare().url
-
-    def pool_product_list_page(self, session: Session, url: str, is_new_product_search: bool = False, interval_sec: int = 2) -> None:
-        logger.info('action=get_url_cost_list_page status=run')
-
-        while True:
-            response = utils.request(session=session, url=url)
-            time.sleep(interval_sec)
-            self.scrape_product_list_page(response)
-            self.scrape_next_page_url(response, is_new_product_search)
-
-            if self.next_page_url is None:
-                logger.info('next_page_url is None. break all_url_cost_list')
-                break
-            url = self.next_page_url
-
-    def scrape_product_detail_page(self, response: Response) -> str:
+    @classmethod
+    def scrape_product_detail_page(self, response: str) -> str | None:
         logger.info('action=scrape_detail_product_page status=run')
-        soup = BeautifulSoup(response.content, 'lxml')
+        soup = BeautifulSoup(response, 'lxml')
         try:
             jan = soup.select('#itemDetailSec td')[-1]
         except IndexError as e:
@@ -142,37 +157,36 @@ class Netsea(object):
         logger.info('action=scrape_detail_product_page status=done')
         return jan
 
+    @classmethod
+    def scrape_next_page_url(cls, response: str, response_url: str, is_new_product_search: bool = False) -> str | None:
+        logger.info('action=scrape_next_page_url status=run')
 
-    def pool_product_detail_page(self, session: requests.Session, interval_sec: int = 2):
-        logger.info('action=get_jan status=run')
+        soup = BeautifulSoup(response, 'lxml')
+        try:
+            next_page_url_tag = soup.select_one('.next a')
+            products = soup.select('.showcaseType01')
+            new_product_count = soup.select('.labelType04')
+        except AttributeError as e:
+            logger.error(f"action=next_page_url_selector status={e}")
+            return None
 
-        for netsea_product in self.netsea_product_list:
-            response = utils.request(session=session, url=product.url)
-            time.sleep(interval_sec)
-            product.jan = detail_page_selector(response)
-            product.save()
+        if is_new_product_search and not len(new_product_count) == 60:
+            return None
 
-        return products
-
-
-def list_to_excel_file(products: list, save_path: str) -> None:
-    logger.info('action=list_to_excel_file status=run')
-
-    workbook = openpyxl.Workbook()
-    sheet = workbook['Sheet']
-    sheet.append(['JAN', 'Cost'])
-
-    for product in products:
-        if product.jan and product.price:
-            sheet.append([product.jan, product.price])
-
-    if sheet.max_row == 1:
-        logger.info("This Shop don't have JAN_CODE")
-        workbook.close()
-        return
-
-    workbook.save(save_path)
-    workbook.close()
+        if next_page_url_tag:
+            next_page_url = urljoin(settings.NETSEA_NEXT_URL, next_page_url_tag.attrs.get('href'))
+        elif len(products) == 60:
+            price = ''.join(price_regex.findall(products[-1].select_one('.price').text))
+            current_url = urlparse(response_url)
+            query = parse_qs(current_url.query)
+            query['page'] = ['1']
+            query['facet_price_to'] = price
+            next_page_url = requests.Request(url=settings.NETSEA_NEXT_URL, params=query).prepare().url
+        else:
+            next_page_url = None
+        
+        logger.info('action=scrape_next_page_url status=done')
+        return next_page_url
 
 
 def shop_list_page_selector(response: Response):
