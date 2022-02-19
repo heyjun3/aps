@@ -144,9 +144,6 @@ class Product:
         }
 
 
-
-
-
 @contextmanager
 def session_scope():
     session = Session()
@@ -156,7 +153,7 @@ def session_scope():
         yield session
         session.commit()
     except IntegrityError as e:
-        logger.error(f'action=session_scope error={e}')
+        logger.debug(f'action=session_scope error={e}')
         session.rollback()
     except Exception as e:
         logger.error(f'action=session_scope error={e}')
