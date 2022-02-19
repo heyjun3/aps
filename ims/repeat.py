@@ -5,7 +5,7 @@ import pandas as pd
 
 from ims.models import Product
 from mws.api import AmazonClient
-from crawler.netsea import netsea
+from crawler.netsea import netsea_tasks
 from crawler.super import super
 import settings
 
@@ -33,7 +33,7 @@ def get_marchant_listings_inactive_data():
 
 def main():
 
-    netsea_df = netsea.collect_favorite_products()
+    netsea_df = netsea_tasks.run_get_favorite_products()
     super_df = super.collection_favorite_products()
     mws_df = get_marchant_listings_inactive_data()
     products = Product.get_all_objects()

@@ -20,10 +20,11 @@ def request(url: str, method: str = 'GET', session: Session = requests.Session()
     for _ in range(60):
         try:
             response = session.request(method=method, url=url, timeout=60.0, headers=HEADERS, data=data, params=params)
-            if not response.status_code == 200:
+            if response.status_code == 200 or response.status_code == 404:
+                return response
+            else:
                 logger.error(response.status_code)
                 raise RequestException
-            return response
         except Exception as e:
             logger.error(f'action=request error={e}')
             logger.error(url)
