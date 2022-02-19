@@ -5,7 +5,7 @@ import os
 from crawler.netsea.netsea import NetseaHTMLPage
 
 
-dirname = os.path.dirname(__file__)
+dirname = os.path.join(os.path.dirname(__file__), 'test_html')
 
 
 class ScrapeNextPageUrl(unittest.TestCase):
@@ -13,7 +13,7 @@ class ScrapeNextPageUrl(unittest.TestCase):
     def test_scrape_next_page_url(self):
         response = unittest.mock.MagicMock()
         response.url = 'https://www.netsea.jp/search?category_id=1&ex_so=N&sort=new&searched=Y&page=166'
-        html_path = os.path.join(dirname, 'test_netsea_scrape_next_page.html')
+        html_path = os.path.join(dirname, 'netsea_scrape_next_page.html')
         with open(html_path, 'r') as f:
             response.text = f.read()
 
