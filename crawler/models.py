@@ -155,10 +155,12 @@ def session_scope():
         lock.acquire()
         yield session
         session.commit()
+    except IntegrityError as e:
+        logger.error(f'action=session_scope error={e}')
+        session.rollback()
     except Exception as e:
         logger.error(f'action=session_scope error={e}')
         session.rollback()
-        raise
     finally:
         session.expire_on_commit = True
         lock.release()

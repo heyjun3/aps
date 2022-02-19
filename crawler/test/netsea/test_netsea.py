@@ -77,4 +77,16 @@ class ScrapeProductListPage(unittest.TestCase):
         self.assertEqual(products[-1].name, 'カプセル粉づめくん　本体　０号用' )
         self.assertEqual(products[-1].shop_code, '5984')
         self.assertEqual(products[-1].product_code, '4905712000521')
+
+
+class ScrapeProductDetailPage(unittest.TestCase):
+
+    def test_scrape_jan_code(self):
+        response = unittest.mock.MagicMock()
+        html_path = os.path.join(dirname, 'scrape_jan_code.html')
+        with open(html_path, 'r') as f:
+            response.text = f.read()
+
+        jan = NetseaHTMLPage.scrape_product_detail_page(response.text)
+        self.assertEqual(jan, '4962644942725')
     

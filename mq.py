@@ -45,11 +45,12 @@ class MQ(object):
                 asin_list = list(map(lambda x: x[2].decode(), resp))
                 yield asin_list
             else:
+                yield None
                 time.sleep(60)
 
 
 if __name__ == '__main__':
     mq = MQ('mws')
-    a = mq.receive()
-    for i in a:
+    mq.publish('test')
+    for i in mq.receive():
         print(i)

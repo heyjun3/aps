@@ -79,28 +79,30 @@ class Netsea(object):
         logger.info('action=pool_product_detail_page status=run')
 
         for netsea_product in self.netsea_product_list:
-            product = NetseaProduct.get_object_filter_productcode_and_shopcode(netsea_product.product_code, netsea_product.shop_code)
-            if product:
-                netsea_product.jan = product.jan
-            elif re.fullmatch('[\d]{13}', netsea_product.product_code):
+
+            if re.fullmatch('[\d]{13}', netsea_product.product_code):
                 netsea_product.jan = netsea_product.product_code
                 netsea_product.save()
             else:
-                url = urljoin(settings.NETSEA_SHOP_URL, f'{netsea_product.shop_code}/{netsea_product.product_code}')
-                response = utils.request(session=self.session, url=url)
-                time.sleep(interval_sec)
-                if response is None:
-                    continue
-                netsea_product.jan = NetseaHTMLPage.scrape_product_detail_page(response.text)
-                netsea_product.save()
+                product = NetseaProduct.get_object_filter_productcode_and_shopcode(netsea_product.product_code, netsea_product.shop_code)
+                if product:
+                    netsea_product.jan = product.jan
+                else:
+                    url = urljoin(settings.NETSEA_SHOP_URL, f'{netsea_product.shop_code}/{netsea_product.product_code}')
+                    response = utils.request(session=self.session, url=url)
+                    time.sleep(interval_sec)
+                    if response is None:
+                        continue
+                    netsea_product.jan = NetseaHTMLPage.scrape_product_detail_page(response.text)
+                    netsea_product.save()
             
-            if netsea_product.jan is None:
+            if not netsea_product.jan:
                 continue
 
             params = {
                 'filename': f'netsea_{self.timestamp}',
                 'jan': netsea_product.jan,
-                'cost': netsea_product.price
+                'cost': netsea_product.price,
             }
             self.mq.publish(json.dumps(params))
 
@@ -188,12 +190,12 @@ class NetseaHTMLPage(object):
         logger.info('action=scrape_detail_product_page status=run')
         soup = BeautifulSoup(response, 'lxml')
         try:
-            jan = soup.select('#itemDetailSec td')[-1]
-        except IndexError as e:
+            jan = re.fullmatch('[\d]{13}', soup.select('#itemDetailSec td')[-1].text.strip())
+            jan = jan.group()
+        except (IndexError, AttributeError) as e:
             logger.error(f'action=get_jan error={e}')
             return None
 
-        jan = ''.join(jan_regex.findall(jan.text))
         logger.info('action=scrape_detail_product_page status=done')
         return jan
 

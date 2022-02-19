@@ -29,7 +29,7 @@ def run_new_product_search(path: str = 'search') -> None:
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
 
     for index in range(1, 10):
-        params = {'sort': 'new', 'category_id': str(index)}
+        params = {'sort': 'new', 'category_id': str(index), 'ex_so': 'Y'}
         client = Netsea(url, params, timestamp)
         client.start_search_products()
 
@@ -70,5 +70,3 @@ def run_get_favorite_products(path: str = 'bookmark') -> pd.DataFrame:
     client = Netsea(url, params)
     df = client.pool_favorite_product_list_page()
     return df
-
-
