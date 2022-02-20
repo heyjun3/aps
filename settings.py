@@ -54,6 +54,7 @@ AWS_SECRET_KEY = config['SPAPI']['AWS_SECRET_KEY']
 # BUFFALO settings
 BUFFALO_URL = 'https://www.buffalo-direct.com/'
 BUFFALO_START_URL = 'https://www.buffalo-direct.com/directshop/products/list_category.php?category_id=1181'
+BUFFALO_DETAIL_PAGE_URL = 'https://www.buffalo-direct.com/directshop/products/detail.php'
 
 # KEEPA settings
 KEEPA_ACCESS_KEY = config['KEEPA']['KEEPA_ACCESS_KEY']

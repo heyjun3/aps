@@ -139,7 +139,6 @@ class Product:
             'jan': self.jan,
             'price': self.price,
             'shop_code': self.shop_code,
-            'url': self.url,
             'product_code': self.product_code,
         }
 
