@@ -78,7 +78,7 @@ SUPER_LOGIN_INFO = {
             'password': config['SUPER']['PASSWORD'],
 }
 SUPER_DOMAIN_URL = 'https://www.superdelivery.com'
-SUPER_NEW_PRODUCTS_URL = 'https://www.superdelivery.com/p/do/psl/?so=newly&vi=1&ed='
+SUPER_NEW_PRODUCTS_URL = 'https://www.superdelivery.com/p/do/psl/'
 
 # PC4U settings
 PC4U_ENDPOINT = 'https://www.pc4u.co.jp/'

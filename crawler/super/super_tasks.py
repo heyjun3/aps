@@ -25,9 +25,10 @@ def run_schedule_super_task():
     logger.info('action=run_schedule_super_task status=run')
 
     yesterday = datetime.now() - timedelta(days=1)
-    url = urllib.parse.urljoin(settings.SUPER_NEW_PRODUCTS_URL, yesterday.strftime("%Y%m%d"))
-    client = SuperCrawler(url=url)
-    client.start_search_products
+    url = settings.SUPER_NEW_PRODUCTS_URL
+    params = {'so': 'newly', 'vi': '1', 'ed': yesterday.strftime('%Y%m%d')}
+    client = SuperCrawler(url=url, params=params)
+    client.start_search_products()
 
     logger.info('action=run_schedule_super_task status=done')
 
