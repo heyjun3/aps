@@ -1,9 +1,10 @@
 import json
-from operator import ne
 import time
 import re
 import os
+import threading
 from datetime import datetime
+from queue import Queue
 from urllib.parse import urljoin
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
@@ -11,15 +12,13 @@ from urllib.parse import parse_qs
 import requests
 from requests import Session
 from bs4 import BeautifulSoup
-import openpyxl
-from requests import Response
 import pandas as pd
 
 import settings
 import log_settings
 from mq import MQ
 from crawler.netsea.models import NetseaProduct
-from crawler import netsea, utils
+from crawler import utils
 from crawler.netsea.models import NetseaShop
 
 
@@ -31,12 +30,13 @@ jan_regex = re.compile('[0-9]{13}')
 
 class Netsea(object):
 
-    def __init__(self, url, params: dict = None, timestamp: datetime = datetime.now()):
+    def __init__(self, url: str, params: dict = None, timestamp: datetime = datetime.now(), is_new_product_search: bool = False):
         self.url = requests.Request(method='GET', url=url, params=params).prepare().url
-        self.netsea_product_list = []
+        self.netsea_product_queue = Queue()
         self.mq = MQ('mws')
         self.session = self.login()
         self.timestamp = timestamp.strftime("%Y%m%d_%H%M%S")
+        self.is_new_product_search = is_new_product_search
 
     def get_authentication_token(self, session: requests.Session) -> str:
         logger.info('action=get_authentication_token status=run')
@@ -64,22 +64,26 @@ class Netsea(object):
         logger.info('action=login status=done')
         return session
 
-    def pool_product_list_page(self, is_new_product_search: bool = False, interval_sec: int = 2) -> None:
+    def pool_product_list_page(self, interval_sec: int = 2) -> None:
         logger.info('action=pool_product_list_page status=run')
 
         while self.url is not None:
+            logger.info(self.url)
             response = utils.request(session=self.session, url=self.url)
             time.sleep(interval_sec)
-            self.netsea_product_list.extend(NetseaHTMLPage.scrape_product_list_page(response.text))
-            self.url = NetseaHTMLPage.scrape_next_page_url(response.text, response.url, is_new_product_search)
+            [self.netsea_product_queue.put(product) for product in (NetseaHTMLPage.scrape_product_list_page(response.text))]
+            self.url = NetseaHTMLPage.scrape_next_page_url(response.text, response.url, self.is_new_product_search)
         
+        self.netsea_product_queue.put(None)
         logger.info('action=pool_product_list_page status=done')
 
     def pool_product_detail_page(self, interval_sec: int = 2):
         logger.info('action=pool_product_detail_page status=run')
 
-        for netsea_product in self.netsea_product_list:
-
+        while True:
+            netsea_product = self.netsea_product_queue.get()
+            if netsea_product is None:
+                break
             if re.fullmatch('[\d]{13}', netsea_product.product_code):
                 netsea_product.jan = netsea_product.product_code
                 netsea_product.save()
@@ -96,15 +100,7 @@ class Netsea(object):
                     netsea_product.jan = NetseaHTMLPage.scrape_product_detail_page(response.text)
                     netsea_product.save()
             
-            if not netsea_product.jan:
-                continue
-
-            params = {
-                'filename': f'netsea_{self.timestamp}',
-                'jan': netsea_product.jan,
-                'cost': netsea_product.price,
-            }
-            self.mq.publish(json.dumps(params))
+            self.publish_queue(netsea_product.jan, netsea_product.price)
 
         logger.info('action=pool_product_detail_page status=done')
 
@@ -136,12 +132,27 @@ class Netsea(object):
         logger.info('action=pool_favorite_product_list_page status=done')
         return df
 
+    def publish_queue(self, jan: str, price: int) -> None:
+        logger.info('action=publish_queue status=run')
+
+        if not jan or not price:
+            return None
+
+        params = {
+                'filename': f'netsea_{self.timestamp}',
+                'jan': jan,
+                'cost': price,
+            }
+        self.mq.publish(json.dumps(params))
+        logger.info('action=publish_queue status=done')
 
     def start_search_products(self):
         logger.info('action=start_search_products status=run')
 
+        thread = threading.Thread(target=self.pool_product_detail_page, )
+        thread.start()
         self.pool_product_list_page()
-        self.pool_product_detail_page()
+        thread.join()
 
         logger.info('action=start_search_products status=done')
 

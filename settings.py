@@ -79,3 +79,6 @@ SUPER_LOGIN_INFO = {
 }
 SUPER_DOMAIN_URL = 'https://www.superdelivery.com'
 SUPER_NEW_PRODUCTS_URL = 'https://www.superdelivery.com/p/do/psl/?so=newly&vi=1&ed='
+
+# PC4U settings
+PC4U_ENDPOINT = 'https://www.pc4u.co.jp/'

@@ -28,9 +28,9 @@ def run_new_product_search(path: str = 'search') -> None:
     timestamp = datetime.datetime.now()
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
 
-    for index in range(1, 10):
-        params = {'sort': 'new', 'category_id': str(index), 'ex_so': 'Y'}
-        client = Netsea(url, params, timestamp)
+    for index in range(2, 8):
+        params = {'sort': 'new', 'category_id': str(index), 'ex_so': 'Y', 'searched': 'Y'}
+        client = Netsea(url, params, timestamp, is_new_product_search=True)
         client.start_search_products()
 
 

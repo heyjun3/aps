@@ -5,15 +5,15 @@ This file is Rakuten api main file
 import re
 import time
 import datetime
-import os
+import json
 
 import requests
-import openpyxl
 from bs4 import BeautifulSoup
 
 from crawler.rakuten.models import RakutenProduct
 import settings
 import log_settings
+from mq import MQ
 
 SHOP_CODES = ['ksdenki', 'dj', 'e-zoa', 'reckb', 'jtus', 'ioplaza', 'ikebe']
 
@@ -124,26 +124,20 @@ class Rakuten:
             self.products.append(product)
         return last_price
 
-    def export_to_excel(self):
-        """self.jan_price_list export to _excel"""
-        logger.info('action=export_to_excel status=run')
-        if not self.products:
-            logger.warning('action=export_to_excel error=jan_list is None')
-            return
 
-        workbook = openpyxl.Workbook()
-        sheet = workbook['Sheet']
-        sheet.append(['JAN', 'Cost'])
+    def publish_queue(self):
+        logger.info('action=publish_queue status=run')
+        mq = MQ('mws')
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         for product in self.products:
             if product.jan and product.price:
-                sheet.append([product.jan, product.price])
-            else:
-                logger.error(product.value)
+                mq.publish(json.dumps({
+                    'filename': f'rakuten{timestamp}',
+                    'jan': product.jan,
+                    'cost': product.price,
+                }))
 
-        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        save_path = os.path.join(settings.SCRAPE_SAVE_PATH, f'rakuten{timestamp}.xlsx')
-        workbook.save(save_path)
-        workbook.close()
+        logger.info('action=publish_queue, status=done')
 
 
 def main(shop_code: str):
@@ -154,7 +148,7 @@ def main(shop_code: str):
     for product in rakuten.products:
         product.get_jan_code()
         logger.info(product.value)
-    rakuten.export_to_excel()
+    rakuten.publish_queue()
 
 
 def schedule():

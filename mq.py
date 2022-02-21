@@ -46,11 +46,11 @@ class MQ(object):
                 yield asin_list
             else:
                 yield None
-                time.sleep(60)
+                time.sleep(30)
 
 
 if __name__ == '__main__':
     mq = MQ('mws')
-    mq.publish('test')
-    for i in mq.receive():
-        print(i)
+    for lst in mq.receive():
+        print(lst)
+    
