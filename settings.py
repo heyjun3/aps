@@ -13,7 +13,7 @@ PASSWORD = config['DB']['PASSWORD']
 HOST = config['DB']['HOST']
 PORT = config['DB']['PORT']
 DB = config['DB']['DB']
-DB_URL = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB}"
+DB_URL = f"postgresql+psycopg2://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB}"
 
 # REDIS settings
 REDIS_HOST = config['REDIS']['HOST']
