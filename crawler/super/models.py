@@ -16,11 +16,10 @@ from crawler.models import postgresql_engine
 logger = log_settings.get_logger(__name__)
 
 
-class Super(Base):
+class SuperProduct(Base):
     __tablename__ = 'super_products'
     name = Column(String)
     product_code = Column(String, primary_key=True, nullable=False)
-    url = Column(String)
     price = Column(BigInteger)
     shop_code = Column(String)
 
@@ -41,14 +40,6 @@ class Super(Base):
                 return None
             product.price = price
             return True
-
-    @classmethod
-    def get_url(cls, url):
-        with session_scope() as session:
-            products = session.query(cls).filter(cls.url == url).all()
-            if not products:
-                return None
-            return products
 
     def save(self):
         try:
@@ -126,14 +117,6 @@ class SuperProductDetails(Base):
         except Exception as ex:
             logger.error(ex)
             return False
-
-    @classmethod
-    def get_url(cls, url):
-        with session_scope() as session:
-            products = session.query(cls).filter(cls.url == url, cls.jan.isnot(None)).all()
-            if not products:
-                return None
-            return products
 
 
 class SuperShop(Shop, Base):
