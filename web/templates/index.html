@@ -11,17 +11,6 @@
     />
   </head>
   <body>
-    <!-- <form
-      action="{{ url_for('delete_filename', filename=path) }}"
-      method="post"
-    >
-      <input
-        class="danger"
-        type="submit"
-        value="Delete"
-        onclick="return confirm('Are you sure?');"
-      />
-    </form> -->
     <form action="{{ url_for('delete_filename') }}" method="POST">
     {% for path in save_path %}
     <div class="form-check">
@@ -34,7 +23,7 @@
       />
       <label class="form-check-label" for="flexCheckDefault">
         
-    <a href="{{ url_for('chart', filename=path) }}">{{ path }}</a>
+    <a href="{{ url_for('chart', filename=path) }}" target="_blank" rel="noopener noreferrer">{{ path }}</a>
       </label>
     </div>
     {% endfor %}
