@@ -11,3 +11,4 @@ tmp.py
 *.csv
 node_modules
 logs
+test_html

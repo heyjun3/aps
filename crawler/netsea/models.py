@@ -15,29 +15,12 @@ from crawler.models import Shop
 logger = log_settings.get_logger(__name__)
 
 
-class Netsea(Product, Base):
+class NetseaProduct(Product, Base):
     __tablename__ = 'netsea_products'
 
 
 class NetseaShop(Shop, Base):
     __tablename__ = 'netsea_shops'
-    discount_rate = Column(Float)
-
-
-class NetseaShopUrl(Base):
-    __tablename__ = 'netsea_shop_url'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    url = Column(String)
-    shop_id = Column(Integer)
-    quantity = Column(Integer)
-
-    def save(self):
-        try:
-            with session_scope() as session:
-                session.add(self)
-            return True
-        except IntegrityError:
-            return False
 
 
 def init_db():

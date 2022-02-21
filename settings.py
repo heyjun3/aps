@@ -54,6 +54,7 @@ AWS_SECRET_KEY = config['SPAPI']['AWS_SECRET_KEY']
 # BUFFALO settings
 BUFFALO_URL = 'https://www.buffalo-direct.com/'
 BUFFALO_START_URL = 'https://www.buffalo-direct.com/directshop/products/list_category.php?category_id=1181'
+BUFFALO_DETAIL_PAGE_URL = 'https://www.buffalo-direct.com/directshop/products/detail.php'
 
 # KEEPA settings
 KEEPA_ACCESS_KEY = config['KEEPA']['KEEPA_ACCESS_KEY']
@@ -62,6 +63,7 @@ KEEPA_ACCESS_KEY = config['KEEPA']['KEEPA_ACCESS_KEY']
 NETSEA_LOGIN_URL = 'https://www.netsea.jp/login'
 NETSEA_NEXT_URL = 'https://www.netsea.jp/search/'
 NETSEA_SHOP_URL = 'https://www.netsea.jp/shop/'
+NETSEA_ENDPOINT = 'https://www.netsea.jp'
 NETSEA_ID = config['NETSEA']['ID']
 NETSEA_PASSWD = config['NETSEA']['PASSWD']
 
@@ -77,3 +79,6 @@ SUPER_LOGIN_INFO = {
 }
 SUPER_DOMAIN_URL = 'https://www.superdelivery.com'
 SUPER_NEW_PRODUCTS_URL = 'https://www.superdelivery.com/p/do/psl/?so=newly&vi=1&ed='
+
+# PC4U settings
+PC4U_ENDPOINT = 'https://www.pc4u.co.jp/'

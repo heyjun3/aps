@@ -2,74 +2,79 @@ import re
 import time
 import datetime
 import os
+import json
+from urllib.parse import urlparse
+from urllib.parse import parse_qs
 
 import requests
 import openpyxl
 from requests import Response
 from bs4 import BeautifulSoup
 
-from crawler import utils
+from crawler import buffalo, utils
 from crawler.buffalo.models import BuffaloProduct
 import settings
 import log_settings
+from mq import MQ
 
 logger = log_settings.get_logger(__name__)
 
 
-class Crawler():
+class BuffaloCrawler():
 
-    filename = 'buffalo'
+    def __init__(self, start_url, queue_name: str = 'mws'):
+        self.url = start_url
+        self.buffalo_product_list = []
+        self.mq = MQ(queue_name)
+        self.timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
-    def __init__(self, url):
-        self.db_list = []
-        self.not_db_list = []
-        self.url = url
-        self.products = []
-        self.session = requests.Session()
+    def pool_product_list_page(self, interval_sec: int = 2) -> None:
+        logger.info('action=pool_product_list_page status=run')
 
-    def list_page_crawling(self):
-        logger.info('action=list_page_crawling status=run')
+        response = utils.request(url=self.url)
+        self.buffalo_product_list.extend(BuffaloHTMLPage.scrape_product_list_page(response.text))
+        time.sleep(interval_sec)
 
-        while True:
-            response = utils.request(url=self.url, session=self.session)
-            self.list_page_scraping(response)
-            time.sleep(2)
-            if not self.url:
-                logger.info('action=list_page_crawling status=done')
-                break
+        logger.info('action=pool_product_list_page status=done')
 
-    def detail_page_crawling(self, products):
-        logger.info('action=detail_page_crawling status=run')
+    def pool_product_detail_page(self, interval_sec: int = 2) -> None:
+        logger.info('action=pool_product_detail_page status=run')
 
-        for product in products:
-            response = utils.request(url=product.url, session=self.session)
-            time.sleep(2)
-            product.jan = self.detail_page_scraping(response)
-            product.save()
+        for buffalo_product in self.buffalo_product_list:
+            product = BuffaloProduct.get_product_code(buffalo_product.product_code)
+            if product is None:
+                query = {'product_id': buffalo_product.product_code}
+                response = utils.request(url=settings.BUFFALO_DETAIL_PAGE_URL, params=query)
+                time.sleep(interval_sec)
+                buffalo_product.jan = BuffaloHTMLPage.scrape_product_detail_page(response.text)
+                buffalo_product.save()
+            else:
+                buffalo_product.jan = product.jan
 
-        logger.info('action=detail_page_crawling status=done')
+            if buffalo_product.jan:
+                self.publish_queue(buffalo_product.jan, buffalo_product.price)
 
-    def export_excel_file(self, products, save_path=settings.SCRAPE_SAVE_PATH):
-        logger.info('action=export_excel_file status=run')
-        dt = datetime.datetime.now()
-        timestamp = dt.strftime('%Y%m%d_%H%M%S')
+        logger.info('action=pool_product_detail_page status=done')
 
-        workbook = openpyxl.Workbook()
-        sheet = workbook['Sheet']
-        sheet.append(['JAN', 'Cost'])
+    def publish_queue(self, jan: str, price: int) -> None:
+        logger.info('action=publish_queue status=run')
 
-        for product in products:
-            if product.jan and product.price:
-                sheet.append([product.jan, product.price])
-        
-        workbook.save(os.path.join(save_path, f'{self.filename}{timestamp}.xlsx'))
-        workbook.close()
-        logger.info('action=export_excel_file status=done')
+        self.mq.publish(json.dumps({
+            'filename': f'buffalo_{self.timestamp}',
+            'jan': jan,
+            'cost': price,
+        }))
+        logger.info('action=publish_queue status=done')
 
-    def list_page_scraping(self, response: Response):
-        logger.info('action=list_page_scraping status=run')
 
-        soup = BeautifulSoup(response.text, 'lxml')
+class BuffaloHTMLPage(object): 
+
+    @staticmethod
+    def scrape_product_list_page(response: str) -> list[BuffaloProduct]:
+        logger.info('action=scrape_product_list_page status=run')
+
+        buffalo_product_list = []
+        soup = BeautifulSoup(response, 'lxml')
         products_list = soup.select_one('.list')
         products = products_list.select('li.clearfix')
 
@@ -79,50 +84,29 @@ class Crawler():
             is_sold_out = product.select_one('.soldout')
             if title_flag or is_sold_out:
                 continue
-            price = product.select_one('.price span').text.strip()
-            price = ''.join(re.findall('[\\d+]', price))
+            price = int(''.join(re.findall('[\d]', product.select_one('.price span').text.strip())))
             url = product.select_one('.columnRight a').attrs['href']
-            product_code = re.search('[\\d]+', url)
-            buffalo = BuffaloProduct.create(name=title, price=int(price), url=settings.BUFFALO_URL + url,
-                                            product_code=product_code.group())
-            self.products.append(buffalo)
-            logger.debug(buffalo.value)
+            product_code = parse_qs(urlparse(url).query).get('product_id').pop()
+            buffalo = BuffaloProduct(name=title, price=price, product_code=product_code)
+            buffalo_product_list.append(buffalo)
 
-        self.url = None
-        logger.info('action=list_page_scraping status=done')
+        logger.info('action=scrape_product_list_page status=done')
+        return buffalo_product_list
 
     @staticmethod
-    def detail_page_scraping(response: Response):
-        logger.info('action=detail_page_selector status=run')
-        soup = BeautifulSoup(response.text, 'lxml')
+    def scrape_product_detail_page(response: str) -> str|None:
+        logger.info('action=scrape_product_detail_page status=run')
+        soup = BeautifulSoup(response, 'lxml')
         jan = soup.select_one('#detailBox02 .columnLeft p').get_text()
-        jan = re.search('4[\\d]{12}', jan)
-        if jan is None:
-            return None
-        return jan.group()
-
-    def classify_exist_db(self):
-        logger.info('action=classify_exist_db status=run')
-
-        for product in self.products:
-            db_response = BuffaloProduct.get_product_code(product.product_code)
-            if not db_response:
-                self.not_db_list.append(product)
-            elif not db_response.price == product.price:
-                BuffaloProduct.price_update('product_code', db_response.product_code, product.price)
-                db_response.price = product.price
-                self.db_list.append(db_response)
-            else:
-                self.db_list.append(db_response)
-
-        logger.info('action=classify_exist_db status=done')
+        try:
+            jan = re.search('[\d]{13}', jan).group()
+        except AttributeError as ex:
+            logger.info(f'jan code is None error={ex}')
+            jan = None
+        return jan
 
 
 def main():
-    start_url = settings.BUFFALO_START_URL
-    crawler_buffalo = Crawler(url=start_url)
-    crawler_buffalo.list_page_crawling()
-    crawler_buffalo.classify_exist_db()
-    crawler_buffalo.detail_page_crawling(crawler_buffalo.not_db_list)
-    crawler_buffalo.export_excel_file(crawler_buffalo.db_list+crawler_buffalo.not_db_list,
-                                      save_path=settings.SCRAPE_SCHEDULE_SAVE_PATH)
+    client = BuffaloCrawler(start_url=settings.BUFFALO_START_URL)
+    client.pool_product_list_page()
+    client.pool_product_detail_page()

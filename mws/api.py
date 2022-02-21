@@ -6,12 +6,11 @@ import hashlib
 import base64
 import time
 from multiprocessing import Process
-import logging.config
 import os
 import pathlib
 import shutil
 import urllib.parse
-
+import json
 import requests
 import xml.etree.ElementTree as et
 import pandas as pd
@@ -19,6 +18,7 @@ from lxml import etree
 from bs4 import BeautifulSoup
 
 from mws.models import MWS
+from mq import MQ
 import settings
 import log_settings
 
@@ -126,6 +126,7 @@ class AmazonClient:
                 mws = MWS(asin=asin, title=title, jan=jan, unit=unit, cost=cost)
                 mws_object_list.append(mws)
 
+        logger.info('action=get_matching_product_for_id status=done')
         return mws_object_list
 
     def get_competitive_pricing_for_asin(self, products: list, interval_sec: int = 2) -> list:
@@ -381,19 +382,32 @@ def main():
     get_lowest_price_process.join()
     get_fees_process.join()
 
-def main_get_matching_asin_for_jan(interval_sec: int = 60) -> None:
+
+
+def main_get_matching_asin_for_jan() -> None:
     logger.info('action=main_get_matching_asin_for_jan status=run')
-    
-    while True:
-        filepath = get_file_path()
-        if filepath:
-            df = pd.read_excel(str(filepath), dtype={'JAN': str}).drop_duplicates()
-            product_list = df.to_numpy().tolist()
-            client = AmazonClient()
-            client.pool_get_matching_product_for_id(products_list=product_list, filename=filepath.stem)
-            shutil.move(str(filepath), os.path.join(settings.SCRAPE_DONE_SAVE_PATH, filepath.name))
+
+    mq = MQ('mws')
+    client = AmazonClient()
+    for values in mq.receive():
+        if values is None:
+            filepath = get_file_path()
+            if filepath:
+                df = pd.read_excel(str(filepath), dtype={'JAN': str}).drop_duplicates()
+                product_list = df.to_numpy().tolist()
+                client.pool_get_matching_product_for_id(products_list=product_list, filename=filepath.stem)
+                shutil.move(str(filepath), os.path.join(settings.SCRAPE_DONE_SAVE_PATH, filepath.name))
         else:
-            time.sleep(interval_sec)
+            values = list(map(lambda x: json.loads(x), values))
+            jan_cost_dict, jan_filename_dict = {}, {}
+            for value in values:
+                jan_cost_dict[value.get('jan')] = value.get('cost')
+                jan_filename_dict[value.get('jan')] = value.get('filename')
+
+            mws_objects_list = client.get_matching_product_for_id(jan_cost_dict)
+            for mws_object in mws_objects_list:
+                mws_object.filename = jan_filename_dict.get(mws_object.jan)
+                mws_object.save()
 
 
 def main_get_lowest_price(interval_sec: int = 60) -> None:
@@ -411,7 +425,7 @@ def main_get_lowest_price(interval_sec: int = 60) -> None:
 
 def main_get_fees(interval_sec: int = 60) -> None:
     logger.info('action=main_get_fees status=run')
-
+    time.sleep(2)
     while True:
         asin_list = MWS.get_fee_is_None_products()
         if asin_list:
