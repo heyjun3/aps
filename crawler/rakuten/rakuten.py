@@ -84,6 +84,7 @@ class RakutenAPIClient:
                     response = utils.request(url=url)
                     time.sleep(interval_sec)
                     rakuten_product.jan = RakutenHTMLPage.scrape_product_detail_page(response.text)
+                    rakuten_product.save()
                 else:
                     rakuten_product.jan = response.jan
 
@@ -116,7 +117,7 @@ class RakutenHTMLPage(object):
 
         soup = BeautifulSoup(response, 'lxml')
         try:
-            jan = re.fullmatch('[\d]{13}', soup.select_one('#ratRanCode').get('value'))
+            jan = re.fullmatch('[\d]{13}', soup.select_one('#ratRanCode').get('value')).group()
         except AttributeError as e:
             logger.error(f'{e}')
             return None
