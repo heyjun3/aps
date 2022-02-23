@@ -69,3 +69,12 @@ class ScrapeNextPageUrl(unittest.TestCase):
 
         url = Pc4uHTMLPage.scrape_next_page_url(response.text)
         self.assertIsNone(url)
+
+    def test_soled_out_v2(self):
+        response = unittest.mock.MagicMock()
+        html_path = os.path.join(dirname, 'soled_out_v2.html')
+        with open(html_path, 'r') as f:
+            response.text = f.read()
+
+        url = Pc4uHTMLPage.scrape_next_page_url(response.text)
+        self.assertIsNone(url)
