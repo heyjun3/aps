@@ -14,30 +14,8 @@ import log_settings
 from mq import MQ
 from crawler import utils
 
-SHOP_CODES = ['ksdenki', 'dj', 'e-zoa', 'reckb', 'jtus', 'ioplaza', 'ikebe']
 
 logger = log_settings.get_logger(__name__)
-
-
-
-
-
-def product_page_parser(response: str):
-    """product_page parse return jan_code
-    if jan_code is None return None object"""
-    logger.info('action=product_page_parser status=run')
-
-    soup = BeautifulSoup(response, 'lxml')
-    jan = soup.select_one('.item_number')
-    if jan is None:
-        logger.info("product page hasn't product_code")
-        return None
-    jan = re.findall('[0-9]{13}', jan.text)
-    if not jan:
-        logger.info("product code isn't jan code")
-        return None
-    logger.info(jan[0])
-    return jan[0]
 
 
 class RakutenAPIClient:
@@ -180,19 +158,3 @@ class RakutenAPIJSON(object):
 
         logger.info('action=get_jan_code status=done')
         return jan
-
-
-def main(shop_code: str):
-    logger.info('action=rakuten_main status=run')
-    rakuten = Rakuten(shop_code=shop_code)
-    rakuten.main()
-    logger.info(rakuten.products)
-    for product in rakuten.products:
-        product.get_jan_code()
-        logger.info(product.value)
-    rakuten.publish_queue()
-
-
-def schedule():
-    for shop_code in SHOP_CODES:
-        main(shop_code)
