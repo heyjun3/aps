@@ -233,9 +233,9 @@ class NetseaHTMLPage(object):
             current_url = urlparse(response_url)
             query = parse_qs(current_url.query)
             query['page'] = ['1']
-            facet_price_to = query.get('facet_price_to').pop()
+            facet_price_to = query.get('facet_price_to')
             if facet_price_to == str(price):
-                query['facet_price_to'] = str(int(facet_price_to) - 1)
+                query['facet_price_to'] = str(int(facet_price_to.pop()) - 1)
             else:
                 query['facet_price_to'] = str(price)
             next_page_url = requests.Request(url=settings.NETSEA_NEXT_URL, params=query).prepare().url
