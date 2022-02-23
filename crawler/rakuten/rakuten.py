@@ -78,15 +78,14 @@ class RakutenAPIClient:
                 break
             
             if not rakuten_product.jan:
-                response = RakutenProduct.get_object_filter_productcode_and_shopcode(rakuten_product.product_code, rakuten_product.shop_code)
-                if response is None:
-                    url = urljoin(settings.RAKUTEN_ENDPOINT, f'{rakuten_product.shop_code}/{rakuten_product.product_code}')
-                    response = utils.request(url=url)
+                product = RakutenProduct.get_object_filter_productcode_and_shopcode(rakuten_product.product_code, rakuten_product.shop_code)
+                if product is None:
+                    response = utils.request(url=rakuten_product.url)
                     time.sleep(interval_sec)
                     rakuten_product.jan = RakutenHTMLPage.scrape_product_detail_page(response.text)
                     rakuten_product.save()
                 else:
-                    rakuten_product.jan = response.jan
+                    rakuten_product.jan = product.jan
 
             self.publish_queue(rakuten_product.jan, rakuten_product.price)
             
@@ -140,7 +139,11 @@ class RakutenAPIJSON(object):
             price = int(int(price) * (91 - int(point_rate)) / 100)
             item_name = item['Item']['itemName']
             jan = RakutenAPIJSON.get_jan_code(item)
-            rakuten_product = RakutenProduct(name=item_name, jan=jan, price=price)
+            item_code = item['Item']['itemCode'].split(':')
+            product_code = item_code.pop()
+            shop_code = item_code.pop()
+            url = item['Item']['itemUrl']
+            rakuten_product = RakutenProduct(name=item_name, jan=jan, price=price, product_code=product_code, shop_code=shop_code, url=url)
             rakuten_product_list.append(rakuten_product)
 
         logger.info('action=get_rakuten_products status=done')
