@@ -1,6 +1,5 @@
 from contextlib import contextmanager
 import datetime
-from logging import getLogger
 import threading
 from copy import deepcopy
 
@@ -11,8 +10,9 @@ from sqlalchemy import Float
 from sqlalchemy import BigInteger
 from sqlalchemy import or_
 from sqlalchemy import distinct
+from sqlalchemy import Numeric
+from sqlalchemy import Computed
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import validates
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -28,27 +28,12 @@ lock = threading.Lock()
 logger = log_settings.get_logger(__name__)
 
 
-
-def calc_profit(context) -> int|None:
-    params = context.get_current_parameters()
-    print(params)
-    try:
-        return int(params['price'] - (params['cost'] * params['unit']) - ((params['price'] * params['fee_rate']) * 1.1) - params['shipping_fee'])
-    except TypeError as ex:
-        logger.error(ex)
-        return None
-
-def calc_profit_rate(context) -> float|None:
-    params = context.get_current_parameters()
-    try:
-        return round(params['profit'] / params['price'], 2)
-    except TypeError as ex:
-        logger.error(ex)
-        return None
-
-
 class NonePriceError(Exception):
     pass
+
+
+PROFIT = "price - (cost * unit) - ((price * fee_rate) * 1.1) - shipping_fee"
+PROFIT_RATE = "(price - (cost * unit) - ((price * fee_rate) * 1.1) - shipping_fee) / price"
 
 
 class MWS(Base):
@@ -62,8 +47,8 @@ class MWS(Base):
     cost = Column(BigInteger)
     fee_rate = Column(Float)
     shipping_fee = Column(BigInteger)
-    profit = Column(BigInteger, default=calc_profit, onupdate=calc_profit)
-    profit_rate = Column(Float, default=calc_profit_rate, onupdate=calc_profit_rate)
+    profit = Column(BigInteger, Computed(PROFIT))
+    profit_rate =Column(Numeric(precision=10, scale=2), Computed(PROFIT_RATE))
 
     def save(self):
         with session_scope() as session:
@@ -122,7 +107,6 @@ class MWS(Base):
             products = session.query(cls.asin).filter(or_(cls.fee_rate == None, cls.shipping_fee == None)).all()
             return products
 
-    @validates('cost')
     @classmethod
     def update_price(cls, asin: str, price: int):
         with session_scope() as session:
@@ -183,5 +167,5 @@ def session_scope():
         lock.release()
 
 
-def init_db():
+def init_db(engine):
     Base.metadata.create_all(bind=engine)
