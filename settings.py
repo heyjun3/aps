@@ -70,6 +70,7 @@ NETSEA_PASSWD = config['NETSEA']['PASSWD']
 # RAKUTEN settings
 RAKUTEN_APP_ID = config['RAKUTEN']['APP_ID']
 REQUEST_URL = 'https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706'
+RAKUTEN_ENDPOINT = 'https://item.rakuten.co.jp/'
 
 # SUPER settings
 SUPER_LOGIN_URL = 'https://www.superdelivery.com/p/login.do'
