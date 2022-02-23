@@ -76,7 +76,6 @@ class KeepaProducts(Base):
             product = session.query(cls).filter(cls.asin == asin).first()
             if product is None:
                 keepa_product = cls(asin=asin, sales_drops_90=drops, price_data=price_data, rank_data=rank_data)
-                keepa_product.render_data = keepa_product.convert_render_price_rank_data()
                 try:
                     session.add(keepa_product)
                 except IntegrityError as ex:
