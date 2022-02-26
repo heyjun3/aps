@@ -39,10 +39,8 @@ class SPAPI:
         self.refresh_toke = settings.REFRESH_TOKEN
         self.client_id = settings.CLIENT_ID
         self.client_secret = settings.CLIENT_SECRET
-
         self.aws_secret_key = settings.AWS_SECRET_KEY
         self.aws_access_key = settings.AWS_ACCESS_ID
-
         self.marketplace_id = settings.MARKETPLACEID
 
     def sign(self, key, msg):
@@ -155,7 +153,7 @@ class SPAPI:
 
         return response
 
-    def get_pricing(self, asin_list: list, item_type: str='Asin'):
+    def get_pricing(self, asin_list: list, item_type: str='Asin') -> requests.Response:
         method = 'GET'
         path = '/products/pricing/v0/price'
         url = urllib.parse.urljoin(ENDPOINT, path)
@@ -168,4 +166,22 @@ class SPAPI:
         req = self.create_authorization_headers(req)
         response = request(req)
 
+        return response
+
+    def get_competitive_pricing(self, asin_list: list, item_type: str='Asin') -> requests.Response:
+        logger.info('action=get_competitive_pricing status=run')
+
+        method = 'GET'
+        path = '/products/pricing/v0/competitivePrice'
+        url = urllib.parse.urljoin(ENDPOINT, path)
+        query = {
+            'MarketplaceId': self.marketplace_id,
+            'Asins': ','.join(asin_list),
+            'ItemType': item_type,
+        }
+        req = requests.Request(method=method, url=url, params=query)
+        req = self.create_authorization_headers(req)
+        response = request(req)
+
+        logger.info('action=get_competitive_pricing status=done')
         return response
