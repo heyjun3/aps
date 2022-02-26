@@ -5,7 +5,9 @@ import hashlib
 import json
 import os
 import time
+from urllib import response
 import urllib.parse
+import re
 
 import redis
 import requests
@@ -185,3 +187,55 @@ class SPAPI:
 
         logger.info('action=get_competitive_pricing status=done')
         return response
+
+    def get_item_offers(self, asin: str, item_condition: str='New') -> requests.Response:
+        logger.info('action=get_item_offers status=run')
+
+        method = 'GET'
+        path = f'/products/pricing/v0/items/{asin}/offers'
+        url = urllib.parse.urljoin(ENDPOINT, path)
+        query = {
+            'MarketplaceId': self.marketplace_id,
+            'ItemCondition': item_condition,
+        }
+        req = requests.Request(method=method, url=url, params=query)
+        req = self.create_authorization_headers(req)
+        response = request(req)
+
+        logger.info('action=get_item_offers status=done')
+        return response
+
+
+class SPAPIJsonParser(object):
+
+    @staticmethod
+    def parse_get_competitive_pricing(response: json) -> dict:
+        logger.info('action=parse_get_competitive_pricing status=run')
+
+        products = []
+
+        for payload in response.get('payload'):
+            asin = payload['ASIN']
+            try:
+                price = round(float(payload['Product']['CompetitivePricing']['CompetitivePrices'][0]['Price']['LandedPrice']['Amount']))
+            except IndexError as ex:
+                logger.error(f"{asin} hasn't landedprice error={ex}")
+                continue
+
+            try:
+                ranking = round(float(payload['Product']['SalesRankings'][0]['Rank']))
+                category_id = payload['Product']['SalesRankings'][0]['ProductCategoryId']
+                if re.fullmatch('[\d]+', category_id):
+                    raise NotRankingException
+            except NotRankingException as ex:
+                logger.error(f"{asin} hasn't ranking error={ex}")
+                continue
+
+            products.append({'asin': asin, 'price': price, 'ranking': ranking})
+
+        logger.info('action=parse_get_competitive_pricing status=done')
+        return products
+
+
+class NotRankingException(Exception):
+    pass
