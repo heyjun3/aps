@@ -12,3 +12,4 @@ tmp.py
 node_modules
 logs
 test_html
+test_json
