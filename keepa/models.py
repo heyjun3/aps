@@ -7,6 +7,7 @@ from sqlalchemy import Column, Integer, String, Date
 from sqlalchemy import JSON
 from sqlalchemy import or_
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.exc import IntegrityError
 from contextlib import contextmanager
 import pandas as pd
@@ -86,7 +87,24 @@ class KeepaProducts(Base):
                 product.price_data = price_data
                 product.rank_data = rank_data
             return True
-    
+
+    @classmethod
+    def update_price_and_rank_data(cls, asin:str, unix_time: float, price: int, rank: int) -> bool:
+        logger.info('action=update_price_and_rank_data status=run')
+        time = convert_unix_time_to_keepa_time(unix_time)
+        with session_scope() as session:
+            product = session.query(cls).filter(cls.asin == asin).first()
+            if product is None:
+                return False
+
+            product.price_data[time] = price
+            product.rank_data[time] = rank
+            flag_modified(product, 'price_data')
+            flag_modified(product, 'rank_data')
+
+        logger.info('action=update_price_and_rank_data status=done')
+        return True
+
     @classmethod
     def get_asin_list_price_data_is_None(cls, max_count: int = 100):
         with session_scope() as session:
@@ -105,6 +123,13 @@ class KeepaProducts(Base):
                 return product
             else:
                 return None
+
+    @classmethod
+    def get_products_not_modified(cls, count: int=20):
+        today = datetime.date.today()
+        with session_scope() as session:
+            products = session.query(cls).filter(cls.modified != today).limit(count).all()
+            return products
     
     @classmethod
     def set_render_data(cls):
@@ -153,3 +178,8 @@ def convert_keepa_time_to_datetime_date(keepa_time: int):
     unix_time = (keepa_time + 21564000) * 60
     date_time = datetime.datetime.fromtimestamp(unix_time)
     return date_time.date()
+
+
+def convert_unix_time_to_keepa_time(unix_time: float) -> str:
+    keepa_time = round(unix_time / 60 - 21564000)
+    return str(keepa_time)
