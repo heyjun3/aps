@@ -218,18 +218,18 @@ class SPAPIJsonParser(object):
             asin = payload['ASIN']
             try:
                 price = round(float(payload['Product']['CompetitivePricing']['CompetitivePrices'][0]['Price']['LandedPrice']['Amount']))
-            except IndexError as ex:
+            except (IndexError, KeyError) as ex:
                 logger.error(f"{asin} hasn't landedprice error={ex}")
-                continue
+                price = -1
 
             try:
                 ranking = round(float(payload['Product']['SalesRankings'][0]['Rank']))
                 category_id = payload['Product']['SalesRankings'][0]['ProductCategoryId']
                 if re.fullmatch('[\d]+', category_id):
                     raise NotRankingException
-            except NotRankingException as ex:
+            except (NotRankingException, IndexError, KeyError) as ex:
                 logger.error(f"{asin} hasn't ranking error={ex}")
-                continue
+                ranking = -1
 
             products.append({'asin': asin, 'price': price, 'ranking': ranking})
 
@@ -237,12 +237,22 @@ class SPAPIJsonParser(object):
         return products
 
     @staticmethod
-    def parse_get_item_offers(response: json) -> dict:
+    def parse_get_item_offers(response: json) -> dict|None:
         logger.info('action=parse_get_item_offers status=run')
 
-        asin = response['payload']['ASIN']
-        price = int(response['payload']['Summary']['LowestPrices'][0]['LandedPrice']['Amount'])
-        ranking = response['payload']['Summary']['SalesRankings'][0]['Rank']
+        try:
+            asin = response['payload']['ASIN']
+        except KeyError as ex:
+            logger.error(ex)
+            logger.error(response)
+            return None
+
+        try:
+            price = int(response['payload']['Summary']['LowestPrices'][0]['LandedPrice']['Amount'])
+            ranking = response['payload']['Summary']['SalesRankings'][0]['Rank']
+        except (IndexError, KeyError) as ex:
+            logger.error(f"{asin} hasn't data")
+            return None
 
         logger.info('action=parse_get_item_offers status=done')
         return {'asin': asin, 'price': price, 'ranking': ranking}

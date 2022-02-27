@@ -128,7 +128,7 @@ class KeepaProducts(Base):
     def get_products_not_modified(cls, count: int=20):
         today = datetime.date.today()
         with session_scope() as session:
-            products = session.query(cls).filter(cls.modified != today).limit(count).all()
+            products = session.query(cls.asin).filter(cls.modified != today, cls.price_data != None, cls.rank_data != None).limit(count).all()
             return products
     
     @classmethod

@@ -19,6 +19,9 @@ class ParseGetCompetitivePricing(unittest.TestCase):
         self.assertEqual(products[0]['asin'], "B08HMT3LRN")
         self.assertEqual(products[0]['price'], 3267)
         self.assertEqual(products[0]['ranking'], 74218)
+        self.assertEqual(products[-1]['asin'], "B07HG6F6K2")
+        self.assertEqual(products[-1]['price'], -1)
+        self.assertEqual(products[1]['ranking'], -1)
 
 
 class ParseGetItemOffers(unittest.TestCase):
