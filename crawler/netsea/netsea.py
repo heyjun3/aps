@@ -106,17 +106,20 @@ class Netsea(object):
 
     def pool_favorite_product_list_page(self, interval_sec: int = 2) -> pd.DataFrame:
         logger.info('action=pool_favorite_product_list_page status=run')
+
+        netsea_product_list = []
+
         while self.url is not None:
             response = utils.request(session=self.session, url=self.url)
             time.sleep(interval_sec)
-            self.netsea_product_list.extend(NetseaHTMLPage.scrape_favorite_list_page(response.text))
+            netsea_product_list.extend(NetseaHTMLPage.scrape_favorite_list_page(response.text))
             self.url = NetseaHTMLPage.scrape_next_page_url(response.text, response.url)
 
         df = pd.DataFrame(data=None, columns={'jan': str, 'cost': int})
         PRODUCT_CODE_NUM = -1
         SHOP_ID_NUM = -2
 
-        for product in self.netsea_product_list:
+        for product in netsea_product_list:
             url, price = product
             product_id = url.split('/')[PRODUCT_CODE_NUM]
             shop_id = url.split('/')[SHOP_ID_NUM]
