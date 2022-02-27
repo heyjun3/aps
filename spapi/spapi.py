@@ -236,6 +236,17 @@ class SPAPIJsonParser(object):
         logger.info('action=parse_get_competitive_pricing status=done')
         return products
 
+    @staticmethod
+    def parse_get_item_offers(response: json) -> dict:
+        logger.info('action=parse_get_item_offers status=run')
+
+        asin = response['payload']['ASIN']
+        price = int(response['payload']['Summary']['LowestPrices'][0]['LandedPrice']['Amount'])
+        ranking = response['payload']['Summary']['SalesRankings'][0]['Rank']
+
+        logger.info('action=parse_get_item_offers status=done')
+        return {'asin': asin, 'price': price, 'ranking': ranking}
+        
 
 class NotRankingException(Exception):
     pass

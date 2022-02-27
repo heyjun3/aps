@@ -32,7 +32,7 @@ def get_landed_price_and_ranking(interval_sec: int=2) -> None:
 
 def main():
     client = SPAPI()
-    asin_list = ['B08HMT3LRN', 'B07HG6F6K2']
-    response = client.get_competitive_pricing(asin_list)
+    asin_list = 'B000FQRA9S'
+    response = client.get_item_offers(asin_list)
     # producSPAPIJsonParser.parse_get_competitive_pricing(response.json())
     print(response.json())

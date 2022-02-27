@@ -19,3 +19,17 @@ class ParseGetCompetitivePricing(unittest.TestCase):
         self.assertEqual(products[0]['asin'], "B08HMT3LRN")
         self.assertEqual(products[0]['price'], 3267)
         self.assertEqual(products[0]['ranking'], 74218)
+
+
+class ParseGetItemOffers(unittest.TestCase):
+
+    def test_success_parse(self):
+        path = os.path.join(dirname, 'get_item_offers.json')
+        with open(path, 'r') as f:
+            response = f.read()
+
+        product = SPAPIJsonParser.parse_get_item_offers(json.loads(response))
+
+        self.assertEqual(product['asin'], 'B07HG6F6K2')
+        self.assertEqual(product['price'], 2800)
+        self.assertEqual(product['ranking'], 15)
