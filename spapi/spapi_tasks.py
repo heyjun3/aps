@@ -15,9 +15,8 @@ def get_landed_price_and_ranking(interval_sec: int=2) -> None:
     logger.info('action=get_landed_price_and_ranking status=run')
 
     que = queue.Queue()
-    thread = threading.Thread(target=run_get_item_offers, args=(que, ))
+    thread = threading.Thread(target=run_parse_competitive_pricing, args=(que, ))
     thread.start()
-
     client = SPAPI()
 
     while True:
@@ -27,17 +26,36 @@ def get_landed_price_and_ranking(interval_sec: int=2) -> None:
 
         asin_list = [product[0] for product in products]
         response = client.get_competitive_pricing(asin_list)
+        que.put(response)
         time.sleep(interval_sec)
-        products = SPAPIJsonParser.parse_get_competitive_pricing(response.json())
-        now = time.time()
-        for product in products:
-            KeepaProducts.update_price_and_rank_data(product['asin'], now, product['price'], product['ranking'])
-            if product['price'] == -1:
-                que.put(product['asin'])
+
 
     que.put(None)
     thread.join()
     logger.info('action=get_landed_price_and_ranking status=done')
+
+
+def run_parse_competitive_pricing(get_que: queue.Queue) -> None:
+    logger.info('action=run_parse_competitive_pricing status=run')
+
+    put_que = queue.Queue()
+    thread = threading.Thread(target=run_get_item_offers, args=(put_que, ))
+    thread.start()
+
+    while True:
+        response = get_que.get()
+
+        if response is None:
+            break
+        else:
+            products = SPAPIJsonParser.parse_get_competitive_pricing(response.json())
+            now = time.time()
+            for product in products:
+                KeepaProducts.update_price_and_rank_data(product['asin'], now, product['price'], product['ranking'])
+                if product['price'] == -1:
+                    put_que.put(product['asin'])
+    put_que.put(None)
+    logger.info('action=run_parse_competitive_pricing status=done')
 
 
 def run_get_item_offers(que: queue.Queue, interval_sec: float=0.2) -> None:
@@ -47,15 +65,13 @@ def run_get_item_offers(que: queue.Queue, interval_sec: float=0.2) -> None:
 
     while True:
         asin = que.get()
-
         if asin is None:
             break
-        else:
-            response = client.get_item_offers(asin)
-            time.sleep(interval_sec)
-            product = SPAPIJsonParser.parse_get_item_offers(response.json())
-            if product is not None:
-                KeepaProducts.update_price_and_rank_data(product['asin'], time.time(), product['price'], product['ranking'])
+        response = client.get_item_offers(asin)
+        time.sleep(interval_sec)
+        product = SPAPIJsonParser.parse_get_item_offers(response.json())
+        if product is not None:
+            KeepaProducts.update_price_and_rank_data(product['asin'], time.time(), product['price'], product['ranking'])
 
     logger.info('action=run_get_item_offers status=done')
 
