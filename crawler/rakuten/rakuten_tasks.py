@@ -6,6 +6,7 @@ logger = log_settings.get_logger(__name__)
 
 
 SHOP_CODES = ['ksdenki', 'dj', 'e-zoa', 'reckb', 'jtus', 'ioplaza', 'ikebe']
+SHOP_CODES = ['ioplaza']
 
 
 def run_rakuten_search_at_shop_code(shop_code: str) -> None:

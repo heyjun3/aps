@@ -100,7 +100,7 @@ class RakutenAPIClient:
         params = {
             'filename': f'rakuten_{self.timestamp}',
             'jan': jan,
-            'price': price,
+            'cost': price,
         }
         self.mq.publish(json.dumps(params))
         
