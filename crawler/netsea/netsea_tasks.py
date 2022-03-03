@@ -38,10 +38,11 @@ def run_get_discount_products(path: str = 'search') -> None:
     logger.info('action=run_get_discount_products')
 
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
+    timestamp = datetime.datetime.now()
 
     for index in range(10, 1, -1):
         params = {'disc_flg': 'Y', 'ex_so': 'Y', 'sort': 'PD', 'searched': 'Y', 'category_id': str(index)}
-        client = Netsea(url, params)
+        client = Netsea(url, params, timestamp=timestamp)
         client.start_search_products()
 
 

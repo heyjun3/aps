@@ -18,12 +18,10 @@ def update_price_and_ranking(interval_sec: int=2) -> None:
     get_item_thread = threading.Thread(target=run_get_item_offers, args=(que, ))
     get_item_thread.start()
 
-    while True:
-        products = KeepaProducts.get_products_not_modified()
-        if not products:
-            break
+    products = KeepaProducts.get_products_not_modified()
 
-        asin_list = [product[0] for product in products]
+    while products:
+        asin_list = [products.pop() for _ in range(20) if products]
         thread = threading.Thread(target=run_get_competitive_pricing, args=(asin_list, que,))
         thread.start()
         time.sleep(interval_sec)

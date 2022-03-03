@@ -2,6 +2,7 @@ import sys
 
 from mws import api
 from keepa import keepa
+from spapi import spapi_tasks
 from crawler.buffalo import buffalo
 from crawler.pc4u import pc4u
 from crawler.rakuten import rakuten_tasks
@@ -33,5 +34,7 @@ if __name__ == '__main__':
         repeat.main()
     elif args[1] == 'monthly':
         monthly.main()
+    elif args[1] == 'spapi':
+        spapi_tasks.update_price_and_ranking()
     else:
         sys.stdout.write(f'{args[1]} is not a command')
