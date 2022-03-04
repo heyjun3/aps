@@ -17,7 +17,7 @@ logger = log_settings.get_logger(__name__)
 def run_super_at_shop_id(shop_id: str):
     logger.info('action=run_super_at_shop_id status=run')
 
-    url = urllib.parse.join(settings.SUPER_DOMAIN_URL, f'p/do/dpsl/{shop_id}')
+    url = urllib.parse.urljoin(settings.SUPER_DOMAIN_URL, f'p/do/dpsl/{shop_id}')
     client = SuperCrawler(url=url)
     client.start_search_products()
 
