@@ -1,12 +1,14 @@
 import datetime
 import os
+import json
 
 import pandas as pd
 
 from ims.models import Product
 from mws.api import AmazonClient
 from crawler.netsea import netsea_tasks
-from crawler.super import super
+from crawler.super import super_tasks
+from mq import MQ
 import settings
 
 
@@ -34,7 +36,7 @@ def get_marchant_listings_inactive_data():
 def main():
 
     netsea_df = netsea_tasks.run_get_favorite_products()
-    super_df = super.collection_favorite_products()
+    super_df = super_tasks.run_get_favorite_products()
     mws_df = get_marchant_listings_inactive_data()
     products = Product.get_all_objects()
     products = list(map(lambda x: x.value, products))
@@ -46,5 +48,11 @@ def main():
     df = df[['jan', 'cost']].dropna().rename(columns={'jan': 'JAN', 'cost': 'Cost'})
 
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    save_path = os.path.join(settings.SCRAPE_SCHEDULE_SAVE_PATH, f'repeatedly{timestamp}.xlsx')
-    df.to_excel(save_path, index=False)
+    mq = MQ('mws')
+    for index, row in df.iterrows():
+        params = {
+            'filename': f'repeate_{timestamp}',
+            'jan': row[0],
+            'cost': row[1],
+        }
+        mq.publish(json.dumps(params))

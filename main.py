@@ -2,11 +2,12 @@ import sys
 
 from mws import api
 from keepa import keepa
+from spapi import spapi_tasks
 from crawler.buffalo import buffalo
 from crawler.pc4u import pc4u
-from crawler.rakuten import rakuten
-from crawler.super import super
-from crawler.netsea import netsea
+from crawler.rakuten import rakuten_tasks
+from crawler.super import super_tasks
+from crawler.netsea import netsea_tasks
 from ims import repeat
 from ims import monthly
 
@@ -22,16 +23,18 @@ if __name__ == '__main__':
     elif args[1] == 'buffalo':
         buffalo.main()
     elif args[1] == 'pc4u':
-        pc4u.schedule_pc4u_task_everyday()
+        pc4u.main()
     elif args[1] == 'rakuten':
-        rakuten.schedule()
+        rakuten_tasks.run_rakuten_search_all()
     elif args[1] == 'super':
-        super.super_all()
+        super_tasks.run_super_all_shops()
     elif args[1] == 'netsea':
-        netsea.netsea_all()
+        netsea_tasks.run_netsea_all_products()
     elif args[1] == 'repeat':
         repeat.main()
     elif args[1] == 'monthly':
         monthly.main()
+    elif args[1] == 'spapi':
+        spapi_tasks.update_price_and_ranking()
     else:
         sys.stdout.write(f'{args[1]} is not a command')

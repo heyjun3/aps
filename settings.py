@@ -13,7 +13,7 @@ PASSWORD = config['DB']['PASSWORD']
 HOST = config['DB']['HOST']
 PORT = config['DB']['PORT']
 DB = config['DB']['DB']
-DB_URL = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB}"
+DB_URL = f"postgresql+psycopg2://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB}"
 
 # REDIS settings
 REDIS_HOST = config['REDIS']['HOST']
@@ -70,6 +70,7 @@ NETSEA_PASSWD = config['NETSEA']['PASSWD']
 # RAKUTEN settings
 RAKUTEN_APP_ID = config['RAKUTEN']['APP_ID']
 REQUEST_URL = 'https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706'
+RAKUTEN_ENDPOINT = 'https://item.rakuten.co.jp/'
 
 # SUPER settings
 SUPER_LOGIN_URL = 'https://www.superdelivery.com/p/login.do'
@@ -78,7 +79,7 @@ SUPER_LOGIN_INFO = {
             'password': config['SUPER']['PASSWORD'],
 }
 SUPER_DOMAIN_URL = 'https://www.superdelivery.com'
-SUPER_NEW_PRODUCTS_URL = 'https://www.superdelivery.com/p/do/psl/?so=newly&vi=1&ed='
+SUPER_NEW_PRODUCTS_URL = 'https://www.superdelivery.com/p/do/psl/'
 
 # PC4U settings
 PC4U_ENDPOINT = 'https://www.pc4u.co.jp/'

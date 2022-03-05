@@ -1,5 +1,6 @@
 from datetime import datetime
 from datetime import timedelta
+from os import times
 import urllib.parse
 
 import pandas as pd
@@ -16,7 +17,7 @@ logger = log_settings.get_logger(__name__)
 def run_super_at_shop_id(shop_id: str):
     logger.info('action=run_super_at_shop_id status=run')
 
-    url = urllib.parse.join(settings.SUPER_DOMAIN_URL, f'p/do/dpsl/{shop_id}')
+    url = urllib.parse.urljoin(settings.SUPER_DOMAIN_URL, f'p/do/dpsl/{shop_id}')
     client = SuperCrawler(url=url)
     client.start_search_products()
 
@@ -25,9 +26,11 @@ def run_schedule_super_task():
     logger.info('action=run_schedule_super_task status=run')
 
     yesterday = datetime.now() - timedelta(days=1)
-    url = urllib.parse.urljoin(settings.SUPER_NEW_PRODUCTS_URL, yesterday.strftime("%Y%m%d"))
-    client = SuperCrawler(url=url)
-    client.start_search_products
+    url = settings.SUPER_NEW_PRODUCTS_URL
+    params = {'so': 'newly', 'vi': '1', 'ed': yesterday.strftime('%Y%m%d')}
+    timestamp = datetime.now()
+    client = SuperCrawler(url=url, params=params, timestamp=timestamp)
+    client.start_search_products()
 
     logger.info('action=run_schedule_super_task status=done')
 
@@ -37,7 +40,8 @@ def run_discount_product_search():
 
     url = urllib.parse.urljoin(settings.SUPER_DOMAIN_URL, 'p/do/psl/')
     params = {'pd': '1', 'is': '1', 'vi': '1'}
-    client = SuperCrawler(url=url, params=params)
+    timestamp = datetime.now()
+    client = SuperCrawler(url=url, params=params, timestamp=timestamp)
     client.start_search_products()
 
     logger.info('action=run_discount_product_search status=done')

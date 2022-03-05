@@ -41,6 +41,16 @@ class ScrapeNextPageUrl(unittest.TestCase):
         url = NetseaHTMLPage.scrape_next_page_url(response.text, response.url)
         self.assertIsNone(url)
 
+    def test_scrape_change_price(self):
+        response = unittest.mock.MagicMock()
+        html_path = os.path.join(dirname, 'scrape_change_price.html')
+        response.url = 'https://www.netsea.jp/search/?facet_price_to=4508&disc_flg=Y&ex_so=Y&sort=PD&searched=Y&page=166'
+        with open(html_path, 'r') as f:
+            response.text = f.read()
+
+        url = NetseaHTMLPage.scrape_next_page_url(response.text, response.url)
+        self.assertEqual(url, 'https://www.netsea.jp/search/?facet_price_to=4099&disc_flg=Y&ex_so=Y&sort=PD&searched=Y&page=1')
+
 
 class ScrapeProductListPage(unittest.TestCase):
 

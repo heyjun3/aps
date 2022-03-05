@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 import datetime
-from logging import getLogger
 import threading
+from copy import deepcopy
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column
@@ -10,6 +10,8 @@ from sqlalchemy import Float
 from sqlalchemy import BigInteger
 from sqlalchemy import or_
 from sqlalchemy import distinct
+from sqlalchemy import Numeric
+from sqlalchemy import Computed
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
@@ -30,6 +32,10 @@ class NonePriceError(Exception):
     pass
 
 
+PROFIT = "price - (cost * unit) - ((price * fee_rate) * 1.1) - shipping_fee"
+PROFIT_RATE = "(price - (cost * unit) - ((price * fee_rate) * 1.1) - shipping_fee) / price"
+
+
 class MWS(Base):
     __tablename__ = 'mws_products'
     asin = Column(String, primary_key=True, nullable=False)
@@ -41,8 +47,8 @@ class MWS(Base):
     cost = Column(BigInteger)
     fee_rate = Column(Float)
     shipping_fee = Column(BigInteger)
-    profit = Column(BigInteger)
-    profit_rate = Column(Float)
+    profit = Column(BigInteger, Computed(PROFIT))
+    profit_rate =Column(Numeric(precision=10, scale=2), Computed(PROFIT_RATE))
 
     def save(self):
         with session_scope() as session:
@@ -107,9 +113,7 @@ class MWS(Base):
             mws_list = session.query(cls).filter(cls.asin == asin).all()
             for mws in mws_list:
                 mws.price = price
-                if mws.fee_rate is not None and mws.shipping_fee is not None:
-                    mws.profit = mws.calc_profit()
-                    mws.profit_rate = mws.calc_profit_rate()
+                mws.cost = deepcopy(mws.cost)
             return True
 
     @classmethod
@@ -119,9 +123,6 @@ class MWS(Base):
             for mws in mws_list:
                 mws.fee_rate = fee_rate
                 mws.shipping_fee = shipping_fee
-                if mws.price is not None:
-                    mws.profit = mws.calc_profit()
-                    mws.profit_rate = mws.calc_profit_rate()
             return True
 
     @classmethod
@@ -129,14 +130,6 @@ class MWS(Base):
         with session_scope() as session:
             session.query(cls).filter(cls.filename.in_(filename_list)).delete()
             return True
-
-    @classmethod
-    def set_profit(cls):
-        with session_scope() as session:
-            mws_products = session.query(cls).all()
-            for mws in mws_products:
-                mws.profit = mws.calc_profit()
-                mws.profit_rate = mws.calc_profit_rate()
 
     @property
     def value(self):
@@ -153,12 +146,6 @@ class MWS(Base):
             'profit': self.profit,
             'profit_rate': self.profit_rate,
         }
-
-    def calc_profit(self, sales_tax: float = 1.1):
-        return int(self.price - (self.cost * self.unit) - ((self.price * self.fee_rate) * sales_tax) - self.shipping_fee)
-
-    def calc_profit_rate(self):
-        return round(self.profit / self.price, 2)
 
 
 @contextmanager
@@ -180,5 +167,5 @@ def session_scope():
         lock.release()
 
 
-def init_db():
+def init_db(engine):
     Base.metadata.create_all(bind=engine)

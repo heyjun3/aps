@@ -5,7 +5,9 @@ import hashlib
 import json
 import os
 import time
+from urllib import response
 import urllib.parse
+import re
 
 import redis
 import requests
@@ -39,10 +41,8 @@ class SPAPI:
         self.refresh_toke = settings.REFRESH_TOKEN
         self.client_id = settings.CLIENT_ID
         self.client_secret = settings.CLIENT_SECRET
-
         self.aws_secret_key = settings.AWS_SECRET_KEY
         self.aws_access_key = settings.AWS_ACCESS_ID
-
         self.marketplace_id = settings.MARKETPLACEID
 
     def sign(self, key, msg):
@@ -155,7 +155,7 @@ class SPAPI:
 
         return response
 
-    def get_pricing(self, asin_list: list, item_type: str='Asin'):
+    def get_pricing(self, asin_list: list, item_type: str='Asin') -> requests.Response:
         method = 'GET'
         path = '/products/pricing/v0/price'
         url = urllib.parse.urljoin(ENDPOINT, path)
@@ -169,3 +169,94 @@ class SPAPI:
         response = request(req)
 
         return response
+
+    def get_competitive_pricing(self, asin_list: list, item_type: str='Asin') -> requests.Response:
+        logger.info('action=get_competitive_pricing status=run')
+
+        method = 'GET'
+        path = '/products/pricing/v0/competitivePrice'
+        url = urllib.parse.urljoin(ENDPOINT, path)
+        query = {
+            'MarketplaceId': self.marketplace_id,
+            'Asins': ','.join(asin_list),
+            'ItemType': item_type,
+        }
+        req = requests.Request(method=method, url=url, params=query)
+        req = self.create_authorization_headers(req)
+        response = request(req)
+
+        logger.info('action=get_competitive_pricing status=done')
+        return response
+
+    def get_item_offers(self, asin: str, item_condition: str='New') -> requests.Response:
+        logger.info('action=get_item_offers status=run')
+
+        method = 'GET'
+        path = f'/products/pricing/v0/items/{asin}/offers'
+        url = urllib.parse.urljoin(ENDPOINT, path)
+        query = {
+            'MarketplaceId': self.marketplace_id,
+            'ItemCondition': item_condition,
+        }
+        req = requests.Request(method=method, url=url, params=query)
+        req = self.create_authorization_headers(req)
+        response = request(req)
+
+        logger.info('action=get_item_offers status=done')
+        return response
+
+
+class SPAPIJsonParser(object):
+
+    @staticmethod
+    def parse_get_competitive_pricing(response: json) -> dict:
+        logger.info('action=parse_get_competitive_pricing status=run')
+
+        products = []
+
+        for payload in response.get('payload'):
+            asin = payload['ASIN']
+            try:
+                price = round(float(payload['Product']['CompetitivePricing']['CompetitivePrices'][0]['Price']['LandedPrice']['Amount']))
+            except (IndexError, KeyError) as ex:
+                logger.error(f"{asin} hasn't landedprice error={ex}")
+                price = -1
+
+            try:
+                ranking = round(float(payload['Product']['SalesRankings'][0]['Rank']))
+                category_id = payload['Product']['SalesRankings'][0]['ProductCategoryId']
+                if re.fullmatch('[\d]+', category_id):
+                    raise NotRankingException
+            except (NotRankingException, IndexError, KeyError) as ex:
+                logger.error(f"{asin} hasn't ranking error={ex}")
+                ranking = -1
+
+            products.append({'asin': asin, 'price': price, 'ranking': ranking})
+
+        logger.info('action=parse_get_competitive_pricing status=done')
+        return products
+
+    @staticmethod
+    def parse_get_item_offers(response: json) -> dict|None:
+        logger.info('action=parse_get_item_offers status=run')
+
+        try:
+            asin = response['payload']['ASIN']
+        except KeyError as ex:
+            logger.error(ex)
+            logger.error(response)
+            return None
+
+        try:
+            price = int(response['payload']['Summary']['LowestPrices'][0]['LandedPrice']['Amount'])
+            ranking = response['payload']['Summary']['SalesRankings'][0]['Rank']
+        except (IndexError, KeyError) as ex:
+            logger.error(f"{asin} hasn't data")
+            return None
+
+        logger.info('action=parse_get_item_offers status=done')
+        return {'asin': asin, 'price': price, 'ranking': ranking}
+        
+
+class NotRankingException(Exception):
+    pass

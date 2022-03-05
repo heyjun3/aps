@@ -2,6 +2,8 @@ import re
 import time
 import urllib
 from datetime import datetime
+from datetime import timezone
+from datetime import timedelta
 import json
 
 from requests import Session
@@ -19,11 +21,12 @@ from crawler.super.models import SuperProductDetails
 
 
 logger = log_settings.get_logger(__name__)
+JST = timezone(timedelta(hours=9))
 
 
 class SuperCrawler(object):
 
-    def __init__(self, url: str, params: dict = None, timestamp: datetime = datetime.now(), queue_name: str = 'mws'):
+    def __init__(self, url: str, params: dict = None, timestamp: datetime = datetime.now(JST), queue_name: str = 'mws'):
         self.url = requests.Request(method='GET', url=url, params=params).prepare().url
         self.session = self.login()
         self.super_product_list = []
@@ -51,6 +54,7 @@ class SuperCrawler(object):
         logger.info('action=pool_shop_list_page status=run')
 
         while self.url is not None:
+            logger.info(self.url)
             response = utils.request(url=self.url, session=self.session)
             super_shop_list = SuperHTMLPage.scrape_shop_list_page(response.text)
             self.url = SuperHTMLPage.scrape_next_page_url(response.text)
@@ -63,6 +67,7 @@ class SuperCrawler(object):
         logger.info('action=pool_product_list_page status=run')
 
         while self.url is not None:
+            logger.info(self.url)
             response = utils.request(url=self.url, session=self.session)
             time.sleep(interval_sec)
             self.super_product_list.extend(SuperHTMLPage.scrape_product_list_page(response.text, response.url))

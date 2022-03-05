@@ -124,9 +124,11 @@ class Pc4uHTMLPage(object):
         try:
             next_url = soup.select('.M_pager li')[-1].a.attrs.get('href')
         except AttributeError as ex:
+            logger.info(ex)
             return None
 
-        sold_out_flag = soup.select_one('.btnWrap img')
+        sold_out_flag = soup.select_one('.innerBox .btnWrap img')
+        print(sold_out_flag)
         if sold_out_flag and sold_out_flag.attrs['alt'] == '品切れ':
             return None
 
