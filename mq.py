@@ -1,5 +1,7 @@
 import json
 import time
+from types import FunctionType
+import threading
 
 import pika
 from pika.exceptions import AMQPConnectionError
@@ -37,7 +39,7 @@ class MQ(object):
 
         logger.info('action=publish status=done')
     
-    def receive(self):
+    def receive(self) -> None:
 
         while True:
             resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(5) if self.channel.queue_declare(self.queue_name, durable=True).method.message_count]
@@ -48,9 +50,25 @@ class MQ(object):
                 yield None
                 time.sleep(30)
 
+    def callback_recieve(self, func: FunctionType, interval_sec: float=1.0) -> None:
+        logger.info('action=run_callback_recieve status=run')
+
+        def callback(ch, method, properties, body):
+            thread = threading.Thread(target=func, args=(json.loads(body.decode()),))
+            thread.start()
+            time.sleep(interval_sec)
+
+        self.channel.basic_consume(queue=self.queue_name, on_message_callback=callback, auto_ack=True)
+        self.channel.start_consuming()
+
+        logger.info('action=run_callback_recieve status=done')
+
+
+def test_print(a: dict):
+    print(a)
+
 
 if __name__ == '__main__':
     mq = MQ('mws')
-    for lst in mq.receive():
-        print(lst)
+    mq.callback_recieve(func=test_print, interval_sec=0)
     

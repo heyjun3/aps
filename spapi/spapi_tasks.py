@@ -5,6 +5,8 @@ import threading
 from spapi.spapi import SPAPI
 from spapi.spapi import SPAPIJsonParser
 from keepa.models import KeepaProducts
+from mws.models import MWS
+from mq import MQ
 import log_settings
 
 
@@ -71,6 +73,30 @@ def get_item_offers_threading(asin: str) -> None:
         KeepaProducts.update_price_and_rank_data(product['asin'], time.time(), product['price'], product['ranking'])
 
     logger.info('action=get_item_offers_threading status=done')
+
+
+def run_list_catalog_items() -> None:
+    logger.info('action=run_list_catalog_items status=run')
+
+    mq = MQ('mws')
+    mq.callback_recieve(func=threading_list_catalog_items, interval_sec=0.17)
+
+    logger.info('action=run_list_catalog_items status=done')
+
+
+def threading_list_catalog_items(params: dict) -> None:
+    logger.info('action=threading_list_catalog_items status=run')
+
+    client = SPAPI()
+    response = client.list_catalog_items(params['jan'])
+    products = SPAPIJsonParser.parse_list_catalog_items(response.json())
+    if products:
+        for product in products:
+            mws = MWS(asin=product['asin'], filename=params['filename'], title=product['title'],
+                      jan=params['jan'], unit=product['quantity'], price=product['price'], cost=params['cost'])
+            mws.save()
+
+    logger.info('action=threading_list_catalog_items status=done')
 
 
 def main():

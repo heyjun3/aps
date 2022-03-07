@@ -316,10 +316,21 @@ class SPAPIJsonParser(object):
         logger.info('action=parse_list_catalog_items status=run')
 
         products = []
-        for item in response['payload']['Items']:
+        try:
+            items = response['payload']['Items']
+        except KeyError as ex:
+            logger.error(ex)
+            return products
+
+        for item in items:
             asin = item['Identifiers']['MarketplaceASIN']['ASIN']
-            quantity = item['AttributeSets'][0]['PackageQuantity']
             title = item['AttributeSets'][0]['Title']
+
+            try:
+                quantity = item['AttributeSets'][0]['PackageQuantity']
+            except KeyError as ex:
+                logger.error(ex)
+                quantity = 1
             try:
                 price = item['AttributeSets'][0]['ListPrice']['Amount']
             except KeyError as ex:
