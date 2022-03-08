@@ -50,6 +50,16 @@ class MQ(object):
                 yield None
                 time.sleep(30)
 
+    def get(self, interval_sec: int=30) -> str:
+
+        while True:
+            resp = self.channel.basic_get(self.queue_name, auto_ack=True)
+            _method, _properties, body = resp
+            if body:
+                yield body.decode()
+            else:
+                time.sleep(interval_sec)
+
     def callback_recieve(self, func: FunctionType, interval_sec: float=1.0) -> None:
         logger.info('action=run_callback_recieve status=run')
 
@@ -70,5 +80,6 @@ def test_print(a: dict):
 
 if __name__ == '__main__':
     mq = MQ('mws')
-    mq.callback_recieve(func=test_print, interval_sec=0)
+    for i in mq.get():
+        print(i)
     

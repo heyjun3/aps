@@ -1,6 +1,7 @@
 import time
 import queue
 import threading
+import json
 
 from spapi.spapi import SPAPI
 from spapi.spapi import SPAPIJsonParser
@@ -75,11 +76,14 @@ def get_item_offers_threading(asin: str) -> None:
     logger.info('action=get_item_offers_threading status=done')
 
 
-def run_list_catalog_items() -> None:
+def run_list_catalog_items(interval_sec: float=0.17) -> None:
     logger.info('action=run_list_catalog_items status=run')
 
     mq = MQ('mws')
-    mq.callback_recieve(func=threading_list_catalog_items, interval_sec=0.17)
+    for body in mq.get():
+        thread = threading.Thread(target=threading_list_catalog_items, args=(json.loads(body), ))
+        thread.start()
+        time.sleep(interval_sec)
 
     logger.info('action=run_list_catalog_items status=done')
 
