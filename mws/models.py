@@ -102,6 +102,13 @@ class MWS(Base):
             return products
 
     @classmethod
+    def get_price_is_None_asins(cls):
+        with session_scope() as session:
+            products = session.query(cls.asin).filter(cls.price == None).all()
+            products = list(map(lambda x: x[0], products))
+            return products
+
+    @classmethod
     def get_fee_is_None_products(cls):
         with session_scope() as session:
             products = session.query(cls.asin).filter(or_(cls.fee_rate == None, cls.shipping_fee == None)).all()
