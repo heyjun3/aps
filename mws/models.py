@@ -115,6 +115,13 @@ class MWS(Base):
             return products
 
     @classmethod
+    def get_fee_is_None_asins(cls):
+        with session_scope() as session:
+            products = session.query(cls.asin).filter(or_(cls.fee_rate == None, cls.shipping_fee == None)).all()
+            products = list(map(lambda x: x[0], products))
+            return products
+
+    @classmethod
     def update_price(cls, asin: str, price: int):
         with session_scope() as session:
             mws_list = session.query(cls).filter(cls.asin == asin).all()

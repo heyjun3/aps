@@ -64,3 +64,15 @@ class ParseListCatalogItems(unittest.TestCase):
         products = SPAPIJsonParser.parse_list_catalog_items(json.loads(response))
         self.assertFalse(products)
 
+
+class ParseGetMyFeesEstimateForAsin(unittest.TestCase):
+
+    def test_success_parse(self):
+        path = os.path.join(dirname, 'get_my_fees_estimate_for_asin.json')
+        with open(path, 'r') as f:
+            response = f.read()
+
+        fee = SPAPIJsonParser.parse_get_my_fees_estimate_for_asin(json.loads(response))
+        self.assertEqual(fee['asin'], 'B07HG6F6K2')
+        self.assertEqual(fee['fee_rate'], 0.15)
+        self.assertEqual(fee['ship_fee'], 434)

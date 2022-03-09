@@ -312,7 +312,7 @@ class SPAPIJsonParser(object):
         return {'asin': asin, 'price': price, 'ranking': ranking}
 
     @staticmethod
-    def parse_list_catalog_items(response: json) -> list[dict]:
+    def parse_list_catalog_items(response: dict) -> list[dict]:
         logger.info('action=parse_list_catalog_items status=run')
 
         products = []
@@ -333,6 +333,8 @@ class SPAPIJsonParser(object):
                 quantity = 1
             try:
                 price = item['AttributeSets'][0]['ListPrice']['Amount']
+                if not price:
+                    price = None
             except KeyError as ex:
                 logger.error(ex)
                 price = None
@@ -341,6 +343,41 @@ class SPAPIJsonParser(object):
         logger.info('action=parse_list_catalog_items status=done')
         return products
 
+    @staticmethod
+    def parse_get_my_fees_estimate_for_asin(response: dict, amount: int=10000, default_fee_rate: float=0.1, default_ship_fee: int=500) -> dict:
+        logger.info('action=parse_get_my_fees_estimate_for_asin status=run')
+
+        fee_type_dict = {}
+
+        try:
+            asin = response['payload']['FeesEstimateResult']['FeesEstimateIdentifier']['SellerInputIdentifier']
+        except KeyError as ex:
+            logger.error(response)
+            time.sleep(1)
+            raise QuotaException
+
+        try:
+            fees = response['payload']['FeesEstimateResult']['FeesEstimate']['FeeDetailList']
+        except KeyError as ex:
+            logger.info(ex)
+            return {'asin': asin, 'fee_rate': default_fee_rate, 'ship_fee': default_ship_fee}
+        
+        for fee in fees:
+            try:
+                fee_type_dict[fee['FeeType']] = fee['FeeAmount']['Amount']
+            except KeyError as ex:
+                logger.info(ex)
+
+        fee_rate = round(fee_type_dict.get('ReferralFee') / amount, 2)
+        ship_fee = fee_type_dict.get('FBAFees', default_ship_fee)
+
+        logger.info('action=parse_get_my_fees_estimate_for_asin status=done')
+        return {'asin': asin, 'fee_rate': fee_rate, 'ship_fee': ship_fee}
+
 
 class NotRankingException(Exception):
+    pass
+
+
+class QuotaException(Exception):
     pass
