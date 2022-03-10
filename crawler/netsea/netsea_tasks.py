@@ -18,7 +18,7 @@ logger = log_settings.get_logger(__name__)
 def run_netsea_at_shop_id(shop_id: str, path: str = 'search') -> None:
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
     params = {'sort': 'PD', 'supplier_id': shop_id, 'ex_so': 'Y', 'searched': 'Y'}
-    timestamp = datetime.now()
+    timestamp = datetime.datetime.now()
     client = Netsea(url, params, timestamp=timestamp)
     client.start_search_products()
 

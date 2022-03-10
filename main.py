@@ -22,9 +22,9 @@ if __name__ == '__main__':
     elif args[1] == 'mws':
         process_get_price = Process(target=api.run_get_lowest_priced_offer_listtings_for_asin)
         process_get_fees = Process(target=spapi_tasks.run_get_my_fees_estimate_for_asin)
-        spapi_tasks.run_list_catalog_items()
         process_get_price.start()
         process_get_fees.start()
+        spapi_tasks.run_list_catalog_items()
         process_get_price.join()
         process_get_fees.join()
     elif args[1] == 'buffalo':
