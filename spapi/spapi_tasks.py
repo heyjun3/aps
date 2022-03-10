@@ -1,11 +1,10 @@
-from multiprocessing.pool import ThreadPool
 import time
 import queue
 import threading
 import json
 from concurrent.futures import ThreadPoolExecutor
 
-from spapi.spapi import SPAPI, QuotaException
+from spapi.spapi import SPAPI
 from spapi.spapi import SPAPIJsonParser
 from keepa.models import KeepaProducts
 from mws.models import MWS
@@ -86,10 +85,6 @@ def run_list_catalog_items(interval_sec: float=0.17) -> None:
         for body in mq.get():
             executor.submit(threading_list_catalog_items, json.loads(body))
             time.sleep(interval_sec)
-    # for body in mq.get():
-    #     thread = threading.Thread(target=threading_list_catalog_items, args=(json.loads(body), ))
-    #     thread.start()
-    #     time.sleep(interval_sec)
 
     logger.info('action=run_list_catalog_items status=done')
 
