@@ -36,3 +36,43 @@ class ParseGetItemOffers(unittest.TestCase):
         self.assertEqual(product['asin'], 'B07HG6F6K2')
         self.assertEqual(product['price'], 2800)
         self.assertEqual(product['ranking'], 15)
+
+
+class ParseListCatalogItems(unittest.TestCase):
+
+    def test_success_parse(self):
+        path = os.path.join(dirname, 'list_catalog_items.json')
+        with open(path, 'r') as f:
+            response = f.read()
+
+        products = SPAPIJsonParser.parse_list_catalog_items(json.loads(response))
+        self.assertEqual(products[0]['asin'], "B00131HAQC")
+        self.assertEqual(products[0]['quantity'], 1)
+        self.assertEqual(products[0]['title'], "アロン化成 安寿 ポータブルトイレ用防臭剤22")
+        self.assertEqual(products[0]['price'], 1760)
+
+        self.assertEqual(products[-1]['asin'], "B08R16SCR5")
+        self.assertEqual(products[-1]['quantity'], 8)
+        self.assertEqual(products[-1]['title'], "【まとめ買い】アロン化成 安寿 ポータブルトイレ用防臭剤22×8個")
+        self.assertEqual(products[-1]['price'], None)
+
+    def test_response_is_none(self):
+        path = os.path.join(dirname, 'list_catalog_items_none.json')
+        with open(path, 'r') as f:
+            response = f.read()
+
+        products = SPAPIJsonParser.parse_list_catalog_items(json.loads(response))
+        self.assertFalse(products)
+
+
+class ParseGetMyFeesEstimateForAsin(unittest.TestCase):
+
+    def test_success_parse(self):
+        path = os.path.join(dirname, 'get_my_fees_estimate_for_asin.json')
+        with open(path, 'r') as f:
+            response = f.read()
+
+        fee = SPAPIJsonParser.parse_get_my_fees_estimate_for_asin(json.loads(response))
+        self.assertEqual(fee['asin'], 'B07HG6F6K2')
+        self.assertEqual(fee['fee_rate'], 0.15)
+        self.assertEqual(fee['ship_fee'], 434)

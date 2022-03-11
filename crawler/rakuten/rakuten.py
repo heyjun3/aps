@@ -160,5 +160,8 @@ class RakutenAPIJSON(object):
             item_caption = item['Item']['itemCaption']
             jan = re.search('[0-9]{13}', item_caption)
 
-        logger.info('action=get_jan_code status=done')
-        return jan
+        if jan:
+            logger.info('action=get_jan_code status=done')
+            return jan.group()
+        else:
+            return None

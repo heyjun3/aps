@@ -1,11 +1,9 @@
-from base64 import decode
 import datetime
 import hmac
 import hashlib
 import json
 import os
 import time
-from urllib import response
 import urllib.parse
 import re
 
@@ -17,7 +15,11 @@ import log_settings
 
 
 logger = log_settings.get_logger(__name__)
-redis_client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB)
+redis_client = redis.Redis(
+        host=settings.REDIS_HOST,
+        port=settings.REDIS_PORT,
+        db=settings.REDIS_DB,
+    )
 ENDPOINT = 'https://sellingpartnerapi-fe.amazon.com'
 
 
@@ -205,6 +207,58 @@ class SPAPI:
         logger.info('action=get_item_offers status=done')
         return response
 
+    def search_catalog_items(self, jan_list: list) -> requests.Response:
+        logger.info('action=search_catalog_items status=run')
+
+        method = 'GET'
+        path = '/catalog/2020-12-01/items'
+        url = urllib.parse.urljoin(ENDPOINT, path)
+        query = {
+            'keywords': ','.join(jan_list),
+            'marketplaceIds': self.marketplace_id,
+            'includedData': 'identifiers,images,productTypes,salesRanks,summaries,variations'
+        }
+        req = requests.Request(method=method, url=url, params=query)
+        req = self.create_authorization_headers(req)
+        response = request(req)
+
+        logger.info('action=search_catalog_items status=done')
+        return response
+
+    def list_catalog_items(self, jan: str) -> requests.Request:
+        logger.info('action=list_catalog_items status=run')
+
+        method = 'GET'
+        path = '/catalog/v0/items'
+        url = urllib.parse.urljoin(ENDPOINT, path)
+        query = {
+            'MarketplaceId': self.marketplace_id,
+            'JAN': jan,
+        }
+        req = requests.Request(method=method, url=url, params=query)
+        req = self.create_authorization_headers(req)
+        response = request(req)
+
+        logger.info('action=list_catalog_items status=done')
+        return response
+
+    def get_catalog_item(self, asin: str) -> requests.Response:
+        logger.info('action=get_catalog_item status=run')
+
+        method = 'GET'
+        path = f'/catalog/2020-12-01/items/{asin}'
+        url = urllib.parse.urljoin(ENDPOINT, path)
+        query = {
+            'marketplaceIds': self.marketplace_id,
+            'includedData': 'attributes,identifiers,images,productTypes,salesRanks,summaries,variations'
+        }
+        req = requests.Request(method=method, url=url, params=query)
+        req = self.create_authorization_headers(req)
+        response = request(req)
+
+        logger.info('action=get_catalog_item status=done')
+        return response
+
 
 class SPAPIJsonParser(object):
 
@@ -256,7 +310,74 @@ class SPAPIJsonParser(object):
 
         logger.info('action=parse_get_item_offers status=done')
         return {'asin': asin, 'price': price, 'ranking': ranking}
+
+    @staticmethod
+    def parse_list_catalog_items(response: dict) -> list[dict]:
+        logger.info('action=parse_list_catalog_items status=run')
+
+        products = []
+        try:
+            items = response['payload']['Items']
+        except KeyError as ex:
+            logger.error(ex)
+            return products
+
+        for item in items:
+            asin = item['Identifiers']['MarketplaceASIN']['ASIN']
+            title = item['AttributeSets'][0]['Title']
+
+            try:
+                quantity = item['AttributeSets'][0]['PackageQuantity']
+            except KeyError as ex:
+                logger.error(ex)
+                quantity = 1
+            try:
+                price = item['AttributeSets'][0]['ListPrice']['Amount']
+                if not price:
+                    price = None
+            except KeyError as ex:
+                logger.error(ex)
+                price = None
+            products.append({'asin': asin, 'quantity': quantity, 'title': title, 'price': price})
+            
+        logger.info('action=parse_list_catalog_items status=done')
+        return products
+
+    @staticmethod
+    def parse_get_my_fees_estimate_for_asin(response: dict, amount: int=10000, default_fee_rate: float=0.1, default_ship_fee: int=500) -> dict:
+        logger.info('action=parse_get_my_fees_estimate_for_asin status=run')
+
+        fee_type_dict = {}
+
+        try:
+            asin = response['payload']['FeesEstimateResult']['FeesEstimateIdentifier']['SellerInputIdentifier']
+        except KeyError as ex:
+            logger.error(response)
+            time.sleep(1)
+            raise QuotaException
+
+        try:
+            fees = response['payload']['FeesEstimateResult']['FeesEstimate']['FeeDetailList']
+        except KeyError as ex:
+            logger.info(ex)
+            return {'asin': asin, 'fee_rate': default_fee_rate, 'ship_fee': default_ship_fee}
         
+        for fee in fees:
+            try:
+                fee_type_dict[fee['FeeType']] = fee['FeeAmount']['Amount']
+            except KeyError as ex:
+                logger.info(ex)
+
+        fee_rate = round(fee_type_dict.get('ReferralFee') / amount, 2)
+        ship_fee = fee_type_dict.get('FBAFees', default_ship_fee)
+
+        logger.info('action=parse_get_my_fees_estimate_for_asin status=done')
+        return {'asin': asin, 'fee_rate': fee_rate, 'ship_fee': ship_fee}
+
 
 class NotRankingException(Exception):
+    pass
+
+
+class QuotaException(Exception):
     pass

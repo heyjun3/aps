@@ -11,6 +11,8 @@ import pathlib
 import shutil
 import urllib.parse
 import json
+import threading
+
 import requests
 import xml.etree.ElementTree as et
 import pandas as pd
@@ -164,7 +166,7 @@ class AmazonClient:
 
         return asin_price_dict
 
-    def get_lowest_priced_offer_listtings_for_asin(self, products: list, interval_sec: int = 2) -> dict:
+    def get_lowest_priced_offer_listtings_for_asin(self, asin_list: list) -> dict:
         logger.info('action=get_lowest_priced_offer_listtings_for_asin status=run')
         asin_price_dict = {}
 
@@ -172,12 +174,11 @@ class AmazonClient:
         data_dict['MarketplaceId'] = settings.MARKETPLACEID
         data_dict['ItemCondition'] = 'New'
         data_dict['Action'] = 'GetLowestOfferListingsForASIN'
-        for index, asin in enumerate(products):
+        for index, asin in enumerate(asin_list):
             data_dict[f'ASINList.ASIN.{str(index+1)}'] = asin
 
         url = self.create_request_url(data_dict=data_dict)
         response = request_api(url)
-        time.sleep(interval_sec)
         tree = etree.fromstring(response.text)
 
         for item in tree.findall('.//{*}Product'):
@@ -186,14 +187,13 @@ class AmazonClient:
                 price = int(float(item.find('.//LandedPrice//Amount', tree.nsmap).text))
             except AttributeError as e:
                 logger.debug(e)
-                continue
+                price = -1
             asin_price_dict[asin] = price
 
         logger.info('action=get_competitive_pricing_for_asin status=done')
-
         return asin_price_dict
 
-    def get_lowest_priced_offers_for_asin(self, asin: str, interval_sec: int = 1) -> int:
+    def get_lowest_priced_offers_for_asin(self, asin: str) -> int:
         logger.info('action=get_lowest_priced_offers_for_asin status=run')
 
         data_dict = dict(self.data)
@@ -206,14 +206,13 @@ class AmazonClient:
         url = "https://mws.amazonservices.jp/Products/2011-10-01"
 
         response = request_api(url=url, data=query)
-        time.sleep(interval_sec)
-
         soup = BeautifulSoup(response.text, 'lxml')
+
         try:
             price = int(float(soup.select_one('LandedPrice Amount').text))
         except AttributeError as ex:
             logger.error(f'error={ex}')
-            return None
+            price = -1
 
         logger.info('action=get_lowest_priced_offers_for_asin status=done')
         return price
@@ -282,17 +281,24 @@ class AmazonClient:
                 MWS.update_price(asin=asin, price=price)
 
         logger.info('action=pool_get_competitive_pricing_for_asin status=done')
+
+    def threading_get_lowest_priced_offer_listtings_for_asin(self, asin_list):
+        logger.info('action=threading_get_lowest_priced_offer_listtings_for_asin status=run')
+
+        asin_price_dict = self.get_lowest_priced_offer_listtings_for_asin(asin_list)
+        for asin, price in asin_price_dict.items():
+            MWS.update_price(asin=asin, price=price)
+
+        logger.info('action=threading_get_lowest_priced_offer_listtings_for_asin status=done')
             
-    def pool_get_lowest_priced_offers_for_asin(self):
-        logger.info('action=pool_get_lowest_priced_offers_for_asin status=run')
+    def threading_get_lowest_priced_offers_for_asin(self, asin) -> None:
+        logger.info('action=threading_get_lowest_priced_offers_for_asin status=run')
 
-        mws_products_list = MWS.get_price_is_None_products()
-        for product in mws_products_list:
-            price = self.get_lowest_priced_offers_for_asin(product.asin)
-            if price is not None:
-                MWS.update_price(asin=product.asin, filename=product.filename, price=price)
+        price = self.get_lowest_priced_offers_for_asin(asin)
+        MWS.update_price(asin=asin, price=price)
 
-        logger.info('action=pool_get_lowest_priced_offers_for_asin status=done')
+        logger.info('action=threading_get_lowest_priced_offers_for_asin status=done')
+
 
     def pool_get_fee_my_fees_estimate(self, asin_list: list):
         logger.info('action=pool_get_fee_my_fees_estimate status=run')
@@ -434,3 +440,34 @@ def main_get_fees(interval_sec: int = 60) -> None:
             client.pool_get_fee_my_fees_estimate(asin_list)
         else:
             time.sleep(interval_sec)
+
+def run_get_lowest_priced_offers_for_asin(interval_sec: float=0.2):
+    logger.info('action=run_get_lowest_priced_offers_for_asin status=run')
+
+    client = AmazonClient()
+    while True:
+        asin_list = MWS.get_price_is_None_asins()
+        if asin_list:
+            for asin in asin_list:
+                thread = threading.Thread(target=client.threading_get_lowest_priced_offers_for_asin, args=(asin,))
+                thread.start()
+                time.sleep(interval_sec)
+        else:
+            time.sleep(30)
+
+
+def run_get_lowest_priced_offer_listtings_for_asin(interval_sec: int=2):
+    logger.info('action=run_get_lowest_priced_offer_listtings_for_asin status=run')
+
+    client = AmazonClient()
+    while True:
+        asin_list = MWS.get_price_is_None_asins()
+        if asin_list:
+            asin_list = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
+            for asins in asin_list:
+                thread = threading.Thread(target=client.threading_get_lowest_priced_offer_listtings_for_asin, args=(asins, ))
+                thread.start()
+                time.sleep(interval_sec)
+        else:
+            time.sleep(30)
+        

@@ -1,10 +1,14 @@
 import time
 import queue
 import threading
+import json
+from concurrent.futures import ThreadPoolExecutor
 
 from spapi.spapi import SPAPI
 from spapi.spapi import SPAPIJsonParser
 from keepa.models import KeepaProducts
+from mws.models import MWS
+from mq import MQ
 import log_settings
 
 
@@ -71,6 +75,57 @@ def get_item_offers_threading(asin: str) -> None:
         KeepaProducts.update_price_and_rank_data(product['asin'], time.time(), product['price'], product['ranking'])
 
     logger.info('action=get_item_offers_threading status=done')
+
+
+def run_list_catalog_items(interval_sec: float=0.17) -> None:
+    logger.info('action=run_list_catalog_items status=run')
+
+    mq = MQ('mws')
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        for body in mq.get():
+            executor.submit(threading_list_catalog_items, json.loads(body))
+            time.sleep(interval_sec)
+
+    logger.info('action=run_list_catalog_items status=done')
+
+
+def threading_list_catalog_items(params: dict) -> None:
+    logger.info('action=threading_list_catalog_items status=run')
+
+    client = SPAPI()
+    response = client.list_catalog_items(params['jan'])
+    products = SPAPIJsonParser.parse_list_catalog_items(response.json())
+    if products:
+        for product in products:
+            mws = MWS(asin=product['asin'], filename=params['filename'], title=product['title'],
+                      jan=params['jan'], unit=product['quantity'], price=product['price'], cost=params['cost'])
+            mws.save()
+
+    logger.info('action=threading_list_catalog_items status=done')
+
+
+def run_get_my_fees_estimate_for_asin() -> None:
+    logger.info('action=run_get_my_fees_estimate_for_asin status=run')
+
+    while True:
+        asin_list = MWS.get_fee_is_None_asins()
+        if asin_list:
+            with ThreadPoolExecutor(max_workers=9) as executor:
+                [executor.submit(threading_get_my_fees_estimate_for_asin, asin) for asin in asin_list]
+        else:
+            time.sleep(30)
+
+
+def threading_get_my_fees_estimate_for_asin(asin: str, interval_sec: float=0.1, default_price: int=10000) -> None:
+    logger.info('action=threading_get_my_fees_estimate_for_asin status=run')
+
+    client = SPAPI()
+    response = client.get_my_fees_estimate_for_asin(asin, price=default_price)
+    time.sleep(interval_sec)
+    fee = SPAPIJsonParser.parse_get_my_fees_estimate_for_asin(response.json())
+    MWS.update_fee(asin=fee['asin'], fee_rate=fee['fee_rate'], shipping_fee=fee['ship_fee'])
+
+    logger.info('action=threading_get_my_fees_estimate_for_asin status=done')
 
 
 def main():
