@@ -1,3 +1,4 @@
+from cmath import asin
 from contextlib import contextmanager
 import datetime
 import threading
@@ -81,15 +82,12 @@ class MWS(Base):
             return rows
 
     @classmethod
-    def get_asin_list_None_products(cls, term=30, count=100):
+    def get_asin_list_None_products(cls, profit: int=200, profit_rate: float=0.1):
         with session_scope() as session:
-            past_date = datetime.date.today() - datetime.timedelta(days=term)
             try:
-                asin_list = session.query(cls.asin).filter(cls.profit > 200, cls.profit_rate > 0.1)\
-                            .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
-                            .filter(or_(KeepaProducts.asin == None, KeepaProducts.modified < past_date, KeepaProducts.rank_data == None, KeepaProducts.price_data == None))\
-                            .limit(count).all()
-                asin_list = list(map(lambda x: x[0], asin_list))
+                asin_list = session.query(cls.asin).filter(cls.profit >= profit, cls.profit_rate >= profit_rate)\
+                            .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).filter(KeepaProducts.asin == None).all()
+                asin_list = list({ asin[0] for asin in asin_list})
             except Exception as ex:
                 logger.error(f'action=get_asin_to_request_keepa error={ex}')
                 return None

@@ -50,7 +50,7 @@ class MQ(object):
                 yield None
                 time.sleep(30)
 
-    def get(self, interval_sec: int=30) -> str:
+    def get(self, interval_sec: int=3) -> str:
 
         while True:
             resp = self.channel.basic_get(self.queue_name, auto_ack=True)
