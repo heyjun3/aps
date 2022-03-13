@@ -34,12 +34,12 @@ class AsinsInfo(Base):
         self.title = title
         self.quantity = quantity
 
-    def save(self):
+    def save(self) -> True:
         with session_scope() as session:
             session.add(self)
         return True
 
-    def upsert(self):
+    def upsert(self) -> True:
         with session_scope() as session:
             stmt = Insert(AsinsInfo).values(self.values)
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
