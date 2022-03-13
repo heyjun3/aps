@@ -49,12 +49,10 @@ class ParseListCatalogItems(unittest.TestCase):
         self.assertEqual(products[0]['asin'], "B00131HAQC")
         self.assertEqual(products[0]['quantity'], 1)
         self.assertEqual(products[0]['title'], "アロン化成 安寿 ポータブルトイレ用防臭剤22")
-        self.assertEqual(products[0]['price'], 1760)
 
         self.assertEqual(products[-1]['asin'], "B08R16SCR5")
         self.assertEqual(products[-1]['quantity'], 8)
         self.assertEqual(products[-1]['title'], "【まとめ買い】アロン化成 安寿 ポータブルトイレ用防臭剤22×8個")
-        self.assertEqual(products[-1]['price'], None)
 
     def test_response_is_none(self):
         path = os.path.join(dirname, 'list_catalog_items_none.json')
