@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import Float
+from sqlalchemy import DateTime
 from sqlalchemy import BigInteger
 from sqlalchemy import or_
 from sqlalchemy import distinct
@@ -50,6 +51,7 @@ class MWS(Base):
     shipping_fee = Column(BigInteger)
     profit = Column(BigInteger, Computed(PROFIT))
     profit_rate =Column(Numeric(precision=10, scale=2), Computed(PROFIT_RATE))
+    created_at = Column(DateTime, default=datetime.datetime.now)
 
     def save(self):
         with session_scope() as session:
@@ -112,9 +114,10 @@ class MWS(Base):
             return products
 
     @classmethod
-    def get_fee_is_None_asins(cls):
+    def get_fee_is_None_asins(cls, limit_count: int=1000):
         with session_scope() as session:
-            products = session.query(cls.asin).filter(or_(cls.fee_rate == None, cls.shipping_fee == None)).all()
+            products = session.query(cls.asin).filter(or_(cls.fee_rate == None, cls.shipping_fee == None))\
+            .order_by(cls.created_at).limit(limit_count).all()
             products = list(map(lambda x: x[0], products))
             return products
 
