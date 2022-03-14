@@ -1,7 +1,7 @@
 import datetime
 from contextlib import contextmanager
 
-from sqlalchemy import foreignKey
+from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy import Column
 from sqlalchemy import Float 
@@ -70,7 +70,9 @@ class AsinsInfo(Base):
 
 
 class SpapiPrices(Base):
-    asin = Column(String, foreignKey('asins_info.asin'), primary_key=True, nullable=False)
+
+    __tablename__ = 'spapi_prices'
+    asin = Column(String, ForeignKey('asins_info.asin'), primary_key=True, nullable=False)
     price = Column(BigInteger)
     modified = Column(Date, default=datetime.date.today(), onupdate=datetime.date.today())
 
@@ -94,8 +96,11 @@ class SpapiPrices(Base):
             'modified': self.modified,
         }
 
+
 class SpapiFees(Base):
-    asin = Column(String, foreignKey('asins_info.asin'), primary_key=True, nullable=False)
+
+    __tablename__ = 'spapi_fees'
+    asin = Column(String, ForeignKey('asins_info.asin'), primary_key=True, nullable=False)
     fee_rate = Column(Float)
     shipping_fee = Column(BigInteger)
     modified = Column(Date, default=datetime.date.today(), onupdate=datetime.date.today())
