@@ -1,8 +1,10 @@
 import datetime
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, null
+from sqlalchemy import foreignKey
+from sqlalchemy import create_engine
 from sqlalchemy import Column
+from sqlalchemy import Float 
 from sqlalchemy import String
 from sqlalchemy import BigInteger
 from sqlalchemy import Date
@@ -63,6 +65,59 @@ class AsinsInfo(Base):
             'jan': self.jan,
             'title': self.title,
             'quantity': self.quantity,
+            'modified': self.modified,
+        }
+
+
+class SpapiPrices(Base):
+    asin = Column(String, foreignKey('asins_info.asin'), primary_key=True, nullable=False)
+    price = Column(BigInteger)
+    modified = Column(Date, default=datetime.date.today(), onupdate=datetime.date.today())
+
+    def __init__(self, asin, price):
+        self.asin = asin
+        self.price = price
+        self.modified = datetime.date.today()
+
+    def upsert(self) -> True:
+        with session_scope() as session:
+            stmt = Insert(SpapiPrices).values(self.values)
+            stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
+            session.execute(stmt)
+        return True
+
+    @property
+    def values(self):
+        return {
+            'asin': self.asin,
+            'price': self.price,
+            'modified': self.modified,
+        }
+
+class SpapiFees(Base):
+    asin = Column(String, foreignKey('asins_info.asin'), primary_key=True, nullable=False)
+    fee_rate = Column(Float)
+    shipping_fee = Column(BigInteger)
+    modified = Column(Date, default=datetime.date.today(), onupdate=datetime.date.today())
+
+    def __init__(self, asin, price):
+        self.asin = asin
+        self.price = price
+        self.modified = datetime.date.today()
+
+    def upsert(self) -> True:
+        with session_scope() as session:
+            stmt = Insert(SpapiFees).values(self.values)
+            stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
+            session.execute(stmt)
+        return True
+
+    @property
+    def values(self):
+        return {
+            'asin': self.asin,
+            'fee_rate': self.fee_rate,
+            'shipping_fee': self.shipping_fee,
             'modified': self.modified,
         }
 
