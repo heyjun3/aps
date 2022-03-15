@@ -102,13 +102,13 @@ class SpapiFees(Base):
     __tablename__ = 'spapi_fees'
     asin = Column(String, ForeignKey('asins_info.asin'), primary_key=True, nullable=False)
     fee_rate = Column(Float)
-    shipping_fee = Column(BigInteger)
+    ship_fee = Column(BigInteger)
     modified = Column(Date, default=datetime.date.today(), onupdate=datetime.date.today())
 
-    def __init__(self, asin: str, fee_rate: float, shipping_fee: int):
+    def __init__(self, asin: str, fee_rate: float, ship_fee: int):
         self.asin = asin
         self.fee_rate = fee_rate
-        self.shipping_fee = shipping_fee
+        self.ship_fee = ship_fee
         self.modified = datetime.date.today()
 
     def upsert(self) -> True:
@@ -133,7 +133,7 @@ class SpapiFees(Base):
         return {
             'asin': self.asin,
             'fee_rate': self.fee_rate,
-            'ship_fee': self.shipping_fee,
+            'ship_fee': self.ship_fee,
             'modified': self.modified,
         }
 
