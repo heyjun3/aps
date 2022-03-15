@@ -331,14 +331,7 @@ class SPAPIJsonParser(object):
             except KeyError as ex:
                 logger.error(ex)
                 quantity = 1
-            try:
-                price = item['AttributeSets'][0]['ListPrice']['Amount']
-                if not price:
-                    price = None
-            except KeyError as ex:
-                logger.error(ex)
-                price = None
-            products.append({'asin': asin, 'quantity': quantity, 'title': title, 'price': price})
+            products.append({'asin': asin, 'quantity': quantity, 'title': title})
             
         logger.info('action=parse_list_catalog_items status=done')
         return products

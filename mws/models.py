@@ -1,3 +1,4 @@
+from cmath import asin
 from contextlib import contextmanager
 import datetime
 import threading
@@ -7,6 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import Float
+from sqlalchemy import DateTime
 from sqlalchemy import BigInteger
 from sqlalchemy import or_
 from sqlalchemy import distinct
@@ -49,6 +51,7 @@ class MWS(Base):
     shipping_fee = Column(BigInteger)
     profit = Column(BigInteger, Computed(PROFIT))
     profit_rate =Column(Numeric(precision=10, scale=2), Computed(PROFIT_RATE))
+    created_at = Column(DateTime, default=datetime.datetime.now)
 
     def save(self):
         with session_scope() as session:
@@ -64,9 +67,8 @@ class MWS(Base):
         with session_scope() as session:
 
             mws_sub_query = session.query(distinct(cls.filename)).filter(or_(cls.price == None, cls.fee_rate == None))
-            keepa_sub_query = session.query(distinct(cls.filename)).filter(cls.profit > 200, cls.profit_rate > 0.1)\
-                              .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
-                              .filter(or_(KeepaProducts.asin == None, KeepaProducts.rank_data == None, KeepaProducts.price_data == None))
+            keepa_sub_query = session.query(distinct(cls.filename)).filter(cls.profit >= 200, cls.profit_rate >= 0.1)\
+                              .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).filter(KeepaProducts.asin == None)
             
             filename_list = session.query(distinct(cls.filename)).filter(cls.filename.notin_(mws_sub_query.union(keepa_sub_query))).all()
             filename_list = sorted(list(map(lambda x: x[0], filename_list)), key=lambda x: x)
@@ -81,15 +83,12 @@ class MWS(Base):
             return rows
 
     @classmethod
-    def get_asin_list_None_products(cls, term=30, count=100):
+    def get_asin_list_None_products(cls, profit: int=200, profit_rate: float=0.1):
         with session_scope() as session:
-            past_date = datetime.date.today() - datetime.timedelta(days=term)
             try:
-                asin_list = session.query(cls.asin).filter(cls.profit > 200, cls.profit_rate > 0.1)\
-                            .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
-                            .filter(or_(KeepaProducts.asin == None, KeepaProducts.modified < past_date, KeepaProducts.rank_data == None, KeepaProducts.price_data == None))\
-                            .limit(count).all()
-                asin_list = list(map(lambda x: x[0], asin_list))
+                asin_list = session.query(cls.asin).filter(cls.profit >= profit, cls.profit_rate >= profit_rate)\
+                            .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).filter(KeepaProducts.asin == None).all()
+                asin_list = list({ asin[0] for asin in asin_list})
             except Exception as ex:
                 logger.error(f'action=get_asin_to_request_keepa error={ex}')
                 return None
@@ -115,9 +114,10 @@ class MWS(Base):
             return products
 
     @classmethod
-    def get_fee_is_None_asins(cls):
+    def get_fee_is_None_asins(cls, limit_count: int=1000):
         with session_scope() as session:
-            products = session.query(cls.asin).filter(or_(cls.fee_rate == None, cls.shipping_fee == None)).all()
+            products = session.query(cls.asin).filter(or_(cls.fee_rate == None, cls.shipping_fee == None))\
+            .order_by(cls.created_at).limit(limit_count).all()
             products = list(map(lambda x: x[0], products))
             return products
 

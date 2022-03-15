@@ -98,7 +98,7 @@ def threading_list_catalog_items(params: dict) -> None:
     if products:
         for product in products:
             mws = MWS(asin=product['asin'], filename=params['filename'], title=product['title'],
-                      jan=params['jan'], unit=product['quantity'], price=product['price'], cost=params['cost'])
+                      jan=params['jan'], unit=product['quantity'], cost=params['cost'])
             mws.save()
 
     logger.info('action=threading_list_catalog_items status=done')

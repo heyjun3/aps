@@ -106,16 +106,6 @@ class KeepaProducts(Base):
         return True
 
     @classmethod
-    def get_asin_list_price_data_is_None(cls, max_count: int = 100):
-        with session_scope() as session:
-            products = session.query(cls.asin).filter(or_(cls.price_data == None, cls.rank_data == None)).limit(max_count).all()
-            if products:
-                products = list(map(lambda x: x[0], products))
-                return products
-            else:
-                return None
-
-    @classmethod
     def get_keepa_product(cls, asin: str):
         with session_scope() as session:
             product = session.query(cls).filter(cls.asin == asin).first()
