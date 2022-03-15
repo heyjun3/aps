@@ -132,7 +132,7 @@ def threading_get_my_fees_estimate_for_asin(asin: str, interval_sec: float=0.1, 
         response = client.get_my_fees_estimate_for_asin(asin, price=default_price)
         time.sleep(interval_sec)
         fee = SPAPIJsonParser.parse_get_my_fees_estimate_for_asin(response.json())
-        SpapiFees(asin=asin, fee_rate=fee['fee_rate'], shipping_fee=fee['ship_fee']).upsert()
+        SpapiFees(asin=asin, fee_rate=fee['fee_rate'], ship_fee=fee['ship_fee']).upsert()
     MWS.update_fee(asin=fee['asin'], fee_rate=fee['fee_rate'], shipping_fee=fee['ship_fee'])
 
     logger.info('action=threading_get_my_fees_estimate_for_asin status=done')
