@@ -133,7 +133,7 @@ class SpapiFees(Base):
         return {
             'asin': self.asin,
             'fee_rate': self.fee_rate,
-            'shipping_fee': self.shipping_fee,
+            'ship_fee': self.shipping_fee,
             'modified': self.modified,
         }
 
