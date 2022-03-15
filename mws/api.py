@@ -23,6 +23,7 @@ from mws.models import MWS
 from mq import MQ
 import settings
 import log_settings
+from spapi.models import SpapiPrices
 
 
 logger = log_settings.get_logger(__name__)
@@ -288,6 +289,7 @@ class AmazonClient:
         asin_price_dict = self.get_lowest_priced_offer_listtings_for_asin(asin_list)
         for asin, price in asin_price_dict.items():
             MWS.update_price(asin=asin, price=price)
+            SpapiPrices(asin=asin, price=price).upsert()
 
         logger.info('action=threading_get_lowest_priced_offer_listtings_for_asin status=done')
             

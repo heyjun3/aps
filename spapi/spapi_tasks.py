@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from spapi.spapi import SPAPI
 from spapi.spapi import SPAPIJsonParser
 from spapi.models import AsinsInfo
+from spapi.models import SpapiFees
 from keepa.models import KeepaProducts
 from mws.models import MWS
 from mq import MQ
@@ -121,7 +122,6 @@ def run_get_my_fees_estimate_for_asin() -> None:
         else:
             time.sleep(30)
 
-from spapi.models import SpapiFees
 def threading_get_my_fees_estimate_for_asin(asin: str, interval_sec: float=0.1, default_price: int=10000) -> None:
     logger.info('action=threading_get_my_fees_estimate_for_asin status=run')
 
