@@ -4,6 +4,7 @@ from multiprocessing import Process
 from mws import api
 from keepa import keepa
 from spapi import spapi_tasks
+from spapi.spapi_tasks import UpdatePriceAndRankTask
 from crawler.buffalo import buffalo
 from crawler.pc4u import pc4u
 from crawler.rakuten import rakuten_tasks
@@ -11,6 +12,7 @@ from crawler.super import super_tasks
 from crawler.netsea import netsea_tasks
 from ims import repeat
 from ims import monthly
+
 
 
 if __name__ == '__main__':
@@ -42,6 +44,6 @@ if __name__ == '__main__':
     elif args[1] == 'monthly':
         monthly.main()
     elif args[1] == 'spapi':
-        spapi_tasks.update_price_and_ranking()
+        UpdatePriceAndRankTask().main()
     else:
         sys.stdout.write(f'{args[1]} is not a command')
