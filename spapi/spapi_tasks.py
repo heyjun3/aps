@@ -42,10 +42,10 @@ class UpdatePriceAndRankTask(object):
     def get_competitive_pricing_loop(self, interval_sec: int=2):
         logger.info('action=get_competitive_pricing_loop status=run')
 
-        for asin_list in self.asins:
-            thread = threading.Thread(target=self.get_competitive_pricing, args=(asin_list, ))
-            thread.start()
-            time.sleep(interval_sec)
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            for asin_list in self.asins:
+                executor.submit(self.get_competitive_pricing, asin_list)
+                time.sleep(interval_sec)
 
         self.queue.put(None)
         logger.info('action=get_competitive_pricing_loop status=done')
@@ -66,13 +66,13 @@ class UpdatePriceAndRankTask(object):
     def get_item_offers_loop(self, interval_sec: float=0.2):
         logger.info('action=get_item_offers_loop status=run')
 
-        while True:
-            asin = self.queue.get()
-            if asin is None:
-                break
-            thread = threading.Thread(target=self.get_item_offers, args=(asin, ))
-            thread.start()
-            time.sleep(interval_sec)
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            while True:
+                asin = self.queue.get()
+                if asin is None:
+                    break
+                executor.submit(self.get_item_offers, asin)
+                time.sleep(interval_sec)
 
         logger.info('action=get_item_offers_loop status=done')
 
@@ -97,6 +97,7 @@ def run_list_catalog_items() -> None:
 
     logger.info('action=run_list_catalog_items status=done')
 
+
 def threading_list_catalog_items(params: dict, interval_sec: float=0.17) -> None:
     logger.info('action=threading_list_catalog_items status=run')
 
@@ -119,6 +120,7 @@ def threading_list_catalog_items(params: dict, interval_sec: float=0.17) -> None
     logger.info('action=threading_list_catalog_items status=done')
     return None
 
+
 def run_get_my_fees_estimate_for_asin() -> None:
     logger.info('action=run_get_my_fees_estimate_for_asin status=run')
 
@@ -129,6 +131,7 @@ def run_get_my_fees_estimate_for_asin() -> None:
                 [executor.submit(threading_get_my_fees_estimate_for_asin, asin) for asin in asin_list]
         else:
             time.sleep(30)
+
 
 def threading_get_my_fees_estimate_for_asin(asin: str, interval_sec: float=0.1, default_price: int=10000) -> None:
     logger.info('action=threading_get_my_fees_estimate_for_asin status=run')
