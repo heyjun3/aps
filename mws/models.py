@@ -76,10 +76,13 @@ class MWS(Base):
             return filename_list
 
     @classmethod
-    def get_render_data(cls, filename: str):
+    def get_render_data(cls, filename: str, page: int=1, count: int=1000):
+        start = (page - 1) * count
+        end = start + count
         with session_scope() as session:
-            rows = session.query(cls, KeepaProducts.render_data).filter(cls.profit >= 200, cls.profit_rate >= 0.1, cls.filename == filename)\
-                   .join(KeepaProducts, cls.asin == KeepaProducts.asin).filter(KeepaProducts.sales_drops_90 > 3).all()
+            rows = session.query(cls, KeepaProducts.render_data).join(KeepaProducts, cls.asin == KeepaProducts.asin)\
+            .filter(cls.profit >= 200, cls.profit_rate >= 0.1, cls.filename == filename, KeepaProducts.sales_drops_90 > 3, KeepaProducts.render_data != None)\
+            .order_by(KeepaProducts.sales_drops_90.desc()).slice(start, end).all()
             return rows
 
     @classmethod
