@@ -14,6 +14,7 @@ from sqlalchemy import or_
 from sqlalchemy import distinct
 from sqlalchemy import Numeric
 from sqlalchemy import Computed
+from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
@@ -76,7 +77,7 @@ class MWS(Base):
             return filename_list
 
     @classmethod
-    def get_render_data(cls, filename: str, page: int=1, count: int=1000):
+    def get_render_data(cls, filename: str, page: int=1, count: int=500):
         start = (page - 1) * count
         end = start + count
         with session_scope() as session:
@@ -84,6 +85,13 @@ class MWS(Base):
             .filter(cls.profit >= 200, cls.profit_rate >= 0.1, cls.filename == filename, KeepaProducts.sales_drops_90 > 3, KeepaProducts.render_data != None)\
             .order_by(KeepaProducts.sales_drops_90.desc()).slice(start, end).all()
             return rows
+
+    @classmethod
+    def get_max_row_count(cls, filename: str):
+        with session_scope() as session:
+            rows = session.query(func.count(cls.asin)).join(KeepaProducts, cls.asin == KeepaProducts.asin)\
+            .filter(cls.profit >= 200, cls.profit_rate >= 0.1, cls.filename == filename, KeepaProducts.sales_drops_90 > 3, KeepaProducts.render_data != None).first()
+            return rows[0]
 
     @classmethod
     def get_asin_list_None_products(cls, profit: int=200, profit_rate: float=0.1):
