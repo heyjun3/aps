@@ -31,7 +31,7 @@ def delete_filename():
 
 @app.route('/chart/<string:filename>', methods=['GET'])
 def chart(filename):
-    count = 100
+    count = 500
     render_data_list = []
     
     current_page_num = int(request.args.get('page', '1'))
