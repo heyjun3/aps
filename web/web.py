@@ -33,6 +33,7 @@ def delete_filename():
 def chart(filename):
     count = 100
     render_data_list = []
+    
     current_page_num = int(request.args.get('page', '1'))
     products_list = MWS.get_render_data(filename=filename, page=current_page_num, count=count)
     max_pages = math.ceil(MWS.get_max_row_count(filename) / count)

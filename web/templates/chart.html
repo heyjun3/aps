@@ -16,11 +16,17 @@
             text-align: right;
         }
         a:visited {color: red}
+        .chart{
+            display: block;
+            margin-right: auto;
+            margin-left: auto;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     {% for product in products_list %}
-    <div style="width:65%;">
+    <div style="width:80%" class="chart">
         <h2>{{ product.title }}</h2>
         <canvas id="{{ product.asin }}" width="300px" height="150px"></canvas>
 	    <h3 class="info">JAN : {{ product.jan }} ASIN : <a href="https://www.amazon.co.jp/dp/{{ product.asin }}" target="_blank" rel="noopener noreferrer">{{ product.asin }}</a><h3>
