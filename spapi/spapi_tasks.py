@@ -110,8 +110,6 @@ def threading_list_catalog_items(params: dict, interval_sec: float=0.17) -> None
         products = SPAPIJsonParser.parse_list_catalog_items(response.json())
         for product in products:
             AsinsInfo(asin=product['asin'], jan=params['jan'], title=product['title'], quantity=product['quantity']).upsert()
-    else:
-        products = [product.values for product in products]
 
     for product in products:
         MWS(asin=product['asin'], filename=params['filename'], title=product['title'],

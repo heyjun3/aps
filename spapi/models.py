@@ -54,6 +54,7 @@ class AsinsInfo(Base):
         with session_scope() as session:
             asins = session.query(cls).filter(cls.jan == jan, cls.modified > date).all()
             if asins:
+                asins = [asin.values for asin in  asins]
                 return asins
             else:
                 return None
