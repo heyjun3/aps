@@ -87,65 +87,67 @@ class UpdatePriceAndRankTask(object):
         logger.info('action=get_item_offers status=done')
 
 
-def run_list_catalog_items() -> None:
-    logger.info('action=run_list_catalog_items status=run')
+class RunMwsTask(object):
 
-    mq = MQ('mws')
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        for body in mq.get():
-            executor.submit(threading_list_catalog_items, json.loads(body))
+    def __init__(self, queue_name: str='mws'):
+        self.mq = MQ(queue_name)
+        self.client = SPAPI()
 
-    logger.info('action=run_list_catalog_items status=done')
+    def list_catalog_items_loop(self) -> None:
+        logger.info('action=run_list_catalog_items status=run')
+
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            for body in self.mq.get():
+                executor.submit(self.list_catalog_items, json.loads(body))
+
+        logger.info('action=run_list_catalog_items status=done')
 
 
-def threading_list_catalog_items(params: dict, interval_sec: float=0.17) -> None:
-    logger.info('action=threading_list_catalog_items status=run')
+    def list_catalog_items(self, params: dict, interval_sec: float=0.17) -> None:
+        logger.info('action=threading_list_catalog_items status=run')
 
-    products = AsinsInfo.get(params['jan'])
+        products = AsinsInfo.get(params['jan'])
 
-    if not products:
-        client = SPAPI()
-        response = client.list_catalog_items(params['jan'])
-        time.sleep(interval_sec)
-        products = SPAPIJsonParser.parse_list_catalog_items(response.json())
+        if not products:
+            response = self.client.list_catalog_items(params['jan'])
+            time.sleep(interval_sec)
+            products = SPAPIJsonParser.parse_list_catalog_items(response.json())
+            for product in products:
+                AsinsInfo(asin=product['asin'], jan=params['jan'], title=product['title'], quantity=product['quantity']).upsert()
+
         for product in products:
-            AsinsInfo(asin=product['asin'], jan=params['jan'], title=product['title'], quantity=product['quantity']).upsert()
-
-    for product in products:
-        MWS(asin=product['asin'], filename=params['filename'], title=product['title'],
-                    jan=params['jan'], unit=product['quantity'], cost=params['cost']).save()
-        
-    logger.info('action=threading_list_catalog_items status=done')
-    return None
+            MWS(asin=product['asin'], filename=params['filename'], title=product['title'],
+                        jan=params['jan'], unit=product['quantity'], cost=params['cost']).save()
+            
+        logger.info('action=threading_list_catalog_items status=done')
+        return None
 
 
-def run_get_my_fees_estimate_for_asin() -> None:
-    logger.info('action=run_get_my_fees_estimate_for_asin status=run')
+    def get_my_fees_estimate_for_asin_loop(self) -> None:
+        logger.info('action=get_my_fees_estimate_for_asin_loop status=run')
+        while True:
+            asin_list = MWS.get_fee_is_None_asins()
+            if asin_list:
+                with ThreadPoolExecutor(max_workers=9) as executor:
+                    [executor.submit(self.get_my_fees_estimate_for_asin, asin) for asin in asin_list]
+            else:
+                time.sleep(30)
 
-    while True:
-        asin_list = MWS.get_fee_is_None_asins()
-        if asin_list:
-            with ThreadPoolExecutor(max_workers=9) as executor:
-                [executor.submit(threading_get_my_fees_estimate_for_asin, asin) for asin in asin_list]
-        else:
-            time.sleep(30)
 
+    def get_my_fees_estimate_for_asin(self, asin: str, interval_sec: float=0.1, default_price: int=10000) -> None:
+        logger.info('action=threading_get_my_fees_estimate_for_asin status=run')
 
-def threading_get_my_fees_estimate_for_asin(asin: str, interval_sec: float=0.1, default_price: int=10000) -> None:
-    logger.info('action=threading_get_my_fees_estimate_for_asin status=run')
+        fee = SpapiFees.get(asin=asin)
 
-    fee = SpapiFees.get(asin=asin)
+        if fee is None:
+            response = self.client.get_my_fees_estimate_for_asin(asin, price=default_price)
+            time.sleep(interval_sec)
+            fee = SPAPIJsonParser.parse_get_my_fees_estimate_for_asin(response.json())
+            SpapiFees(asin=asin, fee_rate=fee['fee_rate'], ship_fee=fee['ship_fee']).upsert()
+        MWS.update_fee(asin=fee['asin'], fee_rate=fee['fee_rate'], shipping_fee=fee['ship_fee'])
 
-    if fee is None:
-        client = SPAPI()
-        response = client.get_my_fees_estimate_for_asin(asin, price=default_price)
-        time.sleep(interval_sec)
-        fee = SPAPIJsonParser.parse_get_my_fees_estimate_for_asin(response.json())
-        SpapiFees(asin=asin, fee_rate=fee['fee_rate'], ship_fee=fee['ship_fee']).upsert()
-    MWS.update_fee(asin=fee['asin'], fee_rate=fee['fee_rate'], shipping_fee=fee['ship_fee'])
-
-    logger.info('action=threading_get_my_fees_estimate_for_asin status=done')
-    return None
+        logger.info('action=threading_get_my_fees_estimate_for_asin status=done')
+        return None
 
 
 def main():
