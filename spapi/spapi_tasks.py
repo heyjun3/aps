@@ -1,6 +1,7 @@
 import time
 import queue
 import threading
+from multiprocessing import Process
 import json
 from concurrent.futures import ThreadPoolExecutor
 
@@ -12,6 +13,7 @@ from keepa.models import KeepaProducts
 from mws.models import MWS
 from mq import MQ
 import log_settings
+from mws import api
 
 
 logger = log_settings.get_logger(__name__)
@@ -86,25 +88,41 @@ class UpdatePriceAndRankTask(object):
 
         logger.info('action=get_item_offers status=done')
 
-
-class RunMwsTask(object):
+class RunAmzTask(object):
 
     def __init__(self, queue_name: str='mws'):
         self.mq = MQ(queue_name)
         self.client = SPAPI()
 
+    def main(self):
+        logger.info('action=main status=run')
+
+        get_asins_info_process = Process(target=self.list_catalog_items_loop, daemon=True)
+        get_price_process = Process(target=api.run_get_lowest_priced_offer_listtings_for_asin, daemon=True)
+        get_fees_process = Process(target=self.get_my_fees_estimate_for_asin_loop, daemon=True)
+
+        get_asins_info_process.start()
+        get_price_process.start()
+        get_fees_process.start()
+
+        get_asins_info_process.join()
+        get_price_process.join()
+        get_fees_process.join()
+
+        logger.info('action=main status=done')
+
     def list_catalog_items_loop(self) -> None:
-        logger.info('action=run_list_catalog_items status=run')
+        logger.info('action=list_catalog_items_loop status=run')
 
         with ThreadPoolExecutor(max_workers=6) as executor:
             for body in self.mq.get():
                 executor.submit(self.list_catalog_items, json.loads(body))
 
-        logger.info('action=run_list_catalog_items status=done')
+        logger.info('action=list_catalog_items_loop status=done')
 
 
     def list_catalog_items(self, params: dict, interval_sec: float=0.17) -> None:
-        logger.info('action=threading_list_catalog_items status=run')
+        logger.info('action=list_catalog_items status=run')
 
         products = AsinsInfo.get(params['jan'])
 
@@ -119,7 +137,7 @@ class RunMwsTask(object):
             MWS(asin=product['asin'], filename=params['filename'], title=product['title'],
                         jan=params['jan'], unit=product['quantity'], cost=params['cost']).save()
             
-        logger.info('action=threading_list_catalog_items status=done')
+        logger.info('action=list_catalog_items status=done')
         return None
 
 
@@ -135,7 +153,7 @@ class RunMwsTask(object):
 
 
     def get_my_fees_estimate_for_asin(self, asin: str, interval_sec: float=0.1, default_price: int=10000) -> None:
-        logger.info('action=threading_get_my_fees_estimate_for_asin status=run')
+        logger.info('action=get_my_fees_estimate_for_asin status=run')
 
         fee = SpapiFees.get(asin=asin)
 
@@ -146,7 +164,7 @@ class RunMwsTask(object):
             SpapiFees(asin=asin, fee_rate=fee['fee_rate'], ship_fee=fee['ship_fee']).upsert()
         MWS.update_fee(asin=fee['asin'], fee_rate=fee['fee_rate'], shipping_fee=fee['ship_fee'])
 
-        logger.info('action=threading_get_my_fees_estimate_for_asin status=done')
+        logger.info('action=get_my_fees_estimate_for_asin status=done')
         return None
 
 
