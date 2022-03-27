@@ -52,8 +52,9 @@ class AsinsInfo(Base):
     def get(cls, jan: str, interval_days: int=30) -> list|None:
         date = (datetime.date.today() - datetime.timedelta(days=interval_days))
         with session_scope() as session:
-            asins = session.query(cls).filter(cls.jan == jan, cls.modified < date).all()
+            asins = session.query(cls).filter(cls.jan == jan, cls.modified > date).all()
             if asins:
+                asins = [asin.values for asin in  asins]
                 return asins
             else:
                 return None
@@ -76,7 +77,7 @@ class SpapiPrices(Base):
     price = Column(BigInteger)
     modified = Column(Date, default=datetime.date.today(), onupdate=datetime.date.today())
 
-    def __init__(self, asin, price):
+    def __init__(self, asin: str, price: int):
         self.asin = asin
         self.price = price
         self.modified = datetime.date.today()
@@ -102,12 +103,13 @@ class SpapiFees(Base):
     __tablename__ = 'spapi_fees'
     asin = Column(String, ForeignKey('asins_info.asin'), primary_key=True, nullable=False)
     fee_rate = Column(Float)
-    shipping_fee = Column(BigInteger)
+    ship_fee = Column(BigInteger)
     modified = Column(Date, default=datetime.date.today(), onupdate=datetime.date.today())
 
-    def __init__(self, asin, price):
+    def __init__(self, asin: str, fee_rate: float, ship_fee: int):
         self.asin = asin
-        self.price = price
+        self.fee_rate = fee_rate
+        self.ship_fee = ship_fee
         self.modified = datetime.date.today()
 
     def upsert(self) -> True:
@@ -117,12 +119,22 @@ class SpapiFees(Base):
             session.execute(stmt)
         return True
 
+    @classmethod
+    def get(cls, asin: str, interval_days: int=30) -> dict|None:
+        date = datetime.date.today() - datetime.timedelta(days=interval_days)
+        with session_scope() as session:
+            asin_fee = session.query(cls).filter(cls.asin == asin, cls.modified > date).first()
+            if asin_fee:
+                return asin_fee.values
+            else:
+                return None
+
     @property
     def values(self):
         return {
             'asin': self.asin,
             'fee_rate': self.fee_rate,
-            'shipping_fee': self.shipping_fee,
+            'ship_fee': self.ship_fee,
             'modified': self.modified,
         }
 

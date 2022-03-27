@@ -1,3 +1,5 @@
+import math
+
 from flask import Flask
 from flask import render_template
 from flask import redirect
@@ -29,8 +31,12 @@ def delete_filename():
 
 @app.route('/chart/<string:filename>', methods=['GET'])
 def chart(filename):
+    count = 500
     render_data_list = []
-    products_list = MWS.get_render_data(filename=filename)
+    
+    current_page_num = int(request.args.get('page', '1'))
+    products_list = MWS.get_render_data(filename=filename, page=current_page_num, count=count)
+    max_pages = math.ceil(MWS.get_max_row_count(filename) / count)
     if not products_list:
         return redirect(url_for('index'))
         
@@ -48,7 +54,11 @@ def chart(filename):
             }
             render_data_list.append(product)
 
-    return render_template('chart.html', products_list=render_data_list)
+    return render_template('chart.html',
+                           products_list=render_data_list,
+                           current_page_num=current_page_num,
+                           max_pages=max_pages,
+                        )
 
 
 def start():

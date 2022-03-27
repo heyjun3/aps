@@ -4,6 +4,8 @@ from multiprocessing import Process
 from mws import api
 from keepa import keepa
 from spapi import spapi_tasks
+from spapi.spapi_tasks import UpdatePriceAndRankTask
+from spapi.spapi_tasks import RunAmzTask
 from crawler.buffalo import buffalo
 from crawler.pc4u import pc4u
 from crawler.rakuten import rakuten_tasks
@@ -13,6 +15,7 @@ from ims import repeat
 from ims import monthly
 
 
+
 if __name__ == '__main__':
 
     args = sys.argv
@@ -20,13 +23,7 @@ if __name__ == '__main__':
     if args[1] == 'keepa':
         keepa.main()
     elif args[1] == 'mws':
-        process_get_price = Process(target=api.run_get_lowest_priced_offer_listtings_for_asin, daemon=True)
-        process_get_fees = Process(target=spapi_tasks.run_get_my_fees_estimate_for_asin, daemon=True)
-        process_get_price.start()
-        process_get_fees.start()
-        spapi_tasks.run_list_catalog_items()
-        process_get_price.join()
-        process_get_fees.join()
+        RunAmzTask().main()
     elif args[1] == 'buffalo':
         buffalo.main()
     elif args[1] == 'pc4u':
@@ -42,6 +39,6 @@ if __name__ == '__main__':
     elif args[1] == 'monthly':
         monthly.main()
     elif args[1] == 'spapi':
-        spapi_tasks.update_price_and_ranking()
+        UpdatePriceAndRankTask().main()
     else:
         sys.stdout.write(f'{args[1]} is not a command')

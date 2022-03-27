@@ -34,7 +34,7 @@ def request(req: requests.Request) -> requests.Response:
                 raise Exception
         except Exception as ex:
             logger.error(f'action=request error={ex}')
-            time.sleep(60)
+            time.sleep(10)
 
 
 class SPAPI:
