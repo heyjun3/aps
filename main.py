@@ -15,7 +15,6 @@ from ims import repeat
 from ims import monthly
 
 
-
 if __name__ == '__main__':
 
     args = sys.argv
