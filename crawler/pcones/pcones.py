@@ -98,8 +98,9 @@ class PconesHTMLPage(object):
             
             jan = re.search('[\d]{13}', list_code.text)
             price = re.search('.*円', list_price.text)
+            is_sold_out = product.select_one('.list_stock font')
 
-            if not jan or not price:
+            if not jan or not price or is_sold_out:
                 continue
             else:
                 price = int(''.join(re.findall('[\d]', price.group())))
