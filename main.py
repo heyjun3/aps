@@ -1,9 +1,7 @@
+import argparse
 import sys
-from multiprocessing import Process
 
-from mws import api
 from keepa import keepa
-from spapi import spapi_tasks
 from spapi.spapi_tasks import UpdatePriceAndRankTask
 from spapi.spapi_tasks import RunAmzTask
 from crawler.buffalo import buffalo
@@ -17,30 +15,32 @@ from ims import monthly
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('task', help='run task you use here', type=str)
+    args = parser.parse_args()
+    task = args.task
 
-    args = sys.argv
-
-    if args[1] == 'keepa':
+    if task == 'keepa':
         keepa.main()
-    elif args[1] == 'mws':
+    elif task == 'mws':
         RunAmzTask().main()
-    elif args[1] == 'buffalo':
+    elif task == 'buffalo':
         buffalo.main()
-    elif args[1] == 'pc4u':
+    elif task == 'pc4u':
         pc4u.main()
-    elif args[1] == 'rakuten':
+    elif task == 'rakuten':
         rakuten_tasks.run_rakuten_search_all()
-    elif args[1] == 'super':
+    elif task == 'super':
         super_tasks.run_super_all_shops()
-    elif args[1] == 'netsea':
+    elif task == 'netsea':
         netsea_tasks.run_netsea_all_products()
-    elif args[1] == 'repeat':
+    elif task == 'repeat':
         repeat.main()
-    elif args[1] == 'monthly':
+    elif task == 'monthly':
         monthly.main()
-    elif args[1] == 'spapi':
+    elif task == 'spapi':
         UpdatePriceAndRankTask().main()
-    elif args[1] == 'pcones':
+    elif task == 'pcones':
         pcones.main()
     else:
-        sys.stdout.write(f'{args[1]} is not a command')
+        sys.stdout.write(f'{task} is not a command')
