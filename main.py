@@ -17,30 +17,41 @@ from ims import monthly
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('task', help='run task you use here', type=str)
+    parser.add_argument('-i', '--id', help='Enter shop id', type=str, default=None)
     args = parser.parse_args()
     task = args.task
+    shop_id = args.id
 
-    if task == 'keepa':
-        keepa.main()
-    elif task == 'mws':
-        RunAmzTask().main()
-    elif task == 'buffalo':
-        buffalo.main()
-    elif task == 'pc4u':
-        pc4u.main()
-    elif task == 'rakuten':
-        rakuten_tasks.run_rakuten_search_all()
-    elif task == 'super':
-        super_tasks.run_super_all_shops()
-    elif task == 'netsea':
-        netsea_tasks.run_netsea_all_products()
-    elif task == 'repeat':
-        repeat.main()
-    elif task == 'monthly':
-        monthly.main()
-    elif task == 'spapi':
-        UpdatePriceAndRankTask().main()
-    elif task == 'pcones':
-        pcones.main()
-    else:
-        sys.stdout.write(f'{task} is not a command')
+    match (task, shop_id):
+        case ('keepa', None):
+            keepa.main()
+        case ('amz', None):
+            RunAmzTask().main()
+        case ('buffalo', None):
+            buffalo.main()
+        case ('pc4u', None):
+            pc4u.main()
+        case ('rakuten', 'all'):
+            rakuten_tasks.run_rakuten_search_all()
+        case ('super', 'all'):
+            super_tasks.run_super_all_shops()
+        case ('super', 'new'):
+            super_tasks.run_schedule_super_task()
+        case ('super', 'discount'):
+            super_tasks.run_discount_product_search()
+        case ('netsea', 'all'):
+            netsea_tasks.run_netsea_all_products()
+        case ('netsea', 'new'):
+            netsea_tasks.run_new_product_search()
+        case ('netsea', 'discount'):
+            netsea_tasks.run_get_discount_products()
+        case ('repeat', None):
+            repeat.main()
+        case ('monthly', None):
+            monthly.main()
+        case ('spapi', None):
+            UpdatePriceAndRankTask().main()
+        case ('pcones', None):
+            pcones.main()
+        case _:
+            sys.stdout.write(f'{task} is not a command')

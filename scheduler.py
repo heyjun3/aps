@@ -15,21 +15,10 @@ def run_threaded(func):
     thread.start()
 
 
-def register():
-    schedule.every().day.at('09:00').do(run_threaded, netsea_tasks.run_new_product_search)
-    schedule.every().day.at('00:10').do(run_threaded, netsea_tasks.run_get_discount_products)
-    schedule.every().day.at('05:00').do(run_threaded, super_tasks.run_schedule_super_task)
-    schedule.every().day.at('02:00').do(run_threaded, super_tasks.run_discount_product_search)
-    schedule.every().day.at('17:00').do(run_threaded, pc4u.main)
-    schedule.every().day.at('17:30').do(run_threaded, buffalo.main)
-    # schedule.every().monday.at('01:00').do(run_threaded, netsea.new_shop_search)
-    schedule.every().saturday.at('07:00').do(run_threaded, repeat.main)
-
-
-if __name__ == '__main__':
-
-    register()
-
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    # schedule.every().day.at('09:00').do(run_threaded, netsea_tasks.run_new_product_search)
+    # schedule.every().day.at('00:10').do(run_threaded, netsea_tasks.run_get_discount_products)
+    # schedule.every().day.at('05:00').do(run_threaded, super_tasks.run_schedule_super_task)
+    # schedule.every().day.at('02:00').do(run_threaded, super_tasks.run_discount_product_search)
+    # schedule.every().day.at('17:00').do(run_threaded, pc4u.main)
+    # schedule.every().day.at('17:30').do(run_threaded, buffalo.main)
+    # schedule.every().saturday.at('07:00').do(run_threaded, repeat.main)
