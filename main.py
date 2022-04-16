@@ -1,9 +1,7 @@
+import argparse
 import sys
-from multiprocessing import Process
 
-from mws import api
 from keepa import keepa
-from spapi import spapi_tasks
 from spapi.spapi_tasks import UpdatePriceAndRankTask
 from spapi.spapi_tasks import RunAmzTask
 from crawler.buffalo import buffalo
@@ -17,30 +15,43 @@ from ims import monthly
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('task', help='run task you use here', type=str)
+    parser.add_argument('-i', '--id', help='Enter shop id', type=str, default=None)
+    args = parser.parse_args()
+    task = args.task
+    shop_id = args.id
 
-    args = sys.argv
-
-    if args[1] == 'keepa':
-        keepa.main()
-    elif args[1] == 'mws':
-        RunAmzTask().main()
-    elif args[1] == 'buffalo':
-        buffalo.main()
-    elif args[1] == 'pc4u':
-        pc4u.main()
-    elif args[1] == 'rakuten':
-        rakuten_tasks.run_rakuten_search_all()
-    elif args[1] == 'super':
-        super_tasks.run_super_all_shops()
-    elif args[1] == 'netsea':
-        netsea_tasks.run_netsea_all_products()
-    elif args[1] == 'repeat':
-        repeat.main()
-    elif args[1] == 'monthly':
-        monthly.main()
-    elif args[1] == 'spapi':
-        UpdatePriceAndRankTask().main()
-    elif args[1] == 'pcones':
-        pcones.main()
-    else:
-        sys.stdout.write(f'{args[1]} is not a command')
+    match (task, shop_id):
+        case ('keepa', None):
+            keepa.main()
+        case ('amz', None):
+            RunAmzTask().main()
+        case ('buffalo', None):
+            buffalo.main()
+        case ('pc4u', None):
+            pc4u.main()
+        case ('rakuten', 'all'):
+            rakuten_tasks.run_rakuten_search_all()
+        case ('super', 'all'):
+            super_tasks.run_super_all_shops()
+        case ('super', 'new'):
+            super_tasks.run_schedule_super_task()
+        case ('super', 'discount'):
+            super_tasks.run_discount_product_search()
+        case ('netsea', 'all'):
+            netsea_tasks.run_netsea_all_products()
+        case ('netsea', 'new'):
+            netsea_tasks.run_new_product_search()
+        case ('netsea', 'discount'):
+            netsea_tasks.run_get_discount_products()
+        case ('repeat', None):
+            repeat.main()
+        case ('monthly', None):
+            monthly.main()
+        case ('spapi', None):
+            UpdatePriceAndRankTask().main()
+        case ('pcones', None):
+            pcones.main()
+        case _:
+            sys.stdout.write(f'{task} is not a command')
