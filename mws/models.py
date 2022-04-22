@@ -99,7 +99,7 @@ class MWS(Base):
             try:
                 asin_list = session.query(cls.asin).filter(cls.profit >= profit, cls.profit_rate >= profit_rate)\
                             .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).filter(KeepaProducts.asin == None).all()
-                asin_list = list({ asin[0] for asin in asin_list})
+                asin_list = list(set(map(lambda x: x[0], asin_list)))
             except Exception as ex:
                 logger.error(f'action=get_asin_to_request_keepa error={ex}')
                 return None

@@ -86,7 +86,7 @@ def scrape_keepa_request(response: dict) -> list:
     return products
 
 
-def main(interval_sec: int=3, count: int=100):
+def main(interval_sec: int=60, count: int=100):
     logger.info('action=main status=run')
 
     while True:
