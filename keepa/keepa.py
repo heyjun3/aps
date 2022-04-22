@@ -91,14 +91,12 @@ def main(interval_sec: int=60, count: int=100):
 
     while True:
         asin_list = MWS.get_asin_list_None_products()
-        if not asin_list:
-            continue
-        
-        asin_list = [asin_list[i:i+count] for i in range(0, len(asin_list), count)]
-        for asins in asin_list:
-            response = keepa_request_products(asins)
-            keepa_products = scrape_keepa_request(response)
-            for asin, drops, price_data, rank_data in keepa_products:
-                KeepaProducts.update_or_insert(asin, drops, price_data, rank_data)
+        if asin_list:
+            asin_list = [asin_list[i:i+count] for i in range(0, len(asin_list), count)]
+            for asins in asin_list:
+                response = keepa_request_products(asins)
+                keepa_products = scrape_keepa_request(response)
+                for asin, drops, price_data, rank_data in keepa_products:
+                    KeepaProducts.update_or_insert(asin, drops, price_data, rank_data)
         else:
             time.sleep(interval_sec)
