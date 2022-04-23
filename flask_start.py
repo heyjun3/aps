@@ -1,6 +1,5 @@
-from web import web
+from web.web import app as application
 
 
 if __name__ == '__main__':
-    web.start()
-    # web.view_graph()
+    application.run()

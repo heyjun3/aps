@@ -8,8 +8,10 @@ from flask import request
 
 from mws.models import MWS
 import settings
+import log_settings
 
 
+logger = log_settings.get_logger(__name__)
 app = Flask(__name__)
 
 
@@ -53,7 +55,7 @@ def chart(filename):
                 'jan': mws.jan,
             }
             render_data_list.append(product)
-
+    logger.info({'action': 'chart', 'status': 'success'})
     return render_template('chart.html',
                            products_list=render_data_list,
                            current_page_num=current_page_num,
