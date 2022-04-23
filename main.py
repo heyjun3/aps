@@ -33,6 +33,8 @@ if __name__ == '__main__':
             pc4u.main()
         case ('rakuten', 'all'):
             rakuten_tasks.run_rakuten_search_all()
+        case ('rakuten', _):
+            rakuten_tasks.run_rakuten_search_at_shop_code(shop_id)
         case ('super', 'all'):
             super_tasks.run_super_all_shops()
         case ('super', 'new'):
