@@ -72,14 +72,3 @@ class MQ(object):
         self.channel.start_consuming()
 
         logger.info('action=run_callback_recieve status=done')
-
-
-def test_print(a: dict):
-    print(a)
-
-
-if __name__ == '__main__':
-    mq = MQ('mws')
-    for i in mq.get():
-        print(i)
-    
