@@ -5,6 +5,7 @@ from flask import render_template
 from flask import redirect
 from flask import url_for
 from flask import request
+from flask import jsonify
 
 from mws.models import MWS
 import settings
@@ -20,6 +21,15 @@ def index():
     filename_list = MWS.get_completion_filename_list()
 
     return render_template('index.html', save_path=filename_list)
+
+
+@app.route('/list', methods=['GET'])
+def list():
+    if request.method == 'GET':
+        filename_list = MWS.get_completion_filename_list()
+        return jsonify({'list': filename_list}), 200
+    else:
+        return jsonify({'error': 'Bad request method'}), 404
 
 
 @app.route('/delete', methods=['POST'])
