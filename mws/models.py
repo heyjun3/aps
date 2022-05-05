@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import datetime
 import threading
 from copy import deepcopy
+from requests import session
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column
@@ -62,6 +63,12 @@ class MWS(Base):
                 logger.debug(ex)
                 return False
             return True
+
+    @classmethod
+    def get_distinct_filenames(cls):
+        with session_scope() as session:
+            filenames = session.query(distinct(cls.filename)).all()
+            return sorted(list(map(lambda x: x[0], filenames)))
 
     @classmethod
     def get_completion_filename_list(cls):
