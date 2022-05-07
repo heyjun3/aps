@@ -6,6 +6,7 @@ from flask import redirect
 from flask import url_for
 from flask import request
 from flask import jsonify
+from flask_cors import CORS
 
 from mws.models import MWS
 import settings
@@ -14,6 +15,9 @@ import log_settings
 
 logger = log_settings.get_logger(__name__)
 app = Flask(__name__)
+CORS(
+    app, supports_credentials=True,
+)
 
 
 @app.route('/')
