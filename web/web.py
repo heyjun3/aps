@@ -18,7 +18,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    filename_list = MWS.get_completion_filename_list()
+    filename_list = MWS.get_done_filenames()
 
     return render_template('index.html', save_path=filename_list)
 
@@ -26,7 +26,7 @@ def index():
 @app.route('/list', methods=['GET'])
 def list():
     if request.method == 'GET':
-        filename_list = MWS.get_completion_filename_list()
+        filename_list = MWS.get_done_filenames()
         return jsonify({'list': filename_list}), 200
     else:
         return jsonify({'error': 'Bad request method'}), 404

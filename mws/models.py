@@ -71,6 +71,19 @@ class MWS(Base):
             return sorted(list(map(lambda x: x[0], filenames)))
 
     @classmethod
+    def get_done_filenames(cls):
+        with session_scope() as session:
+            filenames = session.query(distinct(cls.filename)).all()
+        filenames = [file[0] for file in filenames]
+
+        with session_scope() as session:
+            not_done_filenames = session.query(distinct(cls.filename)).join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
+                                 .filter(cls.profit >= 200, cls.profit_rate >= 0.1, KeepaProducts.asin == None).all()
+        not_done_filenames = [file[0] for file in not_done_filenames]
+
+        return sorted(list(set(filenames) - set(not_done_filenames)))
+
+    @classmethod
     def get_completion_filename_list(cls):
         with session_scope() as session:
 
