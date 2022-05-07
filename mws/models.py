@@ -66,12 +66,6 @@ class MWS(Base):
             return True
 
     @classmethod
-    def get_distinct_filenames(cls):
-        with session_scope() as session:
-            filenames = session.query(distinct(cls.filename)).all()
-            return sorted(list(map(lambda x: x[0], filenames)))
-
-    @classmethod
     def get_done_filenames(cls):
         with session_scope() as session:
             filenames = session.query(distinct(cls.filename)).all()
@@ -83,19 +77,6 @@ class MWS(Base):
         not_done_filenames = itertools.chain.from_iterable(not_done_filenames)
 
         return sorted(list(set(filenames) - set(not_done_filenames)))
-
-    @classmethod
-    def get_completion_filename_list(cls):
-        with session_scope() as session:
-
-            mws_sub_query = session.query(distinct(cls.filename)).filter(or_(cls.price == None, cls.fee_rate == None))
-            keepa_sub_query = session.query(distinct(cls.filename)).filter(cls.profit >= 200, cls.profit_rate >= 0.1)\
-                              .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).filter(KeepaProducts.asin == None)
-            
-            filename_list = session.query(distinct(cls.filename)).filter(cls.filename.notin_(mws_sub_query.union(keepa_sub_query))).all()
-            filename_list = sorted(list(map(lambda x: x[0], filename_list)), key=lambda x: x)
-
-            return filename_list
 
     @classmethod
     def get_render_data(cls, filename: str, page: int=1, count: int=500):
