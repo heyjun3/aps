@@ -4,6 +4,7 @@ import datetime
 import threading
 from copy import deepcopy
 from requests import session
+import itertools
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column
@@ -74,12 +75,12 @@ class MWS(Base):
     def get_done_filenames(cls):
         with session_scope() as session:
             filenames = session.query(distinct(cls.filename)).all()
-        filenames = [file[0] for file in filenames]
+        filenames = itertools.chain.from_iterable(filenames) 
 
         with session_scope() as session:
             not_done_filenames = session.query(distinct(cls.filename)).join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
                                  .filter(cls.profit >= 200, cls.profit_rate >= 0.1, KeepaProducts.asin == None).all()
-        not_done_filenames = [file[0] for file in not_done_filenames]
+        not_done_filenames = itertools.chain.from_iterable(not_done_filenames)
 
         return sorted(list(set(filenames) - set(not_done_filenames)))
 
