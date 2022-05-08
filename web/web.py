@@ -45,6 +45,16 @@ def delete_filename():
     return redirect(url_for('index'))
 
 
+@app.route('/deleteFile/<string:filename>', methods=['DELETE'])
+def delete_file(filename):
+    if request.method == 'DELETE':
+        flag = MWS.delete_rows(filename)
+        logger.info(filename)
+        if flag:
+            return jsonify(None), 200
+        return jsonify({'action': 'delete_file', 'status': 'error'}), 400
+
+
 @app.route('/chart/<string:filename>', methods=['GET'])
 def chart(filename):
     count = 500

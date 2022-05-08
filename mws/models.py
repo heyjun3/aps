@@ -158,6 +158,12 @@ class MWS(Base):
             session.query(cls).filter(cls.filename.in_(filename_list)).delete()
             return True
 
+    @classmethod
+    def delete_rows(cls, filename: str):
+        with session_scope() as session:
+            session.query(cls).filter(cls.filename == filename).delete()
+        return True
+
     @property
     def value(self):
         return {
