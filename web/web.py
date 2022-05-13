@@ -8,6 +8,7 @@ from flask import url_for
 from flask import request
 from flask import jsonify
 from flask_cors import CORS
+from keepa.keepa import keepa_request_products, scrape_keepa_request
 from keepa.models import KeepaProducts
 from keepa.models import convert_keepa_time_to_datetime_date
 import pandas as pd
@@ -96,20 +97,32 @@ def chart_render(asin: str):
     if request.method == 'GET':
         asin = asin.strip()
         product = KeepaProducts.get_keepa_product(asin)
-        if product:
-            df = pd.DataFrame(data=list(product.price_data.items()), columns=['date', 'price']).astype({'date':int,  'price': int})
-            df = df.replace(-1.0, np.nan)
-            df = df.fillna(method='ffill')
-            df = df.fillna(method='bfill')
-            df = df.replace([np.nan], [None])
-            df['date'] = df['date'].map(convert_keepa_time_to_datetime_date)
-            past_date = datetime.datetime.now().date() - datetime.timedelta(days=90)
-            df = df[df['date'] > past_date]
-            df = df.sort_values('date', ascending=True)
-            df['date'] = df['date'].map(lambda x: x.isoformat())
-            return jsonify(df.to_dict(orient='records')), 200
+        if not product:
+            response = keepa_request_products([asin])
+            asin, drops, price_data, rank_data = scrape_keepa_request(response)[0]
+            KeepaProducts.update_or_insert(asin, drops, price_data, rank_data)
         else:
-            return jsonify({'status': 'error'}), 400
+            price_data = product.price_data
+
+        start_date = datetime.datetime.now().date() - datetime.timedelta(days=90)
+        end_date = datetime.datetime.now().date()
+        date_index = pd.date_range(start_date, end_date) 
+        df_date = pd.DataFrame(data=date_index, columns=['date']).astype({'date': 'object'})
+
+        df = pd.DataFrame(data=list(price_data.items()), columns=['date', 'price']).astype({'date':int,  'price': int})
+        df['date'] = df['date'].map(convert_keepa_time_to_datetime_date)
+
+        df = pd.merge(df, df_date, on='date', how='outer')
+        df = df.replace(-1.0, np.nan)
+        df = df.fillna(method='ffill')
+        df = df.fillna(method='bfill')
+        df = df.replace([np.nan], [None])
+        df = df[df['date'] > start_date]
+        df = df.sort_values('date', ascending=True)
+        df['date'] = df['date'].map(lambda x: x.strftime('%Y-%m-%d'))
+        return jsonify(df.to_dict(orient='records')), 200
+    else:
+        return jsonify({'status': 'error'}), 400
 
 
 def start():
