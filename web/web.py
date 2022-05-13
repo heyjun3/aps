@@ -107,7 +107,8 @@ def chart_render(asin: str):
         start_date = datetime.datetime.now().date() - datetime.timedelta(days=90)
         end_date = datetime.datetime.now().date()
         date_index = pd.date_range(start_date, end_date) 
-        df_date = pd.DataFrame(data=date_index, columns=['date']).astype({'date': 'object'})
+        df_date = pd.DataFrame(data=date_index, columns=['date'])
+        df_date['date'] = df_date['date'].dt.date
 
         df = pd.DataFrame(data=list(price_data.items()), columns=['date', 'price']).astype({'date':int,  'price': int})
         df['date'] = df['date'].map(convert_keepa_time_to_datetime_date)
