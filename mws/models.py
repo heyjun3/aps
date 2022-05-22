@@ -3,6 +3,8 @@ from contextlib import contextmanager
 import datetime
 import threading
 from copy import deepcopy
+from requests import session
+import itertools
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column
@@ -64,17 +66,17 @@ class MWS(Base):
             return True
 
     @classmethod
-    def get_completion_filename_list(cls):
+    def get_done_filenames(cls):
         with session_scope() as session:
+            filenames = session.query(distinct(cls.filename)).all()
+        filenames = itertools.chain.from_iterable(filenames) 
 
-            mws_sub_query = session.query(distinct(cls.filename)).filter(or_(cls.price == None, cls.fee_rate == None))
-            keepa_sub_query = session.query(distinct(cls.filename)).filter(cls.profit >= 200, cls.profit_rate >= 0.1)\
-                              .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).filter(KeepaProducts.asin == None)
-            
-            filename_list = session.query(distinct(cls.filename)).filter(cls.filename.notin_(mws_sub_query.union(keepa_sub_query))).all()
-            filename_list = sorted(list(map(lambda x: x[0], filename_list)), key=lambda x: x)
+        with session_scope() as session:
+            not_done_filenames = session.query(distinct(cls.filename)).join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True)\
+                                 .filter(cls.profit >= 200, cls.profit_rate >= 0.1, KeepaProducts.asin == None).all()
+        not_done_filenames = itertools.chain.from_iterable(not_done_filenames)
 
-            return filename_list
+        return sorted(list(set(filenames) - set(not_done_filenames)))
 
     @classmethod
     def get_render_data(cls, filename: str, page: int=1, count: int=500):
@@ -155,6 +157,12 @@ class MWS(Base):
         with session_scope() as session:
             session.query(cls).filter(cls.filename.in_(filename_list)).delete()
             return True
+
+    @classmethod
+    def delete_rows(cls, filename: str):
+        with session_scope() as session:
+            session.query(cls).filter(cls.filename == filename).delete()
+        return True
 
     @property
     def value(self):

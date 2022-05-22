@@ -1,25 +1,47 @@
 import math
+import datetime
 
 from flask import Flask
 from flask import render_template
 from flask import redirect
 from flask import url_for
 from flask import request
+from flask import jsonify
+from flask_cors import CORS
+from keepa.keepa import keepa_request_products, scrape_keepa_request
+from keepa.models import KeepaProducts
+from keepa.models import convert_keepa_time_to_datetime_date
+import pandas as pd
+import numpy as np
+from mws.api import AmazonClient
 
 from mws.models import MWS
+from spapi.models import AsinsInfo
 import settings
 import log_settings
 
 
 logger = log_settings.get_logger(__name__)
 app = Flask(__name__)
+CORS(
+    app, supports_credentials=True,
+)
 
 
 @app.route('/')
 def index():
-    filename_list = MWS.get_completion_filename_list()
+    filename_list = MWS.get_done_filenames()
 
     return render_template('index.html', save_path=filename_list)
+
+
+@app.route('/list', methods=['GET'])
+def get_list():
+    if request.method == 'GET':
+        filename_list = MWS.get_done_filenames()
+        return jsonify({'list': filename_list}), 200
+    else:
+        return jsonify({'error': 'Bad request method'}), 404
 
 
 @app.route('/delete', methods=['POST'])
@@ -29,6 +51,16 @@ def delete_filename():
         return redirect(url_for('index'))
     MWS.delete_objects(filename_list)
     return redirect(url_for('index'))
+
+
+@app.route('/deleteFile/<string:filename>', methods=['DELETE'])
+def delete_file(filename):
+    if request.method == 'DELETE':
+        flag = MWS.delete_rows(filename)
+        logger.info(filename)
+        if flag:
+            return jsonify(None), 200
+        return jsonify({'action': 'delete_file', 'status': 'error'}), 400
 
 
 @app.route('/chart/<string:filename>', methods=['GET'])
@@ -61,6 +93,46 @@ def chart(filename):
                            current_page_num=current_page_num,
                            max_pages=max_pages,
                         )
+
+@app.route('/search/<string:asin>', methods=['GET'])
+def chart_render(asin: str):
+    if request.method == 'GET':
+        asin = asin.strip()
+        product = KeepaProducts.get_keepa_product(asin)
+        if not product:
+            response = keepa_request_products([asin])
+            asin, drops, price_data, rank_data = scrape_keepa_request(response)[0]
+            KeepaProducts.update_or_insert(asin, drops, price_data, rank_data)
+        else:
+            price_data = product.price_data
+
+        start_date = datetime.datetime.now().date() - datetime.timedelta(days=90)
+        end_date = datetime.datetime.now().date()
+        date_index = pd.date_range(start_date, end_date) 
+        df_date = pd.DataFrame(data=date_index, columns=['date'])
+        df_date['date'] = df_date['date'].dt.date
+
+        df = pd.DataFrame(data=list(price_data.items()), columns=['date', 'price']).astype({'date':int,  'price': int})
+        df['date'] = df['date'].map(convert_keepa_time_to_datetime_date)
+
+        df = pd.merge(df, df_date, on='date', how='outer')
+        df = df.replace(-1.0, np.nan)
+        df = df.fillna(method='ffill')
+        df = df.fillna(method='bfill')
+        df = df.replace([np.nan], [None])
+        df = df[df['date'] > start_date]
+        df = df.sort_values('date', ascending=True)
+        df['date'] = df['date'].map(lambda x: x.strftime('%Y-%m-%d'))
+        chart_data = df.to_dict(orient='records')
+
+        title = AsinsInfo.get_title(asin)
+        if not title:
+            client = AmazonClient()
+            title = client.get_matching_product_for_asin(asin)
+
+        return jsonify({'chart_data': chart_data, 'title': title}), 200
+    else:
+        return jsonify({'status': 'error'}), 400
 
 
 def start():

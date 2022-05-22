@@ -166,11 +166,3 @@ class RunAmzTask(object):
 
         logger.info('action=get_my_fees_estimate_for_asin status=done')
         return None
-
-
-def main():
-    client = SPAPI()
-    asin_list = 'B000FQRA9S'
-    response = client.get_item_offers(asin_list)
-    # producSPAPIJsonParser.parse_get_competitive_pricing(response.json())
-    print(response.json())

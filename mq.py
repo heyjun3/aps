@@ -73,13 +73,34 @@ class MQ(object):
 
         logger.info('action=run_callback_recieve status=done')
 
+def emit_log() -> None:
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters(host='localhost'))
+    
+    channel = connection.channel()
+    channel.exchange_declare(exchange='logs', exchange_type='fanout')
+    channel.queue_declare('one', durable=True)
+    channel.queue_declare('two', durable=True)
+    channel.queue_bind(exchange="logs", queue="one")
+    channel.queue_bind(exchange="logs", queue="two")
 
-def test_print(a: dict):
-    print(a)
+    message = 'info: hello world!'
+    channel.basic_publish(exchange='logs', routing_key='', body=message)
+    connection.close()
 
+
+def receive_logs(queue_name: str) -> None:
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters(host="localhost"))
+
+    channel = connection.channel()
+    while True:
+        resp = channel.basic_get(queue_name, auto_ack=True)
+        if resp[2]:
+            print(resp)
+        else:
+            time.sleep(10)
 
 if __name__ == '__main__':
-    mq = MQ('mws')
-    for i in mq.get():
-        print(i)
-    
+    receive_logs('two')
+    # emit_log()

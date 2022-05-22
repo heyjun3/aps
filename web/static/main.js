@@ -27,7 +27,3 @@ var drawChart = function (id, date, price, rank) {
         }
     });
 }
-
-var sample = function(){
-    console.log('test')
-}
