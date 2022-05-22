@@ -59,6 +59,14 @@ class AsinsInfo(Base):
             else:
                 return None
 
+    @classmethod
+    def get_title(cls, asin: str) -> str|None:
+        with session_scope() as session:
+            title = session.query(cls.title).filter(cls.asin == asin).first()
+            if title:
+                return title[0]
+            return None
+
     @property
     def values(self):
         return {

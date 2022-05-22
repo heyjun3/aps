@@ -13,8 +13,10 @@ from keepa.models import KeepaProducts
 from keepa.models import convert_keepa_time_to_datetime_date
 import pandas as pd
 import numpy as np
+from mws.api import AmazonClient
 
 from mws.models import MWS
+from spapi.models import AsinsInfo
 import settings
 import log_settings
 
@@ -121,7 +123,14 @@ def chart_render(asin: str):
         df = df[df['date'] > start_date]
         df = df.sort_values('date', ascending=True)
         df['date'] = df['date'].map(lambda x: x.strftime('%Y-%m-%d'))
-        return jsonify(df.to_dict(orient='records')), 200
+        chart_data = df.to_dict(orient='records')
+
+        title = AsinsInfo.get_title(asin)
+        if not title:
+            client = AmazonClient()
+            title = client.get_matching_product_for_asin(asin)
+
+        return jsonify({'chart_data': chart_data, 'title': title}), 200
     else:
         return jsonify({'status': 'error'}), 400
 

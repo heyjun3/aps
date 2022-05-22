@@ -20,6 +20,7 @@ from lxml import etree
 from bs4 import BeautifulSoup
 
 from mws.models import MWS
+from spapi.models import AsinsInfo
 from mq import MQ
 import settings
 import log_settings
@@ -95,6 +96,36 @@ class AmazonClient:
 
         logger.debug('action=create_request_url status=done')
         return url
+
+    def get_matching_product_for_asin(self, asin: str, interval_sec: int=1) -> str:
+        logger.info('action=get_matching_product_for_asin status=run')
+
+        data_dict = dict(self.data)
+        data_dict['MarketplaceId'] = settings.MARKETPLACEID
+        data_dict['IdType'] = 'ASIN'
+        data_dict['Action'] = 'GetMatchingProductForId'
+        data_dict['IdList.Id.1'] = asin
+
+        url = self.create_request_url(data_dict=data_dict)
+        response = request_api(url)
+        response.encoding = response.apparent_encoding
+        time.sleep(interval_sec)
+        tree = etree.fromstring(response.text)
+
+        for result in tree.findall(".//GetMatchingProductForIdResult", tree.nsmap):
+            for item in result.findall(".//Product", tree.nsmap):
+                try:
+                    title = item.find(".//{*}Title").text
+                except AttributeError as e:
+                    logger.debug(e)
+                    title = ''
+                    continue
+        if title:
+            AsinsInfo(asin=asin, title=title).upsert()
+
+        logger.info('action=get_matching_product_for_asin status=done')
+        return title
+
 
     def get_matching_product_for_id(self, products_dict: dict, interval_sec: int = 1):
         logger.info('action=get_matching_product_for_id status=run')
