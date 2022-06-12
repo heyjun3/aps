@@ -21,13 +21,13 @@ logger = log_settings.get_logger(__name__)
 
 class UpdatePriceAndRankTask(object):
 
-    def __init__(self, limit: int=20):
+    def __init__(self, limit: int=20) -> None:
         self.queue = queue.Queue()
         self.asins = KeepaProducts.get_products_not_modified()
         self.asins = [self.asins[i:i+limit] for i in range(0, len(self.asins), limit)]
         self.spapi_client = SPAPI()
 
-    def main(self):
+    def main(self) -> None:
         logger.info(f'action={self.__class__.__name__} main status=run')
 
         get_item_offers_thread = threading.Thread(target=self.get_item_offers_loop)
@@ -41,7 +41,7 @@ class UpdatePriceAndRankTask(object):
 
         logger.info(f'action={self.__class__.__name__} main status=done')
 
-    def get_competitive_pricing_loop(self, interval_sec: int=2):
+    def get_competitive_pricing_loop(self, interval_sec: int=2) -> None:
         logger.info('action=get_competitive_pricing_loop status=run')
 
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -52,7 +52,7 @@ class UpdatePriceAndRankTask(object):
         self.queue.put(None)
         logger.info('action=get_competitive_pricing_loop status=done')
 
-    def get_competitive_pricing(self, asin_list: list):
+    def get_competitive_pricing(self, asin_list: list) -> None:
         logger.info('action=get_competitive_pricing status=run')
 
         response = self.spapi_client.get_competitive_pricing(asin_list)
@@ -65,7 +65,7 @@ class UpdatePriceAndRankTask(object):
 
         logger.info('action=get_competitive_pricing status=done')
 
-    def get_item_offers_loop(self, interval_sec: float=0.2):
+    def get_item_offers_loop(self, interval_sec: float=0.2) -> None:
         logger.info('action=get_item_offers_loop status=run')
 
         with ThreadPoolExecutor(max_workers=5) as executor:
@@ -78,7 +78,7 @@ class UpdatePriceAndRankTask(object):
 
         logger.info('action=get_item_offers_loop status=done')
 
-    def get_item_offers(self, asin: str):
+    def get_item_offers(self, asin: str) -> None:
         logger.info('action=get_item_offers status=run')
 
         response = self.spapi_client.get_item_offers(asin)
@@ -90,11 +90,11 @@ class UpdatePriceAndRankTask(object):
 
 class RunAmzTask(object):
 
-    def __init__(self, queue_name: str='mws'):
+    def __init__(self, queue_name: str='mws') -> None:
         self.mq = MQ(queue_name)
         self.client = SPAPI()
 
-    def main(self):
+    def main(self) -> None:
         logger.info('action=main status=run')
 
         get_asins_info_process = Process(target=self.list_catalog_items_loop, daemon=True)
