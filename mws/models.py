@@ -84,7 +84,8 @@ class MWS(Base):
         end = start + count
         with session_scope() as session:
             rows = session.query(cls, KeepaProducts.render_data).join(KeepaProducts, cls.asin == KeepaProducts.asin)\
-            .filter(cls.profit >= 200, cls.profit_rate >= 0.1, cls.filename == filename, KeepaProducts.sales_drops_90 > 3, KeepaProducts.render_data != None)\
+            .filter(cls.profit >= 200, cls.profit_rate >= 0.1, cls.filename == filename, 
+            cls.unit <= 10, KeepaProducts.sales_drops_90 > 3, KeepaProducts.render_data != None)\
             .order_by(KeepaProducts.sales_drops_90.desc()).slice(start, end).all()
             return rows
 
