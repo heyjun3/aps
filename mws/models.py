@@ -1,10 +1,9 @@
-from cmath import asin
 from contextlib import contextmanager
 import datetime
 import threading
 from copy import deepcopy
-from requests import session
 import itertools
+from typing import List
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column
@@ -88,6 +87,18 @@ class MWS(Base):
             cls.unit <= 10, KeepaProducts.sales_drops_90 > 3, KeepaProducts.render_data != None)\
             .order_by(KeepaProducts.sales_drops_90.desc()).slice(start, end).all()
             return rows
+
+    @classmethod
+    def get_chart_data(cls, filename: str) -> List: 
+        with session_scope() as session:
+            rows = session.query(cls, KeepaProducts.render_data).join(KeepaProducts, cls.asin == KeepaProducts.asin)\
+                    .filter(cls.profit >= 200, 
+                            cls.profit_rate >= 0.1, 
+                            cls.filename == filename, 
+                            cls.unit <= 10, 
+                            KeepaProducts.sales_drops_90 > 3, 
+                            KeepaProducts.render_data != None).all()
+        return rows
 
     @classmethod
     def get_max_row_count(cls, filename: str):
@@ -180,6 +191,9 @@ class MWS(Base):
             'profit': self.profit,
             'profit_rate': self.profit_rate,
         }
+    
+    def __repr__(self):
+        return f'{self.__class__}'
 
 
 @contextmanager
