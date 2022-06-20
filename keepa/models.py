@@ -9,6 +9,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.engine.default import DefaultExecutionContext
 from contextlib import contextmanager
 import pandas as pd
 import numpy as np
@@ -52,6 +53,45 @@ def convert_render_price_rank_data(context) -> dict|None:
     return products
 
 
+def convert_recharts_data(context: dict|DefaultExecutionContext) -> dict|None:
+    if isinstance(context, DefaultExecutionContext):
+        params = context.get_current_parameters()
+    elif isinstance(context, dict):
+        params = context
+    else:
+        raise Exception
+
+    rank_data = params.get('rank_data')
+    price_data = params.get('price_data')
+    if rank_data is None or price_data is None:
+        return None
+
+    today = datetime.datetime.now().date()
+    start_date = today - datetime.timedelta(days=90)
+    end_date = today
+    date_index = pd.date_range(start_date, end_date)
+    date_index_df = pd.DataFrame(data=date_index, columns=['date'])
+    date_index_df = date_index_df['date'].dt.date
+
+    price_df = pd.DataFrame(data=price_data.items(), columns=['date', 'price']).astype({'date': int, 'price': int})
+    price_df['date'] = price_df['date'].map(convert_keepa_time_to_datetime_date)
+    rank_df = pd.DataFrame(data=rank_data.items(), columns=['date', 'rank']).astype({'date': int, 'rank': int})
+    rank_df['date'] = rank_df['date'].map(convert_keepa_time_to_datetime_date)
+
+    df = pd.merge(date_index_df, price_df, on='date', how='outer')
+    df = pd.merge(df, rank_df, on='date', how='outer')
+    df = df.replace(-1.0, np.nan)
+    df = df.fillna(method='ffill')
+    df = df.fillna(method='bfill')
+    df = df.replace([np.nan], [None])
+    df = df[df['date'] > start_date]
+    df = df.sort_values('date', ascending=True)
+    df['date'] = df['date'].map(lambda x: x.strftime('%Y-%m-%d'))
+    data = df.to_dict(orient='records')
+
+    return {'data': data}
+
+
 class KeepaProducts(Base):
     __tablename__ = 'keepa_products'
     asin = Column(String, primary_key=True)
@@ -60,7 +100,7 @@ class KeepaProducts(Base):
     modified = Column(Date, default=datetime.date.today, onupdate=datetime.date.today)
     price_data = Column(JSON)
     rank_data = Column(JSON)
-    render_data = Column(JSON, default=convert_render_price_rank_data, onupdate=convert_render_price_rank_data)
+    render_data = Column(JSON, default=convert_recharts_data, onupdate=convert_recharts_data)
 
     @classmethod
     def object_get_db_asin(cls, asin, delay=30):
@@ -122,13 +162,18 @@ class KeepaProducts(Base):
             return [product[0] for product in products]
     
     @classmethod
-    def set_render_data(cls):
+    def update_render_data(cls, asin):
+        with session_scope() as session:
+            product = session.query(cls).filter(cls.asin == asin).first()
+            context = {'price_data': product.price_data, 'rank_data': product.rank_data}
+            product.render_data = convert_recharts_data(context)
+
+    @classmethod
+    def set_render_data_all(cls):
         with session_scope() as session:
             asin_list = session.query(cls.asin).all()
         for asin in asin_list:
-            with session_scope() as session:
-                keepa = session.query(cls).filter(cls.asin == asin[0]).first()
-                keepa.render_data = keepa.convert_render_price_rank_data()
+            cls.update_render_data(asin)
 
     @property
     def value(self):
