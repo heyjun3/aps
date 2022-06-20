@@ -173,7 +173,8 @@ class KeepaProducts(Base):
         with session_scope() as session:
             asin_list = session.query(cls.asin).all()
         for asin in asin_list:
-            cls.update_render_data(asin)
+            print(asin[0])
+            cls.update_render_data(asin[0])
 
     @property
     def value(self):
