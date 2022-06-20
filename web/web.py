@@ -114,5 +114,23 @@ def chart_render(asin: str):
         return jsonify({'status': 'error'}), 400
 
 
+@app.route('/chart_list/<string:filename>', methods=['GET'])
+def get_chart_data(filename: str) -> str:
+    if request.method == 'GET':
+        render_data = []
+        products = MWS.get_chart_data(filename=filename)
+        if not products:
+            return jsonify({'status': 'error', 'message': 'chart data is None'}), 200
+        for mws, data in products:
+            data['asin'] = mws.asin
+            data['jan'] = mws.jan
+            data['title'] = mws.title
+            render_data.append(data)
+
+        return jsonify(render_data), 200
+    else:
+        return jsonify({'status': 'error'}), 400
+
+
 def start():
     app.run(host=settings.HOST, port=settings.PORT, threaded=True, debug=True)
