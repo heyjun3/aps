@@ -4,6 +4,7 @@ import threading
 from copy import deepcopy
 import itertools
 from typing import List
+import asyncio
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column
@@ -16,9 +17,12 @@ from sqlalchemy import distinct
 from sqlalchemy import Numeric
 from sqlalchemy import Computed
 from sqlalchemy import func
+from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from keepa.models import KeepaProducts
 import settings
@@ -26,7 +30,9 @@ import log_settings
 
 
 engine = create_engine(settings.DB_URL, pool_pre_ping=True, pool_size=10, connect_args={'connect_timeout': 10})
+async_engine = create_async_engine(settings.DB_ASYNC_URL)
 Session = sessionmaker(bind=engine)
+async_session = sessionmaker(bind=async_engine, class_=AsyncSession)
 Base = declarative_base()
 lock = threading.Lock()
 logger = log_settings.get_logger(__name__)
@@ -217,3 +223,13 @@ def session_scope():
 
 def init_db(engine):
     Base.metadata.create_all(bind=engine)
+
+
+async def async_main():
+    async with async_session() as session:
+        stmt = select(MWS).where(MWS.asin=='B000FQRD6S').limit(1)
+        result = await session.execute(stmt)
+        product = result.scalars().first()
+        print(product.value)
+        product.unit = 3
+        await session.commit()
