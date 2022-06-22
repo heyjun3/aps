@@ -103,34 +103,31 @@ def chart_render(asin: str):
             response = keepa_request_products([asin])
             asin, drops, price_data, rank_data = scrape_keepa_request(response)[0]
             KeepaProducts.update_or_insert(asin, drops, price_data, rank_data)
-        else:
-            price_data = product.price_data
-
-        start_date = datetime.datetime.now().date() - datetime.timedelta(days=90)
-        end_date = datetime.datetime.now().date()
-        date_index = pd.date_range(start_date, end_date) 
-        df_date = pd.DataFrame(data=date_index, columns=['date'])
-        df_date['date'] = df_date['date'].dt.date
-
-        df = pd.DataFrame(data=list(price_data.items()), columns=['date', 'price']).astype({'date':int,  'price': int})
-        df['date'] = df['date'].map(convert_keepa_time_to_datetime_date)
-
-        df = pd.merge(df, df_date, on='date', how='outer')
-        df = df.replace(-1.0, np.nan)
-        df = df.fillna(method='ffill')
-        df = df.fillna(method='bfill')
-        df = df.replace([np.nan], [None])
-        df = df[df['date'] > start_date]
-        df = df.sort_values('date', ascending=True)
-        df['date'] = df['date'].map(lambda x: x.strftime('%Y-%m-%d'))
-        chart_data = df.to_dict(orient='records')
 
         title = AsinsInfo.get_title(asin)
         if not title:
             client = AmazonClient()
             title = client.get_matching_product_for_asin(asin)
+        product.render_data['title'] = title
+        return jsonify(product.render_data), 200
+    else:
+        return jsonify({'status': 'error'}), 400
 
-        return jsonify({'chart_data': chart_data, 'title': title}), 200
+
+@app.route('/chart_list/<string:filename>', methods=['GET'])
+def get_chart_data(filename: str) -> str:
+    if request.method == 'GET':
+        render_data = []
+        products = MWS.get_chart_data(filename=filename)
+        if not products:
+            return jsonify({'status': 'error', 'message': 'chart data is None'}), 200
+        for mws, data in products:
+            data['asin'] = mws.asin
+            data['jan'] = mws.jan
+            data['title'] = mws.title
+            render_data.append(data)
+
+        return jsonify(render_data), 200
     else:
         return jsonify({'status': 'error'}), 400
 

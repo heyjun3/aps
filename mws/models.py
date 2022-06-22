@@ -1,10 +1,10 @@
-from cmath import asin
 from contextlib import contextmanager
 import datetime
 import threading
 from copy import deepcopy
-from requests import session
 import itertools
+from typing import List
+import asyncio
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column
@@ -17,9 +17,12 @@ from sqlalchemy import distinct
 from sqlalchemy import Numeric
 from sqlalchemy import Computed
 from sqlalchemy import func
+from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from keepa.models import KeepaProducts
 import settings
@@ -27,7 +30,9 @@ import log_settings
 
 
 engine = create_engine(settings.DB_URL, pool_pre_ping=True, pool_size=10, connect_args={'connect_timeout': 10})
+async_engine = create_async_engine(settings.DB_ASYNC_URL)
 Session = sessionmaker(bind=engine)
+async_session = sessionmaker(bind=async_engine, class_=AsyncSession)
 Base = declarative_base()
 lock = threading.Lock()
 logger = log_settings.get_logger(__name__)
@@ -88,6 +93,18 @@ class MWS(Base):
             cls.unit <= 10, KeepaProducts.sales_drops_90 > 3, KeepaProducts.render_data != None)\
             .order_by(KeepaProducts.sales_drops_90.desc()).slice(start, end).all()
             return rows
+
+    @classmethod
+    def get_chart_data(cls, filename: str) -> List: 
+        with session_scope() as session:
+            rows = session.query(cls, KeepaProducts.render_data).join(KeepaProducts, cls.asin == KeepaProducts.asin)\
+                    .filter(cls.profit >= 200, 
+                            cls.profit_rate >= 0.1, 
+                            cls.filename == filename, 
+                            cls.unit <= 10, 
+                            KeepaProducts.sales_drops_90 > 3, 
+                            KeepaProducts.render_data != None).all()
+        return rows
 
     @classmethod
     def get_max_row_count(cls, filename: str):
@@ -180,6 +197,9 @@ class MWS(Base):
             'profit': self.profit,
             'profit_rate': self.profit_rate,
         }
+    
+    def __repr__(self):
+        return f'{self.__class__}'
 
 
 @contextmanager
@@ -203,3 +223,13 @@ def session_scope():
 
 def init_db(engine):
     Base.metadata.create_all(bind=engine)
+
+
+async def async_main():
+    async with async_session() as session:
+        stmt = select(MWS).where(MWS.asin=='B000FQRD6S').limit(1)
+        result = await session.execute(stmt)
+        product = result.scalars().first()
+        print(product.value)
+        product.unit = 3
+        await session.commit()
