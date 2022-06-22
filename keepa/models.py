@@ -1,15 +1,18 @@
-import threading
 import datetime
+import itertools
+import concurrent.futures
 
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Date
 from sqlalchemy import JSON
-from sqlalchemy import or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.default import DefaultExecutionContext
+from sqlalchemy.future import select
 from contextlib import contextmanager
 import pandas as pd
 import numpy as np
@@ -19,11 +22,12 @@ import log_settings
 
 
 logger = log_settings.get_logger(__name__)
-lock = threading.Lock()
-postgresql_engine = create_engine(settings.DB_URL)
+postgresql_engine = create_engine(settings.DB_URL, pool_size=20, max_overflow=0, pool_pre_ping=True)
+async_engine = create_async_engine(settings.DB_ASYNC_URL, pool_timeout=3000)
 Base = declarative_base()
 NetseaBase = declarative_base()
-Session = sessionmaker(bind=postgresql_engine)
+Session = sessionmaker(bind=postgresql_engine, autoflush=True, expire_on_commit=False)
+async_session = sessionmaker(bind=async_engine, expire_on_commit=False, class_=AsyncSession)
 
 
 def convert_render_price_rank_data(context) -> dict|None:
@@ -162,19 +166,30 @@ class KeepaProducts(Base):
             return [product[0] for product in products]
     
     @classmethod
-    def update_render_data(cls, asin):
+    def update_render_data(cls, asin: str):
         with session_scope() as session:
             product = session.query(cls).filter(cls.asin == asin).first()
             context = {'price_data': product.price_data, 'rank_data': product.rank_data}
             product.render_data = convert_recharts_data(context)
 
     @classmethod
+    async def async_update_render_data(cls, asin: str):
+        async with async_session() as session:
+            stmt = select(cls).where(cls.asin == asin)
+            result = await session.execute(stmt)
+            product = result.scalars().first()
+            context = {'price_data': product.price_data, 'rank_data': product.rank_data}
+            product.render_data = convert_recharts_data(context)
+            await session.commit()
+
+    @classmethod
     def set_render_data_all(cls):
         with session_scope() as session:
             asin_list = session.query(cls.asin).all()
-        for asin in asin_list:
-            print(asin[0])
-            cls.update_render_data(asin[0])
+            asin_list = list(itertools.chain.from_iterable(asin_list))
+
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            [executor.submit(cls.update_render_data, asin) for asin in asin_list]
 
     @property
     def value(self):
@@ -194,7 +209,6 @@ def session_scope():
     session = Session()
     session.expire_on_commit = False
     try:
-        lock.acquire()
         yield session
         session.commit()
     except Exception as e:
@@ -203,7 +217,6 @@ def session_scope():
         raise
     finally:
         session.expire_on_commit = True
-        lock.release()
 
 
 def init_db():
