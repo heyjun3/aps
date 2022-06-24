@@ -1,5 +1,4 @@
 import math
-import datetime
 
 from flask import Flask
 from flask import render_template
@@ -10,9 +9,6 @@ from flask import jsonify
 from flask_cors import CORS
 from keepa.keepa import keepa_request_products, scrape_keepa_request
 from keepa.models import KeepaProducts
-from keepa.models import convert_keepa_time_to_datetime_date
-import pandas as pd
-import numpy as np
 from mws.api import AmazonClient
 
 from mws.models import MWS
@@ -38,7 +34,7 @@ def index():
 @app.route('/list', methods=['GET'])
 def get_list():
     if request.method == 'GET':
-        filename_list = MWS.get_done_filenames()
+        filename_list = MWS.get_filenames()
         return jsonify({'list': filename_list}), 200
     else:
         return jsonify({'error': 'Bad request method'}), 404
@@ -117,17 +113,21 @@ def chart_render(asin: str):
 @app.route('/chart_list/<string:filename>', methods=['GET'])
 def get_chart_data(filename: str) -> str:
     if request.method == 'GET':
-        render_data = []
-        products = MWS.get_chart_data(filename=filename)
+        chart_data = []
+        current_page_number = int(float(request.args.get('page', '1')))
+        count = int(float(request.args.get('count', '100')))
+
+        products = MWS.get_chart_data(filename=filename, page=current_page_number, count=count)
+        max_page = math.ceil(MWS.get_row_count(filename) / count)
         if not products:
             return jsonify({'status': 'error', 'message': 'chart data is None'}), 200
         for mws, data in products:
             data['asin'] = mws.asin
             data['jan'] = mws.jan
             data['title'] = mws.title
-            render_data.append(data)
+            chart_data.append(data)
 
-        return jsonify(render_data), 200
+        return jsonify({'chart_data': chart_data, 'current_page': current_page_number, 'max_page': max_page}), 200
     else:
         return jsonify({'status': 'error'}), 400
 
