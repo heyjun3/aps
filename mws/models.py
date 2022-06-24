@@ -103,7 +103,9 @@ class MWS(Base):
             return rows
 
     @classmethod
-    def get_chart_data(cls, filename: str) -> List: 
+    def get_chart_data(cls, filename: str, page: int, count: int) -> List: 
+        start = (page - 1) * count
+        end = start + count
         with session_scope() as session:
             rows = session.query(cls, KeepaProducts.render_data).join(KeepaProducts, cls.asin == KeepaProducts.asin)\
                     .filter(cls.profit >= 200, 
@@ -111,14 +113,15 @@ class MWS(Base):
                             cls.filename == filename, 
                             cls.unit <= 10, 
                             KeepaProducts.sales_drops_90 > 3, 
-                            KeepaProducts.render_data != None).all()
+                            KeepaProducts.render_data != None)\
+                    .order_by(MWS.profit.desc()).slice(start, end).all()
         return rows
 
     @classmethod
-    def get_max_row_count(cls, filename: str):
+    def get_row_count(cls, filename: str) -> int:
         with session_scope() as session:
             rows = session.query(func.count(cls.asin)).join(KeepaProducts, cls.asin == KeepaProducts.asin)\
-            .filter(cls.profit >= 200, cls.profit_rate >= 0.1, cls.filename == filename, KeepaProducts.sales_drops_90 > 3, KeepaProducts.render_data != None).first()
+            .filter(cls.profit >= 200, cls.profit_rate >= 0.1, cls.filename == filename, cls.unit <= 10, KeepaProducts.sales_drops_90 > 3, KeepaProducts.render_data != None).first()
             return rows[0]
 
     @classmethod
