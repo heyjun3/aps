@@ -71,6 +71,14 @@ class MWS(Base):
             return True
 
     @classmethod
+    def get_filenames(cls):
+        with session_scope() as session:
+            filenames = session.query(distinct(cls.filename)).all()
+            filenames = itertools.chain.from_iterable(filenames)
+
+        return sorted(filenames)
+
+    @classmethod
     def get_done_filenames(cls):
         with session_scope() as session:
             filenames = session.query(distinct(cls.filename)).all()
