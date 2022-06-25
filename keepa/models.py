@@ -188,8 +188,8 @@ class KeepaProducts(Base):
             asin_list = session.query(cls.asin).all()
             asin_list = list(itertools.chain.from_iterable(asin_list))
 
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            [executor.submit(cls.update_render_data, asin) for asin in asin_list]
+        for asin in asin_list:
+            cls.async_update_render_data(asin)
 
     @property
     def value(self):
