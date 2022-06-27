@@ -6,6 +6,7 @@ import os
 import time
 import urllib.parse
 import re
+from typing import List
 
 import redis
 import requests
@@ -257,6 +258,26 @@ class SPAPI:
         response = request(req)
 
         logger.info('action=get_catalog_item status=done')
+        return response
+
+    def search_catalog_items_v2022_04_01(self, identifiers: List, id_type: str) -> requests.Response:
+        logger.info('action=search_catalog_items_v2022_04_01 status=run')
+
+        method = "GET"
+        path = "/catalog/2022-04-01/items"
+        url = urllib.parse.urljoin(ENDPOINT, path)
+        query = {
+            'identifiers': ','.join(identifiers),
+            'identifiersType': id_type,
+            'marketplaceIds': self.marketplace_id,
+            'includedData': 'attributes,dimensions,identifiers,productTypes,relationships,salesRanks,summaries,vendorDetails',
+            'pageSize': 20,
+        }
+        req = requests.Request(method=method, url=url, params=query)
+        req = self.create_authorization_headers(req)
+        response = request(req)
+
+        logger.info('action=search_catalog_items_v2022_04_01 status=done')
         return response
 
 
