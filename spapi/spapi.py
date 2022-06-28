@@ -1,11 +1,13 @@
 import datetime
 import hmac
 import hashlib
+from inspect import EndOfBlock
 import json
 import os
 import time
 import urllib.parse
 import re
+from typing import List
 
 import redis
 import requests
@@ -259,6 +261,55 @@ class SPAPI:
         logger.info('action=get_catalog_item status=done')
         return response
 
+    def search_catalog_items_v2022_04_01(self, identifiers: List, id_type: str) -> requests.Response:
+        logger.info('action=search_catalog_items_v2022_04_01 status=run')
+
+        method = "GET"
+        path = "/catalog/2022-04-01/items"
+        url = urllib.parse.urljoin(ENDPOINT, path)
+        query = {
+            'identifiers': ','.join(identifiers),
+            'identifiersType': id_type,
+            'marketplaceIds': self.marketplace_id,
+            'includedData': 'attributes,dimensions,identifiers,productTypes,relationships,salesRanks,summaries,vendorDetails',
+            'pageSize': 20,
+        }
+        req = requests.Request(method=method, url=url, params=query)
+        req = self.create_authorization_headers(req)
+        response = request(req)
+
+        logger.info('action=search_catalog_items_v2022_04_01 status=done')
+        return response
+
+    def get_item_offers_batch(self, asin_list: List, item_condition: str='NEW', customer_type: str='Consumer') -> requests.Response:
+        logger.info('action=get_item_offers_batch status=run')
+
+        if len(asin_list) > 20:
+            raise TooMatchParameterException
+
+        request_list = []
+        for asin in asin_list:
+            request_list.append({
+                'uri': f'/products/pricing/v0/items/{asin}/offers',
+                'method': 'GET',
+                'MarketplaceId': self.marketplace_id,
+                'ItemCondition': item_condition,
+                'CustomerType': customer_type,
+            })
+
+        method = 'POST'
+        path = '/batches/products/pricing/v0/itemOffers'
+        url = urllib.parse.urljoin(ENDPOINT, path)
+        body = {
+            'requests' : request_list,
+        }
+        req = requests.Request(method=method, url=url, json=body)
+        req = self.create_authorization_headers(req)
+        response = request(req)
+
+        logger.info('action=get_item_offers_batch status=done')
+        return response
+
 
 class SPAPIJsonParser(object):
 
@@ -373,4 +424,7 @@ class NotRankingException(Exception):
 
 
 class QuotaException(Exception):
+    pass
+
+class TooMatchParameterException(Exception):
     pass

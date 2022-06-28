@@ -93,6 +93,7 @@ class Netsea(object):
                     netsea_product.jan = product.jan
                 else:
                     url = urljoin(settings.NETSEA_SHOP_URL, f'{netsea_product.shop_code}/{netsea_product.product_code}')
+                    logger.info({'url': url})
                     response = utils.request(session=self.session, url=url)
                     time.sleep(interval_sec)
                     if response is None:
