@@ -14,7 +14,14 @@ import log_settings
 
 logger = log_settings.get_logger(__name__)
 
+def logger_decorator(func):
+    def _logger_decorator(*args, **kwargs):
+        logger.info({'action': func.__name__, 'status': 'run'})
+        func(*args, **kwargs)
+        logger.info({'action': func.__name__, 'status': 'done'})
+    return _logger_decorator
 
+@logger_decorator
 def run_netsea_at_shop_id(shop_id: str, path: str = 'search') -> None:
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
     params = {'sort': 'PD', 'supplier_id': shop_id, 'ex_so': 'Y', 'searched': 'Y'}
@@ -23,9 +30,8 @@ def run_netsea_at_shop_id(shop_id: str, path: str = 'search') -> None:
     client.start_search_products()
 
 
+@logger_decorator
 def run_new_product_search(path: str = 'search') -> None:
-    logger.info('action=run_new_product_search status=run')
-
     timestamp = datetime.datetime.now()
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
 
@@ -34,9 +40,8 @@ def run_new_product_search(path: str = 'search') -> None:
         client = Netsea(url, params, timestamp, is_new_product_search=True)
         client.start_search_products()
 
-
+@logger_decorator
 def run_get_discount_products(path: str = 'search') -> None:
-    logger.info('action=run_get_discount_products')
 
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
     timestamp = datetime.datetime.now()
@@ -46,17 +51,17 @@ def run_get_discount_products(path: str = 'search') -> None:
         client = Netsea(url, params, timestamp=timestamp)
         client.start_search_products()
 
-
+@logger_decorator
 def run_netsea_all_products():
     NetseaShop.delete()
     run_get_all_shop_info()
     shops = NetseaShop.get_all_info()
     for shop in shops:
+        logger.info({'shop_id': shop.shop_id})
         run_netsea_at_shop_id(shop.shop_id)
 
-
+@logger_decorator
 def run_get_all_shop_info(path: str = 'shop', interval_sec: int = 2) -> None:
-    logger.info('action=run_get_all_shop_info status=run')
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
 
     for index in range(1, 9):
@@ -66,9 +71,8 @@ def run_get_all_shop_info(path: str = 'shop', interval_sec: int = 2) -> None:
         list(map(lambda x: x.save(), shops))
         time.sleep(interval_sec)
 
-
+@logger_decorator
 def run_get_favorite_products(path: str = 'bookmark') -> pd.DataFrame:
-
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
     params = {'stock_option': 'in'}
     client = Netsea(url, params)
