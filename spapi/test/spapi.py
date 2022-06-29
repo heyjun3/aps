@@ -74,3 +74,19 @@ class ParseGetMyFeesEstimateForAsin(unittest.TestCase):
         self.assertEqual(fee['asin'], 'B07HG6F6K2')
         self.assertEqual(fee['fee_rate'], 0.15)
         self.assertEqual(fee['ship_fee'], 434)
+
+
+class ParseSearchCatalogItemsV20220401(unittest.TestCase):
+
+    def test_success_parse(self):
+        path = os.path.join(dirname, 'search_catalog_items_v2022_04_01.json')
+        with open(path, 'r') as f:
+            response = f.read()
+
+        products = SPAPIJsonParser.parse_search_catalog_items_v2022_04_01(json.loads(response))
+        self.assertEqual(products[0]['asin'], 'B07Q7MSGDW')
+        self.assertEqual(products[0]['quantity'], 1)
+        self.assertEqual(products[0]['title'], '若井産業(Wakaisangyou) ネイルイット ストリングアート ネイルガイド グリーン 7.5cm幅 重量9g NIJ0001')
+        self.assertEqual(products[1]['asin'], 'B08C2MYB2D')
+        self.assertEqual(products[1]['quantity'], 1)
+        self.assertEqual(products[1]['title'], '[オクムラ] 3Dコンフォートスリッパメッシュタイプ LLサイズ (ブラック)')

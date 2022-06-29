@@ -17,6 +17,17 @@ import log_settings
 
 
 logger = log_settings.get_logger(__name__)
+
+
+def logger_decorator(func):
+    def _logger_decorator(*args, **kwargs):
+        logger.info({'action': func.__name__, 'status': 'run'})
+        result = func(*args, **kwargs)
+        logger.info({'action': func.__name__, 'status': 'done'})
+        return result
+    return _logger_decorator
+
+
 redis_client = redis.Redis(
         host=settings.REDIS_HOST,
         port=settings.REDIS_PORT,
@@ -261,7 +272,7 @@ class SPAPI:
         logger.info('action=get_catalog_item status=done')
         return response
 
-    def search_catalog_items_v2022_04_01(self, identifiers: List, id_type: str) -> requests.Response:
+    def search_catalog_items_v2022_04_01(self, identifiers: List[str], id_type: str) -> requests.Response:
         logger.info('action=search_catalog_items_v2022_04_01 status=run')
 
         method = "GET"
@@ -271,7 +282,7 @@ class SPAPI:
             'identifiers': ','.join(identifiers),
             'identifiersType': id_type,
             'marketplaceIds': self.marketplace_id,
-            'includedData': 'attributes,dimensions,identifiers,productTypes,relationships,salesRanks,summaries,vendorDetails',
+            'includedData': 'attributes,dimensions,identifiers,productTypes,relationships,salesRanks,summaries',
             'pageSize': 20,
         }
         req = requests.Request(method=method, url=url, params=query)
@@ -417,6 +428,38 @@ class SPAPIJsonParser(object):
 
         logger.info('action=parse_get_my_fees_estimate_for_asin status=done')
         return {'asin': asin, 'fee_rate': fee_rate, 'ship_fee': ship_fee}
+
+    @staticmethod
+    @logger_decorator
+    def parse_search_catalog_items_v2022_04_01(response: dict) -> List[dict]:
+        products = []
+        
+        items = response['items']
+        for item in items:
+            asin = item['asin']
+
+            try:
+                item_name_list = item['attributes']['item_name']
+                for item_name in item_name_list:
+                    title = item_name['value']
+                    if title:
+                        break
+            except KeyError as ex:
+                logger.error({'message': 'item name is None', 'error': ex})
+                continue
+
+            try:
+                unit_count_list = item['attributes']['unit_count']
+                for unit_count in unit_count_list:
+                    quantity = unit_count['value']
+                    if quantity:
+                        break
+            except KeyError as ex:
+                logger.info({'message': 'unit info is None', 'error': ex})
+                quantity = 1
+
+            products.append({'asin': asin, 'quantity': int(float(quantity)), 'title': title})
+        return products
 
 
 class NotRankingException(Exception):
