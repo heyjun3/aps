@@ -17,8 +17,9 @@ logger = log_settings.get_logger(__name__)
 def logger_decorator(func):
     def _logger_decorator(*args, **kwargs):
         logger.info({'action': func.__name__, 'status': 'run'})
-        func(*args, **kwargs)
+        result = func(*args, **kwargs)
         logger.info({'action': func.__name__, 'status': 'done'})
+        return result
     return _logger_decorator
 
 @logger_decorator
