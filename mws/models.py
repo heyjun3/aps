@@ -193,6 +193,12 @@ class MWS(Base):
             session.query(cls).filter(cls.filename == filename).delete()
         return True
 
+    @classmethod
+    def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1):
+        with session_scope() as session:
+            flag = session.query(cls).where(or_(cls.profit < profit, cls.profit_rate < profit_rate)).delete()
+        return flag
+
     @property
     def value(self):
         return {
