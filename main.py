@@ -2,6 +2,7 @@ import argparse
 import sys
 
 from keepa import keepa
+from mws.models import MWS
 from spapi.spapi_tasks import UpdatePriceAndRankTask
 from spapi.spapi_tasks import RunAmzTask
 from crawler.buffalo import buffalo
@@ -57,5 +58,7 @@ if __name__ == '__main__':
             UpdatePriceAndRankTask().main()
         case ('pcones', None):
             pcones.main()
+        case ('mws', None):
+            MWS.delete_rows_lower_price()
         case _:
             sys.stdout.write(f'{task} is not a command')
