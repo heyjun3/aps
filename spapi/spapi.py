@@ -144,6 +144,11 @@ class SPAPI:
         }
 
         return headers
+    
+    async def request(self, method: str, url: str, params: dict=None, body: dict=None) -> dict:
+        headers = await self.create_authorization_headers(method, url, params, body)
+        response = await request(method, url, params=params, body=body, headers=headers)
+        return response
 
     async def get_my_fees_estimate_for_asin(self, asin: str, price: int, is_fba: bool = True, currency_code: str = 'JPY') -> dict:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
@@ -164,12 +169,11 @@ class SPAPI:
                 'MarketplaceId': self.marketplace_id, 
             }
         }
-        headers = await self.create_authorization_headers(method, url, body=body)
-        response = await request(method, url, body=body, headers=headers)
+        response = await self.request(method, url, body=body)
 
         return response
 
-    def get_pricing(self, asin_list: list, item_type: str='Asin') -> requests.Response:
+    async def get_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
         method = 'GET'
         path = '/products/pricing/v0/price'
         url = urllib.parse.urljoin(ENDPOINT, path)
@@ -178,13 +182,11 @@ class SPAPI:
             'ItemType': item_type,
             'MarketplaceId': self.marketplace_id,
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         return response
 
-    def get_competitive_pricing(self, asin_list: list, item_type: str='Asin') -> requests.Response:
+    async def get_competitive_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
         logger.info('action=get_competitive_pricing status=run')
 
         method = 'GET'
@@ -195,14 +197,12 @@ class SPAPI:
             'Asins': ','.join(asin_list),
             'ItemType': item_type,
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         logger.info('action=get_competitive_pricing status=done')
         return response
 
-    def get_item_offers(self, asin: str, item_condition: str='New') -> requests.Response:
+    async def get_item_offers(self, asin: str, item_condition: str='New') -> dict:
         logger.info('action=get_item_offers status=run')
 
         method = 'GET'
@@ -212,14 +212,12 @@ class SPAPI:
             'MarketplaceId': self.marketplace_id,
             'ItemCondition': item_condition,
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         logger.info('action=get_item_offers status=done')
         return response
 
-    def search_catalog_items(self, jan_list: list) -> requests.Response:
+    async def search_catalog_items(self, jan_list: list) -> dict:
         logger.info('action=search_catalog_items status=run')
 
         method = 'GET'
@@ -230,14 +228,12 @@ class SPAPI:
             'marketplaceIds': self.marketplace_id,
             'includedData': 'identifiers,images,productTypes,salesRanks,summaries,variations'
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         logger.info('action=search_catalog_items status=done')
         return response
 
-    def list_catalog_items(self, jan: str) -> requests.Request:
+    async def list_catalog_items(self, jan: str) -> dict:
         logger.info('action=list_catalog_items status=run')
 
         method = 'GET'
@@ -247,14 +243,12 @@ class SPAPI:
             'MarketplaceId': self.marketplace_id,
             'JAN': jan,
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         logger.info('action=list_catalog_items status=done')
         return response
 
-    def get_catalog_item(self, asin: str) -> requests.Response:
+    async def get_catalog_item(self, asin: str) -> dict:
         logger.info('action=get_catalog_item status=run')
 
         method = 'GET'
@@ -264,14 +258,12 @@ class SPAPI:
             'marketplaceIds': self.marketplace_id,
             'includedData': 'attributes,identifiers,images,productTypes,salesRanks,summaries,variations'
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         logger.info('action=get_catalog_item status=done')
         return response
 
-    def search_catalog_items_v2022_04_01(self, identifiers: List[str], id_type: str) -> requests.Response:
+    async def search_catalog_items_v2022_04_01(self, identifiers: List[str], id_type: str) -> dict:
         logger.info('action=search_catalog_items_v2022_04_01 status=run')
 
         method = "GET"
@@ -284,14 +276,12 @@ class SPAPI:
             'includedData': 'attributes,dimensions,identifiers,productTypes,relationships,salesRanks,summaries',
             'pageSize': 20,
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, query)
 
         logger.info('action=search_catalog_items_v2022_04_01 status=done')
         return response
 
-    def get_item_offers_batch(self, asin_list: List, item_condition: str='NEW', customer_type: str='Consumer') -> requests.Response:
+    async def get_item_offers_batch(self, asin_list: List, item_condition: str='NEW', customer_type: str='Consumer') -> dict:
         logger.info('action=get_item_offers_batch status=run')
 
         if len(asin_list) > 20:
@@ -313,9 +303,7 @@ class SPAPI:
         body = {
             'requests' : request_list,
         }
-        req = requests.Request(method=method, url=url, json=body)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, body=body)
 
         logger.info('action=get_item_offers_batch status=done')
         return response
