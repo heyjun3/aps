@@ -87,9 +87,11 @@ class ParseSearchCatalogItemsV20220401(unittest.TestCase):
         self.assertEqual(products[0]['asin'], 'B07Q7MSGDW')
         self.assertEqual(products[0]['quantity'], 1)
         self.assertEqual(products[0]['title'], '若井産業(Wakaisangyou) ネイルイット ストリングアート ネイルガイド グリーン 7.5cm幅 重量9g NIJ0001')
+        self.assertEqual(products[0]['jan'], '4903768653845')
         self.assertEqual(products[1]['asin'], 'B08C2MYB2D')
         self.assertEqual(products[1]['quantity'], 1)
         self.assertEqual(products[1]['title'], '[オクムラ] 3Dコンフォートスリッパメッシュタイプ LLサイズ (ブラック)')
+        self.assertEqual(products[1]['jan'], '4969354318680')
 
 class ParseGetItemOffersBatch(unittest.TestCase):
 
@@ -100,4 +102,3 @@ class ParseGetItemOffersBatch(unittest.TestCase):
         products = SPAPIJsonParser.parse_get_item_offers_batch(json.loads(response))
         self.assertEqual(products[0], {'asin': 'B00L8JFILS', 'price': 2000, 'ranking': 11607})
         self.assertEqual(products[1], {'asin': 'B095CXV2TZ', 'price': 5250, 'ranking': 5635})
-        
