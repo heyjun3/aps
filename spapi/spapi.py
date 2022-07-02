@@ -37,9 +37,9 @@ redis_client = redis.Redis(
 ENDPOINT = 'https://sellingpartnerapi-fe.amazon.com'
 
 
-async def request(method: str, url: str, headers: dict=None, body: dict=None) -> aiohttp.ClientResponse:
+async def request(method: str, url: str, params: dict=None, headers: dict=None, body: dict=None) -> aiohttp.ClientResponse:
     for _ in range(60):
-        async with aiohttp.request(method, url, headers=headers, json=body) as response:
+        async with aiohttp.request(method, url, params=params, headers=headers, json=body) as response:
             if response.status == 200 and response is not None:
                 return response
             else:
