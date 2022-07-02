@@ -1,16 +1,17 @@
 import datetime
 import hmac
 import hashlib
-from inspect import EndOfBlock
 import json
 import os
 import time
 import urllib.parse
 import re
 from typing import List
+import asyncio
 
 import redis
 import requests
+import aiohttp
 
 import settings
 import log_settings
@@ -36,18 +37,13 @@ redis_client = redis.Redis(
 ENDPOINT = 'https://sellingpartnerapi-fe.amazon.com'
 
 
-def request(req: requests.Request) -> requests.Response:
+async def request(method: str, url: str, headers: dict=None, body: dict=None) -> aiohttp.ClientResponse:
     for _ in range(60):
-        try:
-            session = requests.Session()
-            response = session.send(req.prepare())
-            if response.status_code == 200 or response is not None:
+        async with aiohttp.request(method, url, headers=headers, json=body) as response:
+            if response.status == 200 and response is not None:
                 return response
             else:
-                raise Exception
-        except Exception as ex:
-            logger.error(f'action=request error={ex}')
-            time.sleep(10)
+                asyncio.sleep(10)
 
 
 class SPAPI:
