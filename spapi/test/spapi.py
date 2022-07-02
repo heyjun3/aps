@@ -90,3 +90,14 @@ class ParseSearchCatalogItemsV20220401(unittest.TestCase):
         self.assertEqual(products[1]['asin'], 'B08C2MYB2D')
         self.assertEqual(products[1]['quantity'], 1)
         self.assertEqual(products[1]['title'], '[オクムラ] 3Dコンフォートスリッパメッシュタイプ LLサイズ (ブラック)')
+
+class ParseGetItemOffersBatch(unittest.TestCase):
+
+    def test_success_parse(self) -> None:
+        path = os.path.join(dirname, 'get_item_offers_batch.json')
+        with open(path, 'r') as f:
+            response = f.read()
+        products = SPAPIJsonParser.parse_get_item_offers_batch(json.loads(response))
+        self.assertEqual(products[0], {'asin': 'B00L8JFILS', 'price': 2000, 'ranking': 11607})
+        self.assertEqual(products[1], {'asin': 'B095CXV2TZ', 'price': 5250, 'ranking': 5635})
+        
