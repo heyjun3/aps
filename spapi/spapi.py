@@ -43,7 +43,8 @@ async def request(method: str, url: str, params: dict=None, headers: dict=None, 
             if response.status == 200 and response is not None:
                 return response
             else:
-                asyncio.sleep(10)
+                logger.error(response)
+                await asyncio.sleep(10)
 
 
 class SPAPI:
@@ -66,7 +67,7 @@ class SPAPI:
         kSigning = self.sign(kService, 'aws4_request')
         return kSigning
 
-    def get_spapi_access_token(self, timeout_sec: int = 3500):
+    async def get_spapi_access_token(self, timeout_sec: int = 3500):
 
         access_token = redis_client.get('access_token')
         if access_token is not None:
@@ -83,20 +84,21 @@ class SPAPI:
         'client_id': self.client_id,
         'client_secret': self.client_secret,
         }
-        req = requests.Request(method='POST', url=URL, params=params, headers=headers)
-        response = request(req)
+        response = await request('POST', URL, params, headers)
+        response_json = await response.json()
 
-        access_token = response.json().get('access_token')
+        access_token = response_json.get('access_token')
         
         if access_token is None:
-            logger.error(response.text)
+            text = await response.text()
+            logger.error(text)
             raise Exception
 
         redis_client.set('access_token', access_token, ex=timeout_sec)
 
         return access_token
 
-    def create_authorization_headers(self, req: requests.Request) -> requests.Request:
+    async def create_authorization_headers(self, method: str, url: str, params: dict={}, body: dict={}) -> dict:
         region = 'us-west-2'
         service = 'execute-api'
         algorithm = 'AWS4-HMAC-SHA256'
@@ -104,26 +106,26 @@ class SPAPI:
         user_agent = 'My SPAPI Client tool /1.0(Language=python/3.10)'
 
         host = urllib.parse.urlparse(ENDPOINT).netloc
-        canonical_uri = urllib.parse.urlparse(req.url).path
+        canonical_uri = urllib.parse.urlparse(url).path
         body = ''
 
-        if  req.json:
-            body = json.dumps(req.json)
+        if body:
+            body = json.dumps(body)
 
         utcnow = datetime.datetime.utcnow()
         amz_date = utcnow.strftime('%Y%m%dT%H%M%SZ')
         datestamp = utcnow.strftime('%Y%m%d')
-        amz_access_token = self.get_spapi_access_token()
+        amz_access_token = await self.get_spapi_access_token()
         canonical_header_values = [host, user_agent, amz_access_token, f'{amz_date}\n']
         
         canonical_headers = '\n'.join([f'{head}:{value}' for head, value in zip(signed_headers.split(';'), canonical_header_values)])
         payload_hash = hashlib.sha256(body.encode('utf-8')).hexdigest()
         canonical_querystring = ''
 
-        if req.params:
-            canonical_querystring = urllib.parse.urlencode(sorted(req.params.items(), key=lambda x: (x[0], x[1])))
+        if params:
+            canonical_querystring = urllib.parse.urlencode(sorted(params.items(), key=lambda x: (x[0], x[1])))
 
-        canonical_request = '\n'.join([req.method, canonical_uri, canonical_querystring, canonical_headers, signed_headers, payload_hash])
+        canonical_request = '\n'.join([method, canonical_uri, canonical_querystring, canonical_headers, signed_headers, payload_hash])
         credential_scope = os.path.join(datestamp, region, service, 'aws4_request')
         signing_key = self.get_signature_key(self.aws_secret_key, datestamp, region, service)
         string_to_sign = '\n'.join([algorithm, amz_date, credential_scope, hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()])
@@ -131,7 +133,7 @@ class SPAPI:
         signature = hmac.new(signing_key, (string_to_sign).encode('utf-8'), hashlib.sha256).hexdigest()
         authorization_header = f'{algorithm} Credential={self.aws_access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}'
         
-        req.headers = {
+        headers = {
             'host': urllib.parse.urlparse(ENDPOINT).netloc,
             'user-agent': user_agent,
             'x-amz-date': amz_date,
@@ -139,9 +141,9 @@ class SPAPI:
             'x-amz-access-token': amz_access_token,
         }
 
-        return req
+        return headers
 
-    def get_my_fees_estimate_for_asin(self, asin: str, price: int, is_fba: bool = True, currency_code: str = 'JPY'):
+    async def get_my_fees_estimate_for_asin(self, asin: str, price: int, is_fba: bool = True, currency_code: str = 'JPY') -> dict:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
         method = 'POST'
@@ -160,11 +162,13 @@ class SPAPI:
                 'MarketplaceId': self.marketplace_id, 
             }
         }
-        req = requests.Request(method=method, url=url, json=body)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        headers = await self.create_authorization_headers(method, url, body=body)
+        # req = requests.Request(method=method, url=url, json=body)
+        # req = self.create_authorization_headers(req)
+        response = await request(method, url, body=body, headers=headers)
+        response_json = await response.json()
 
-        return response
+        return response_json
 
     def get_pricing(self, asin_list: list, item_type: str='Asin') -> requests.Response:
         method = 'GET'
