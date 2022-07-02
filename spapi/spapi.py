@@ -266,6 +266,9 @@ class SPAPI:
     async def search_catalog_items_v2022_04_01(self, identifiers: List[str], id_type: str) -> dict:
         logger.info('action=search_catalog_items_v2022_04_01 status=run')
 
+        if (len(identifiers) > 20):
+            raise TooMatchParameterException
+
         method = "GET"
         path = "/catalog/2022-04-01/items"
         url = urllib.parse.urljoin(ENDPOINT, path)
@@ -436,6 +439,16 @@ class SPAPIJsonParser(object):
                 continue
 
             try:
+                identifiers = item['identifiers']
+                for identifier in identifiers:
+                    jan = identifier['identifiers'][0]['identifier']
+                    if jan:
+                        break
+            except KeyError as ex:
+                logger.error({'message': 'jan is None', 'error': ex})
+                continue
+
+            try:
                 unit_count_list = item['attributes']['unit_count']
                 for unit_count in unit_count_list:
                     quantity = unit_count['value']
@@ -445,7 +458,7 @@ class SPAPIJsonParser(object):
                 logger.info({'message': 'unit info is None', 'error': ex})
                 quantity = 1
 
-            products.append({'asin': asin, 'quantity': int(float(quantity)), 'title': title})
+            products.append({'asin': asin, 'quantity': int(float(quantity)), 'title': title, 'jan': jan})
         return products
 
     @classmethod
