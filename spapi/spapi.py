@@ -448,6 +448,22 @@ class SPAPIJsonParser(object):
             products.append({'asin': asin, 'quantity': int(float(quantity)), 'title': title})
         return products
 
+    @classmethod
+    @logger_decorator
+    def parse_get_item_offers_batch(cls, response: dict) -> List[dict]:
+
+        products = []
+        responses = response['responses']
+        for response in responses:
+            try:
+                result = cls.parse_get_item_offers(response['body'])
+                products.append(result)
+            except KeyError as ex:
+                logger.error({'message':ex})
+                continue
+
+        return products
+
 
 class NotRankingException(Exception):
     pass
