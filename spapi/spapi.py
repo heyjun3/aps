@@ -325,7 +325,7 @@ class SPAPI:
 class SPAPIJsonParser(object):
 
     @staticmethod
-    def parse_get_competitive_pricing(response: json) -> dict:
+    def parse_get_competitive_pricing(response: dict) -> dict:
         logger.info('action=parse_get_competitive_pricing status=run')
 
         products = []
@@ -353,7 +353,7 @@ class SPAPIJsonParser(object):
         return products
 
     @staticmethod
-    def parse_get_item_offers(response: json) -> dict|None:
+    def parse_get_item_offers(response: dict) -> dict|None:
         logger.info('action=parse_get_item_offers status=run')
 
         try:
