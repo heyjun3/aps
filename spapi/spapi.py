@@ -41,6 +41,7 @@ async def request(method: str, url: str, params: dict=None, headers: dict=None, 
     for _ in range(60):
         async with aiohttp.request(method, url, params=params, headers=headers, json=body) as response:
             if response.status == 200 and response is not None:
+                response = await response.json()
                 return response
             else:
                 logger.error(response)
@@ -85,9 +86,8 @@ class SPAPI:
         'client_secret': self.client_secret,
         }
         response = await request('POST', URL, params, headers)
-        response_json = await response.json()
 
-        access_token = response_json.get('access_token')
+        access_token = response.get('access_token')
         
         if access_token is None:
             text = await response.text()
@@ -107,10 +107,11 @@ class SPAPI:
 
         host = urllib.parse.urlparse(ENDPOINT).netloc
         canonical_uri = urllib.parse.urlparse(url).path
-        body = ''
 
         if body:
             body = json.dumps(body)
+        else:
+            body = ''
 
         utcnow = datetime.datetime.utcnow()
         amz_date = utcnow.strftime('%Y%m%dT%H%M%SZ')
@@ -120,10 +121,11 @@ class SPAPI:
         
         canonical_headers = '\n'.join([f'{head}:{value}' for head, value in zip(signed_headers.split(';'), canonical_header_values)])
         payload_hash = hashlib.sha256(body.encode('utf-8')).hexdigest()
-        canonical_querystring = ''
 
         if params:
             canonical_querystring = urllib.parse.urlencode(sorted(params.items(), key=lambda x: (x[0], x[1])))
+        else:
+            canonical_querystring = ''
 
         canonical_request = '\n'.join([method, canonical_uri, canonical_querystring, canonical_headers, signed_headers, payload_hash])
         credential_scope = os.path.join(datestamp, region, service, 'aws4_request')
@@ -163,12 +165,9 @@ class SPAPI:
             }
         }
         headers = await self.create_authorization_headers(method, url, body=body)
-        # req = requests.Request(method=method, url=url, json=body)
-        # req = self.create_authorization_headers(req)
         response = await request(method, url, body=body, headers=headers)
-        response_json = await response.json()
 
-        return response_json
+        return response
 
     def get_pricing(self, asin_list: list, item_type: str='Asin') -> requests.Response:
         method = 'GET'
