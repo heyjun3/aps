@@ -194,10 +194,18 @@ class MWS(Base):
         return True
 
     @classmethod
-    def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1):
+    def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1, unit_count: int=10, drops: int=3) -> bool:
         with session_scope() as session:
-            flag = session.query(cls).where(or_(cls.profit < profit, cls.profit_rate < profit_rate)).delete()
-        return flag
+            products = session.query(cls.filename, cls.asin).join(KeepaProducts, cls.asin == KeepaProducts.asin).where(or_(
+                cls.profit < profit,
+                cls.profit_rate < profit_rate,
+                cls.unit > unit_count,
+                KeepaProducts.sales_drops_90 <= drops,
+            )).all()
+            for filename, asin in products:
+                session.query(cls).where(cls.filename == filename, cls.asin == asin).delete()
+
+        return True
 
     @property
     def value(self):
