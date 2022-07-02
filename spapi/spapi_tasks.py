@@ -70,7 +70,6 @@ class RunAmzTask(object):
 
         get_mq_task = asyncio.create_task(self.get_mq())
         search_catalog_items_task = asyncio.create_task(self.search_catalog_items_v20220401())
-
         await asyncio.wait({get_mq_task, search_catalog_items_task}, return_when='FIRST_COMPLETED')
 
         logger.info('action=main status=done')
@@ -78,31 +77,33 @@ class RunAmzTask(object):
     async def get_mq(self, interval_sec: float=2) -> None:
         logger.info('action=get_mq status=run')
         require = ('cost', 'jan', 'filename')
+        mq_get_generator = self.mq.get()
 
         while True:
+            params = await mq_get_generator.__anext__()
             if self.queue.full():
-                time.sleep(interval_sec)
+                await asyncio.sleep(interval_sec)
+            params = json.loads(params)
+
+            if not all(r in params for r in require):
+                raise Exception
+
+            products = AsinsInfo.get(params['jan'])
+            products = False
+
+            if not products:
+                self.queue.put(params)
             else:
-                params = self.mq.get()
-                params = json.loads(params)
-
-                if not all(r in params for r in require):
-                    raise Exception
-
-                products = AsinsInfo.get(params['jan'])
-
-                if not products:
-                    self.queue.put(product)
-                else:
-                    for product in products:
-                        MWS(asin=product['asin'], filename=params['filename'], title=product['title'],
-                                    jan=params['jan'], unit=product['quantity'], cost=params['cost']).save()
+                for product in products:
+                    MWS(asin=product['asin'], filename=params['filename'], title=product['title'],
+                                jan=params['jan'], unit=product['quantity'], cost=params['cost']).save()
 
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
         logger.info('action=search_catalog_items status=run')
 
         while True:
             params = [self.queue.get() for _ in range(20) if not self.queue.empty()]
+            print({'queue_size': self.queue.qsize()})
             if not params:
                 await asyncio.sleep(10)
             else:
@@ -111,6 +112,9 @@ class RunAmzTask(object):
                 products = SPAPIJsonParser.parse_search_catalog_items_v2022_04_01(response)
                 for product in products:
                     parameter = params.get(product['jan'])
+                    if parameter is None:
+                        logger.error(product)
+                        continue
                     AsinsInfo(asin=product['asin'], jan=product['jan'], title=product['title'], quantity=product['quantity']).upsert()
                     MWS(asin=product['asin'], filename=parameter['filename'], title=product['title'], jan=product['jan'], unit=product['quantity'], cost=parameter['cost']).save()
 
