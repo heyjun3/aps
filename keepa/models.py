@@ -85,6 +85,7 @@ def convert_recharts_data(context: dict|DefaultExecutionContext) -> dict|None:
     df = pd.merge(date_index_df, price_df, on='date', how='outer')
     df = pd.merge(df, rank_df, on='date', how='outer')
     df = df.replace(-1.0, np.nan)
+    df = df.sort_values('date', ascending=True)
     df = df.fillna(method='ffill')
     df = df.fillna(method='bfill')
     df = df.replace([np.nan], [None])
@@ -148,6 +149,16 @@ class KeepaProducts(Base):
 
         logger.info('action=update_price_and_rank_data status=done')
         return True
+
+    @classmethod
+    def _update_price_and_rank_data(cls, asin:str, unix_time: float, price: int, rank: int) -> bool:
+        time = convert_unix_time_to_keepa_time(unix_time)
+        with session_scope() as session:
+            product = session.query(cls).filter(cls.asin == asin).first()
+            product.price_data[time] = price
+            product.rank_data[time] = rank
+            product.render_data = convert_recharts_data({'price_data': product.price_data, 'rank_data': product.rank_data})
+            return True
 
     @classmethod
     def get_keepa_product(cls, asin: str):
