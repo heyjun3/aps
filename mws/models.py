@@ -196,7 +196,7 @@ class MWS(Base):
     @classmethod
     def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1, unit_count: int=10, drops: int=3) -> bool:
         with session_scope() as session:
-            products = session.query(cls.filename, cls.asin).join(KeepaProducts, cls.asin == KeepaProducts.asin).where(or_(
+            products = session.query(cls.filename, cls.asin).join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).where(or_(
                 cls.profit < profit,
                 cls.profit_rate < profit_rate,
                 cls.unit > unit_count,
