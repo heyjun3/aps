@@ -376,22 +376,16 @@ class SPAPIJsonParser(object):
         return products
 
     @staticmethod
-    def parse_get_item_offers(response: dict) -> dict|None:
+    def parse_get_item_offers(response: dict) -> dict:
         logger.info('action=parse_get_item_offers status=run')
 
-        try:
-            asin = response['payload']['ASIN']
-        except KeyError as ex:
-            logger.error(ex)
-            logger.error(response)
-            return None
-
+        asin = response['payload']['ASIN']
         try:
             price = int(response['payload']['Summary']['LowestPrices'][0]['LandedPrice']['Amount'])
             ranking = response['payload']['Summary']['SalesRankings'][0]['Rank']
         except (IndexError, KeyError) as ex:
-            logger.error(f"{asin} hasn't data")
-            return None
+            logger.error(f"{asin} hasn't data {ex}")
+            price, ranking = -1, -1
 
         logger.info('action=parse_get_item_offers status=done')
         return {'asin': asin, 'price': price, 'ranking': ranking}
@@ -519,8 +513,8 @@ class SPAPIJsonParser(object):
             asin = product["FeesEstimateIdentifier"]['IdValue']
             amount = product['FeesEstimateIdentifier']['PriceToEstimateFees']["ListingPrice"]["Amount"]
 
-            fee_detail_list = product['FeesEstimate']["FeeDetailList"]
             try:
+                fee_detail_list = product['FeesEstimate']["FeeDetailList"]
                 fee = [fee_detail for fee_detail in fee_detail_list if fee_detail.get('FeeType') == "ReferralFee"]
                 if not fee:
                     fee_rate = default_fee_rate
@@ -532,6 +526,7 @@ class SPAPIJsonParser(object):
                 fee_rate = default_fee_rate
 
             try:
+                fee_detail_list = product['FeesEstimate']["FeeDetailList"]
                 ship_fee = [fee_detail for fee_detail in fee_detail_list if fee_detail.get('FeeType') == "FBAFees"]
                 if not ship_fee:
                     ship_fee = default_ship_fee
