@@ -64,6 +64,7 @@ class RunAmzTask(object):
         self.mq = MQ(queue_name)
         self.client = SPAPI()
         self.queue = queue.Queue(maxsize=maxsize)
+        self.fees_queue = queue.Queue()
 
     async def main(self) -> None:
         logger.info('action=main status=run')
@@ -71,9 +72,11 @@ class RunAmzTask(object):
         get_mq_task = asyncio.create_task(self.get_mq())
         search_catalog_items_task = asyncio.create_task(self.search_catalog_items_v20220401())
         get_item_offers_batch_task = asyncio.create_task(self.get_item_offers_batch())
+        get_my_fee_estimate_task = asyncio.create_task(self.get_my_fees_estimate())
         await asyncio.wait({get_mq_task, 
                             search_catalog_items_task,
                             get_item_offers_batch_task,
+                            get_my_fee_estimate_task,
                             }, return_when='FIRST_COMPLETED')
 
         logger.info('action=main status=done')
@@ -139,32 +142,38 @@ class RunAmzTask(object):
                         SpapiPrices(asin=product['asin'], price=product['price'])
                     await asyncio.sleep(interval_sec)
             else:
-                asyncio.sleep(10)
+                await asyncio.sleep(10)
 
-    def get_my_fees_estimate_for_asin_loop(self) -> None:
-        logger.info('action=get_my_fees_estimate_for_asin_loop status=run')
-        while True:
-            asin_list = MWS.get_fee_is_None_asins()
-            if asin_list:
-                with ThreadPoolExecutor(max_workers=9) as executor:
-                    [executor.submit(self.get_my_fees_estimate_for_asin, asin) for asin in asin_list]
-            else:
-                time.sleep(30)
-
-
-    async def get_my_fees_estimate_for_asin(self, asin: str, interval_sec: float=0.1, default_price: int=10000) -> None:
+    async def get_my_fees_estimate(self) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
-        while True:
-            asin_list = MWS.get_fee_is_None_asins()
 
-        fee = SpapiFees.get(asin=asin)
+        async def _get_fees_from_spapifees_table():
+            while True:
+                asin_list = MWS.get_fee_is_None_asins()
+                if asin_list:
+                    for asin in asin_list:
+                        fee = SpapiFees.get(asin)
+                        if fee is None:
+                            self.fees_queue.put(asin)
+                        else:
+                            MWS.update_fee(asin=fee['asin'], fee_rate=fee['fee_rate'], ship_fee=fee['ship_fee'])
+                else:
+                    await asyncio.sleep(30)
 
-        if fee is None:
-            response = self.client.get_my_fees_estimate_for_asin(asin, price=default_price)
-            time.sleep(interval_sec)
-            fee = SPAPIJsonParser.parse_get_my_fees_estimate_for_asin(response.json())
-            SpapiFees(asin=asin, fee_rate=fee['fee_rate'], ship_fee=fee['ship_fee']).upsert()
-        MWS.update_fee(asin=fee['asin'], fee_rate=fee['fee_rate'], shipping_fee=fee['ship_fee'])
+        async def _get_my_fees_estimate():
 
-        logger.info('action=get_my_fees_estimate_for_asin status=done')
-        return None
+            while True:
+                asin_list = [self.fees_queue.get() for _ in range(20) if not self.fees_queue.empty()]
+                if asin_list:
+                    response = await self.client.get_my_fees_estimates(asin_list)
+                    products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
+                    for product in products:
+                        SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert()
+                        MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee'])
+                else:
+                    await asyncio.sleep(30)
+
+        get_fees_from_spapifees_task = asyncio.create_task(_get_fees_from_spapifees_table())
+        get_my_fees_estimate_task = asyncio.create_task(_get_my_fees_estimate())
+
+        await asyncio.wait({get_fees_from_spapifees_task, get_my_fees_estimate_task}, return_when='FIRST_COMPLETED')
