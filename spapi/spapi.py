@@ -510,6 +510,41 @@ class SPAPIJsonParser(object):
 
         return products
 
+    @staticmethod
+    @logger_decorator
+    def parse_get_my_fees_estimates(response: dict, default_fee_rate: float=0.1, default_ship_fee: int=500) -> List[dict]:
+        products = []
+
+        for product in response:
+            asin = product["FeesEstimateIdentifier"]['IdValue']
+            amount = product['FeesEstimateIdentifier']['PriceToEstimateFees']["ListingPrice"]["Amount"]
+
+            fee_detail_list = product['FeesEstimate']["FeeDetailList"]
+            try:
+                fee = [fee_detail for fee_detail in fee_detail_list if fee_detail.get('FeeType') == "ReferralFee"]
+                if not fee:
+                    fee_rate = default_fee_rate
+                else:
+                    fee = fee[0]['FeeAmount']["Amount"]
+                    fee_rate = round(int(fee) / int(amount), 2)
+            except (KeyError, IndexError) as ex:
+                logger.error({'message': ex})
+                fee_rate = default_fee_rate
+
+            try:
+                ship_fee = [fee_detail for fee_detail in fee_detail_list if fee_detail.get('FeeType') == "FBAFees"]
+                if not ship_fee:
+                    ship_fee = default_ship_fee
+                else:
+                    ship_fee = ship_fee[0]["FeeAmount"]["Amount"]
+            except (KeyError, IndexError) as ex:
+                logger.error({'message': ex})
+                ship_fee = default_ship_fee
+
+            products.append({'asin': asin, 'fee_rate': fee_rate, 'ship_fee': ship_fee})
+        
+        return products
+
 
 class NotRankingException(Exception):
     pass
