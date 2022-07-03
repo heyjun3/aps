@@ -9,7 +9,7 @@ import asyncio
 
 from spapi.spapi import SPAPI
 from spapi.spapi import SPAPIJsonParser
-from spapi.models import AsinsInfo
+from spapi.models import AsinsInfo, SpapiPrices
 from spapi.models import SpapiFees
 from keepa.models import KeepaProducts
 from mws.models import MWS
@@ -70,7 +70,11 @@ class RunAmzTask(object):
 
         get_mq_task = asyncio.create_task(self.get_mq())
         search_catalog_items_task = asyncio.create_task(self.search_catalog_items_v20220401())
-        await asyncio.wait({get_mq_task, search_catalog_items_task}, return_when='FIRST_COMPLETED')
+        get_item_offers_batch_task = asyncio.create_task(self.get_item_offers_batch())
+        await asyncio.wait({get_mq_task, 
+                            search_catalog_items_task,
+                            get_item_offers_batch_task,
+                            }, return_when='FIRST_COMPLETED')
 
         logger.info('action=main status=done')
 
@@ -120,6 +124,23 @@ class RunAmzTask(object):
 
                 await asyncio.sleep(interval_sec)
 
+    async def get_item_offers_batch(self, interval_sec: int=2):
+        logger.info({'action': 'get_item_offers_batch', 'status': 'run'})
+
+        while True:
+            asin_list = MWS.get_price_is_None_asins()
+            if asin_list:
+                asin_list = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
+                for asins in asin_list:
+                    response = await self.client.get_item_offers_batch(asins)
+                    products = SPAPIJsonParser.parse_get_item_offers_batch(response)
+                    for product in products:
+                        MWS.update_price(asin=product['asin'], price=product['price'])
+                        SpapiPrices(asin=product['asin'], price=product['price'])
+                    await asyncio.sleep(interval_sec)
+            else:
+                asyncio.sleep(10)
+
     def get_my_fees_estimate_for_asin_loop(self) -> None:
         logger.info('action=get_my_fees_estimate_for_asin_loop status=run')
         while True:
@@ -131,8 +152,10 @@ class RunAmzTask(object):
                 time.sleep(30)
 
 
-    def get_my_fees_estimate_for_asin(self, asin: str, interval_sec: float=0.1, default_price: int=10000) -> None:
+    async def get_my_fees_estimate_for_asin(self, asin: str, interval_sec: float=0.1, default_price: int=10000) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
+        while True:
+            asin_list = MWS.get_fee_is_None_asins()
 
         fee = SpapiFees.get(asin=asin)
 

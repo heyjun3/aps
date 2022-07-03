@@ -311,6 +311,39 @@ class SPAPI:
         logger.info('action=get_item_offers_batch status=done')
         return response
 
+    async def get_my_fees_estimates(self, asin_list: List, id_type: str='ASIN', price_amount: int=10000) -> dict:
+        logger.info('action=get_my_fees_estimates status=run')
+
+        if len(asin_list) > 20:
+            raise TooMatchParameterException
+
+        method = 'POST'
+        path = '/products/fees/v0/feesEstimate'
+        url = urllib.parse.urljoin(ENDPOINT, path)
+
+        body = []
+        for asin in asin_list:
+            body.append({
+                'FeesEstimateRequest': {
+                    'MarketplaceId': self.marketplace_id,
+                    'IsAmazonFulfilled': True,
+                    'PriceToEstimateFees': {
+                        'ListingPrice': {
+                            'CurrencyCode': 'JPY',
+                            'Amount': price_amount,
+                        },
+                    },
+                    'Identifier': asin,
+                    'OptionalFulfillmentProgram': 'FBA_CORE',
+                },
+                'IdType': id_type,
+                'IdValue': asin,
+            })
+        response = await self.request(method, url, body=body)
+        
+        logger.info('action=get_my_fees_estimates status=done')
+        return response
+
 
 class SPAPIJsonParser(object):
 
