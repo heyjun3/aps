@@ -150,7 +150,7 @@ class SPAPI:
         response = await request(method, url, params=params, body=body, headers=headers)
         return response
 
-    async def get_my_fees_estimate_for_asin(self, asin: str, price: int, is_fba: bool = True, currency_code: str = 'JPY') -> dict:
+    async def get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool = True, currency_code: str = 'JPY') -> dict:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
         method = 'POST'
