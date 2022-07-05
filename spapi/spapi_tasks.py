@@ -36,6 +36,7 @@ class UpdatePriceAndRankTask(object):
         await asyncio.wait({get_competitive_pricing_task, update_data_task})
 
     async def update_data(self) -> None:
+        logger.info('action=update_data status=run')
 
         while True:
             product = await self.queue.get()
@@ -44,6 +45,8 @@ class UpdatePriceAndRankTask(object):
 
             now = time.time()
             KeepaProducts.update_price_and_rank_data(product['asin'], now, product['price'], product['ranking'])
+
+        logger.info('action=update_data status=run')
 
     async def get_competitive_pricing(self, interval_sec: int=2) -> None:
         logger.info('action=get_competitive_pricing status=run')
