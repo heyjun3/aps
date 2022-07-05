@@ -1,10 +1,6 @@
 import time
-import queue
-import threading
-import datetime
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 import json
-from concurrent.futures import ThreadPoolExecutor
 import asyncio
 
 from spapi.spapi import SPAPI
@@ -15,7 +11,6 @@ from keepa.models import KeepaProducts
 from mws.models import MWS
 from mq import MQ
 import log_settings
-from mws import api
 
 
 logger = log_settings.get_logger(__name__)
@@ -24,29 +19,38 @@ logger = log_settings.get_logger(__name__)
 class UpdatePriceAndRankTask(object):
 
     def __init__(self, limit: int=20) -> None:
-        self.queue = asyncio.Queue()
+        self.queue = Queue()
         self.asins = KeepaProducts.get_products_not_modified()
         self.asins = [self.asins[i:i+limit] for i in range(0, len(self.asins), limit)]
         self.spapi_client = SPAPI()
 
     async def main(self) -> None:
+        logger.info('action=main status=run')
+        update_data_process = Process(target=self.update_data, args=(self.queue, ))
+        update_data_process.start()
         get_competitive_pricing_task = asyncio.create_task(self.get_competitive_pricing())
-        update_data_task = asyncio.create_task(self.update_data())
 
-        await asyncio.wait({get_competitive_pricing_task, update_data_task})
+        try:
+            await asyncio.wait({get_competitive_pricing_task}, timeout=300)
+            update_data_process.join()
+        except asyncio.TimeoutError as ex:
+            logger.error(f'action=main error={ex}')
+            self.queue.put(None)
 
-    async def update_data(self) -> None:
+        logger.info('action=main status=done')
+
+    def update_data(self, queue: Queue) -> None:
         logger.info('action=update_data status=run')
 
         while True:
-            product = await self.queue.get()
+            product = queue.get()
             if product is None:
                 break
 
             now = time.time()
             KeepaProducts.update_price_and_rank_data(product['asin'], now, product['price'], product['ranking'])
 
-        logger.info('action=update_data status=run')
+        logger.info('action=update_data status=done')
 
     async def get_competitive_pricing(self, interval_sec: int=2) -> None:
         logger.info('action=get_competitive_pricing status=run')
@@ -54,7 +58,7 @@ class UpdatePriceAndRankTask(object):
         for asin_list in self.asins:
             response = await self.spapi_client.get_competitive_pricing(asin_list)
             products = SPAPIJsonParser.parse_get_competitive_pricing(response)
-            [self.queue.put_nowait(product) for product in products]
+            [self.queue.put(product) for product in products]
             await asyncio.sleep(interval_sec)
         
         self.queue.put(None)
