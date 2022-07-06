@@ -40,11 +40,12 @@ ENDPOINT = 'https://sellingpartnerapi-fe.amazon.com'
 async def request(method: str, url: str, params: dict=None, headers: dict=None, body: dict=None) -> aiohttp.ClientResponse:
     for _ in range(60):
         async with aiohttp.request(method, url, params=params, headers=headers, json=body) as response:
-            if response.status == 200 and response is not None:
-                response = await response.json()
-                return response
+            response_json = await response.json()
+            if response.status == 200 and response is not None or response.status == 400:
+                response_json = await response.json()
+                return response_json
             else:
-                logger.error(response)
+                logger.error(response_json)
                 await asyncio.sleep(10)
 
 
@@ -378,13 +379,13 @@ class SPAPIJsonParser(object):
     @staticmethod
     def parse_get_item_offers(response: dict) -> dict:
         logger.info('action=parse_get_item_offers status=run')
-
+            
         asin = response['payload']['ASIN']
         try:
             price = int(response['payload']['Summary']['LowestPrices'][0]['LandedPrice']['Amount'])
             ranking = response['payload']['Summary']['SalesRankings'][0]['Rank']
         except (IndexError, KeyError) as ex:
-            logger.error(f"{asin} hasn't data {ex}")
+            logger.error(f"error={ex}")
             price, ranking = -1, -1
 
         logger.info('action=parse_get_item_offers status=done')
@@ -496,8 +497,13 @@ class SPAPIJsonParser(object):
         responses = response['responses']
         for response in responses:
             try:
-                result = cls.parse_get_item_offers(response['body'])
-                products.append(result)
+                status_code = response.get('status').get('statusCode')
+                if status_code == 200:
+                    result = cls.parse_get_item_offers(response['body'])
+                    products.append(result)
+                else:
+                    asin = response.get('request').get('Asin')
+                    products.append({'asin': asin, 'price': -1, 'ranking': -1})
             except KeyError as ex:
                 logger.error({'message':ex})
                 continue

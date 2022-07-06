@@ -78,15 +78,13 @@ class RunAmzTask(object):
 
         get_mq_task = asyncio.create_task(self.get_mq())
         search_catalog_items_task = asyncio.create_task(self.search_catalog_items_v20220401())
-        # get_item_offers_batch_task = asyncio.create_task(self.get_item_offers_batch())
-        # get_my_fee_estimate_task = asyncio.create_task(self.get_my_fees_estimate())
-        await get_mq_task
-        await search_catalog_items_task
-        # await asyncio.wait({get_mq_task, 
-        #                     search_catalog_items_task,
-        #                     get_item_offers_batch_task,
-        #                     get_my_fee_estimate_task,
-        #                     }, return_when='FIRST_COMPLETED')
+        get_item_offers_task = asyncio.create_task(self.get_item_offers())
+        get_my_fee_estimate_task = asyncio.create_task(self.get_my_fees_estimate_for_asin())
+        await asyncio.wait({get_mq_task, 
+                            search_catalog_items_task,
+                            get_item_offers_task,
+                            get_my_fee_estimate_task,
+                            }, return_when='FIRST_COMPLETED')
 
         logger.info('action=main status=done')
 
@@ -134,6 +132,7 @@ class RunAmzTask(object):
                     MWS(asin=product['asin'], filename=parameter['filename'], title=product['title'], jan=product['jan'], unit=product['quantity'], cost=parameter['cost']).save()
 
                 await asyncio.sleep(interval_sec)
+
     # deprecated リクエストがバッドリクエストになる。
     async def get_item_offers_batch(self, interval_sec: int=2):
         logger.info({'action': 'get_item_offers_batch', 'status': 'run'})
