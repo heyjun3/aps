@@ -292,7 +292,7 @@ class SPAPI:
             raise TooMatchParameterException
 
         request_list = []
-        for asin in asin_list:
+        for asin in list(set(asin_list)):
             request_list.append({
                 'uri': f'/products/pricing/v0/items/{asin}/offers',
                 'method': 'GET',
