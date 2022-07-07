@@ -67,7 +67,7 @@ class UpdatePriceAndRankTask(object):
 
 class RunAmzTask(object):
 
-    def __init__(self, queue_name: str='mws', maxsize: int=10000) -> None:
+    def __init__(self, queue_name: str='mws', maxsize: int=1000) -> None:
         self.mq = MQ(queue_name)
         self.client = SPAPI()
         self.queue = asyncio.Queue(maxsize=maxsize)

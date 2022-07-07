@@ -472,7 +472,7 @@ class SPAPIJsonParser(object):
                     jan = identifier['identifiers'][0]['identifier']
                     if jan:
                         break
-            except KeyError as ex:
+            except (KeyError, IndexError) as ex:
                 logger.error({'message': 'jan is None', 'error': ex})
                 continue
 
