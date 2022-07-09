@@ -76,15 +76,16 @@ class RunAmzTask(object):
     async def main(self) -> None:
         logger.info('action=main status=run')
 
-        get_mq_task = asyncio.create_task(self.get_mq())
-        search_catalog_items_task = asyncio.create_task(self.search_catalog_items_v20220401())
+        # get_mq_task = asyncio.create_task(self.get_mq())
+        # search_catalog_items_task = asyncio.create_task(self.search_catalog_items_v20220401())
         get_item_offers_task = asyncio.create_task(self.get_item_offers_batch())
-        get_my_fee_estimate_task = asyncio.create_task(self.get_my_fees_estimate_for_asin())
-        await asyncio.wait({get_mq_task, 
-                            search_catalog_items_task,
-                            get_item_offers_task,
-                            get_my_fee_estimate_task,
-                            }, return_when='FIRST_COMPLETED')
+        # get_my_fee_estimate_task = asyncio.create_task(self.get_my_fees_estimate_for_asin())
+        await asyncio.wait({
+            # get_mq_task, 
+            # search_catalog_items_task,
+            get_item_offers_task,
+            # get_my_fee_estimate_task,
+        }, return_when='FIRST_COMPLETED', timeout=60)
 
         logger.info('action=main status=done')
 
@@ -136,17 +137,28 @@ class RunAmzTask(object):
     async def get_item_offers_batch(self, interval_sec: int=2):
         logger.info({'action': 'get_item_offers_batch', 'status': 'run'})
 
+        semaphore = asyncio.Semaphore(3)
+
+        async def _get_item_offers_batch(asins):
+            logger.info({'action': '_get_item_offers_batch', 'status': 'run'})
+            response = await self.client.get_item_offers_batch(asins)
+            products = SPAPIJsonParser.parse_get_item_offers_batch(response)
+            for product in products:
+                MWS.update_price(asin=product['asin'], price=product['price'])
+                SpapiPrices(asin=product['asin'], price=product['price'])
+            
+            logger.info({'action': '_get_item_offers_batch', 'status': 'done'})
+
         while True:
             asin_list = MWS.get_price_is_None_asins()
             if asin_list:
                 asin_list = [asin_list[i:i+10] for i in range(0, len(asin_list), 10)]
                 for asins in asin_list:
-                    response = await self.client.get_item_offers_batch(asins)
-                    products = SPAPIJsonParser.parse_get_item_offers_batch(response)
-                    for product in products:
-                        MWS.update_price(asin=product['asin'], price=product['price'])
-                        SpapiPrices(asin=product['asin'], price=product['price'])
-                    await asyncio.sleep(interval_sec)
+                    async with semaphore:
+                        task = asyncio.create_task(_get_item_offers_batch(asins))
+                        sleep = asyncio.create_task(asyncio.sleep(interval_sec))
+                        await task
+                        await sleep
             else:
                 await asyncio.sleep(10)
 
