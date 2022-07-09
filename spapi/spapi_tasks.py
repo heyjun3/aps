@@ -76,16 +76,16 @@ class RunAmzTask(object):
     async def main(self) -> None:
         logger.info('action=main status=run')
 
-        # get_mq_task = asyncio.create_task(self.get_mq())
-        # search_catalog_items_task = asyncio.create_task(self.search_catalog_items_v20220401())
+        get_mq_task = asyncio.create_task(self.get_mq())
+        search_catalog_items_task = asyncio.create_task(self.search_catalog_items_v20220401())
         get_item_offers_task = asyncio.create_task(self.get_item_offers_batch())
-        # get_my_fee_estimate_task = asyncio.create_task(self.get_my_fees_estimate_for_asin())
+        get_my_fee_estimate_task = asyncio.create_task(self.get_my_fees_estimate())
         await asyncio.wait({
-            # get_mq_task, 
-            # search_catalog_items_task,
+            get_mq_task, 
+            search_catalog_items_task,
             get_item_offers_task,
-            # get_my_fee_estimate_task,
-        }, return_when='FIRST_COMPLETED', timeout=60)
+            get_my_fee_estimate_task,
+        }, return_when='FIRST_COMPLETED')
 
         logger.info('action=main status=done')
 
@@ -137,8 +137,6 @@ class RunAmzTask(object):
     async def get_item_offers_batch(self, interval_sec: int=2):
         logger.info({'action': 'get_item_offers_batch', 'status': 'run'})
 
-        semaphore = asyncio.Semaphore(3)
-
         async def _get_item_offers_batch(asins):
             logger.info({'action': '_get_item_offers_batch', 'status': 'run'})
             response = await self.client.get_item_offers_batch(asins)
@@ -152,13 +150,11 @@ class RunAmzTask(object):
         while True:
             asin_list = MWS.get_price_is_None_asins()
             if asin_list:
-                asin_list = [asin_list[i:i+10] for i in range(0, len(asin_list), 10)]
+                asin_list = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
                 for asins in asin_list:
-                    async with semaphore:
-                        task = asyncio.create_task(_get_item_offers_batch(asins))
-                        sleep = asyncio.create_task(asyncio.sleep(interval_sec))
-                        await task
-                        await sleep
+                    task = asyncio.create_task(_get_item_offers_batch(asins))
+                    sleep = asyncio.create_task(asyncio.sleep(interval_sec))
+                    await asyncio.gather(task, sleep)
             else:
                 await asyncio.sleep(10)
 
@@ -177,48 +173,66 @@ class RunAmzTask(object):
             else:
                 await asyncio.sleep(10)
 
-    # deprecated 
-    async def get_my_fees_estimate(self) -> None:
+    async def get_my_fees_estimate(self, interval_sec: int=2, use_cache: bool=True) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
-        non_cache_list = []
+
+        async def _get_fee_in_db(asin_list):
+            if not use_cache:
+                [self.fees_queue.put_nowait(asin) for asin in asin_list]
+                return
+
+            for asin in asin_list:
+                fee = SpapiFees.get(asin)
+                if fee is None:
+                    self.fees_queue.put_nowait(asin)
+                else:
+                    MWS.update_fee(fee['asin'], fee['fee_rate'], fee['ship_fee'])
+
+        async def _get_my_fees_estimate():
+            async def _wrapper_get_my_fees_estimate():
+                asins = [await self.fees_queue.get() for _ in range(20) if not self.fees_queue.empty()]
+                response = await self.client.get_my_fees_estimates(asins)
+                products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
+                for product in products:
+                    SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert()
+                    MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee'])
+
+            while not self.fees_queue.empty():
+                task = asyncio.create_task(_wrapper_get_my_fees_estimate())
+                sleep = asyncio.create_task(asyncio.sleep(interval_sec))
+                await asyncio.gather(task, sleep)
 
         while True:
             asin_list = MWS.get_fee_is_None_asins()
             if asin_list:
-                for asin in asin_list:
-                    fee = SpapiFees.get(asin)
-                    if fee is None:
-                        non_cache_list.append(asin)
-                    else:
-                        MWS.update_fee(asin=fee['asin'], fee_rate=fee['fee_rate'], shipping_fee=fee['ship_fee'])
-
-                asins = [non_cache_list[i:i+20] for i in range(0, len(non_cache_list), 20)] 
-                for asin_lst in asins:
-                    response = await self.client.get_my_fees_estimates(asin_lst)
-                    products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
-                    for product in products:
-                        SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert()
-                        MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee'])
-                    await asyncio.sleep(2)
+                get_fee_in_db_task = asyncio.create_task(_get_fee_in_db(asin_list))
+                get_fees_estimate_task = asyncio.create_task(_get_my_fees_estimate())
+                await asyncio.gather(get_fees_estimate_task, get_fee_in_db_task)
             else:
                 await asyncio.sleep(30)
 
-    async def get_my_fees_estimate_for_asin(self, interval_sec: int=0.2):
+    async def get_my_fees_estimate_for_asin(self, interval_sec: int=0.2, use_cache: bool=True):
         logger.info('action=get_my_fees_estimate_for_asin status=run')
+
+        async def _get_my_fees_estimate_for_asin(asin):
+            response = await self.client.get_my_fees_estimate_for_asin(asin)
+            product = SPAPIJsonParser.parse_get_my_fees_estimate_for_asin(response)
+            try:
+                SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert()
+                MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee'])
+            except KeyError as ex:
+                logger.error(f'action=get_my_fees_estimate_for_asin error={ex}')
 
         while True:
             asin_list = MWS.get_fee_is_None_asins()
             if asin_list:
                 for asin in asin_list:
-                    fee = SpapiFees.get(asin)
+                    if use_cache:
+                        fee = SpapiFees.get(asin)
+                    else:
+                        fee = None
                     if fee is None:
-                        response = await self.client.get_my_fees_estimate_for_asin(asin)
-                        product = SPAPIJsonParser.parse_get_my_fees_estimate_for_asin(response)
-                        try:
-                            SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert()
-                            MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee'])
-                        except KeyError as ex:
-                            logger.error(f'action=get_my_fees_estimate_for_asin error={ex}')
+                        await _get_my_fees_estimate_for_asin(asin)
                         await asyncio.sleep(interval_sec)
                     else:
                         try:

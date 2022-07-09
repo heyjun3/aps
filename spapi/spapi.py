@@ -44,10 +44,13 @@ async def request(method: str, url: str, params: dict=None, headers: dict=None, 
             if response.status == 200 and response is not None or response.status == 400:
                 response_json = await response.json()
                 return response_json
+            elif response.status == 429:
+                logger.error(response_json)
+                await asyncio.sleep(2)
             else:
                 logger.error(response_json)
                 await asyncio.sleep(10)
-
+                
 
 class SPAPI:
 
