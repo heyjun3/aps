@@ -31,11 +31,12 @@ class UpdatePriceAndRankTask(object):
         get_competitive_pricing_task = asyncio.create_task(self.get_competitive_pricing())
 
         try:
-            await asyncio.wait({get_competitive_pricing_task})
+            await asyncio.wait_for(get_competitive_pricing_task)
             update_data_process.join()
         except asyncio.TimeoutError as ex:
             logger.error(f'action=main error={ex}')
             self.queue.put(None)
+            update_data_process.join()
 
         logger.info('action=main status=done')
 
@@ -54,12 +55,15 @@ class UpdatePriceAndRankTask(object):
 
     async def get_competitive_pricing(self, interval_sec: int=2) -> None:
         logger.info('action=get_competitive_pricing status=run')
-
-        for asin_list in self.asins:
+        async def _get_competitive_pricing(asin_list):
             response = await self.spapi_client.get_competitive_pricing(asin_list)
             products = SPAPIJsonParser.parse_get_competitive_pricing(response)
             [self.queue.put(product) for product in products]
-            await asyncio.sleep(interval_sec)
+
+        for asin_list in self.asins:
+            task = asyncio.create_task(_get_competitive_pricing(asin_list))
+            sleep = asyncio.create_task(asyncio.sleep(interval_sec))
+            await asyncio.gather(task, sleep)
         
         self.queue.put(None)
         logger.info('action=get_competitive_pricing status=done')
