@@ -1,6 +1,7 @@
 import datetime
 from contextlib import contextmanager
 import asyncio
+from typing import List
 
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
@@ -13,7 +14,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import Insert
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.ext.asyncio import AsyncSession 
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 import log_settings
 import settings
@@ -41,33 +43,46 @@ class AsinsInfo(Base):
         self.title = title
         self.quantity = quantity
 
-    def save(self) -> True:
-        with session_scope() as session:
-            session.add(self)
-        return True
 
     async def save(self) -> True:
-        with async_session.begin() as session:
-            session.add(self)
+        async with async_session.begin() as session:
+            await session.add(self)
         return True
 
-    def upsert(self) -> True:
-        with session_scope() as session:
+    # def upsert(self) -> True:
+    #     with session_scope() as session:
+    #         stmt = Insert(AsinsInfo).values(self.values)
+    #         stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
+    #         session.execute(stmt)
+    #     return True
+
+    async def upsert(self) -> True:
+        async with async_session.begin() as session:
             stmt = Insert(AsinsInfo).values(self.values)
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
-            session.execute(stmt)
+            await session.execute(stmt)
         return True
 
-    @classmethod 
-    def get(cls, jan: str, interval_days: int=30) -> list|None:
+    # @classmethod 
+    # def get(cls, jan: str, interval_days: int=30) -> List[dict]|None:
+    #     date = (datetime.date.today() - datetime.timedelta(days=interval_days))
+    #     with session_scope() as session:
+    #         asins = session.query(cls).filter(cls.jan == jan, cls.modified > date).all()
+    #         if asins:
+    #             asins = [asin.values for asin in  asins]
+    #             return asins
+    #         else:
+    #             return None
+
+    @classmethod
+    async def get(cls, jan: str, interval_days: int=30) -> List[dict]|None:
         date = (datetime.date.today() - datetime.timedelta(days=interval_days))
-        with session_scope() as session:
-            asins = session.query(cls).filter(cls.jan == jan, cls.modified > date).all()
-            if asins:
-                asins = [asin.values for asin in  asins]
-                return asins
-            else:
-                return None
+        async with async_session.begin() as session:
+            stmt = select(cls).where(cls.jan == jan, cls.modified > date).scalars().all()
+            asins = await session.execute(stmt)
+        if asins:
+            return asins
+        return None
 
     @classmethod
     def get_title(cls, asin: str) -> str|None:
@@ -76,6 +91,15 @@ class AsinsInfo(Base):
             if title:
                 return title[0]
             return None
+
+    @classmethod
+    async def get_title(cls, asin: str) -> str|None:
+        async with async_session.begin() as session:
+            stmt = select(cls.title).where(cls.asin == asin).scalars().first()
+            title = await session.execute(stmt)
+        if title:
+            return title[0] # listが返ってくるのか確認する。
+        return None
 
     @property
     def values(self):
