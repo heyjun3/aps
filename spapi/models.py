@@ -1,5 +1,6 @@
 import datetime
 from contextlib import contextmanager
+import asyncio
 
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
@@ -11,12 +12,16 @@ from sqlalchemy import Date
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import Insert
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession 
 
 import log_settings
 import settings
 
 engine = create_engine(settings.DB_URL)
+async_engine = create_async_engine(settings.DB_ASYNC_URL)
 Session = sessionmaker(bind=engine)
+async_session = sessionmaker(async_engine, expire_on_commit=False, class_=AsyncSession)
 Base = declarative_base()
 logger = log_settings.get_logger(__name__)
 
@@ -38,6 +43,11 @@ class AsinsInfo(Base):
 
     def save(self) -> True:
         with session_scope() as session:
+            session.add(self)
+        return True
+
+    async def save(self) -> True:
+        with async_session.begin() as session:
             session.add(self)
         return True
 
