@@ -131,6 +131,13 @@ class SpapiPrices(Base):
             session.execute(stmt)
         return True
 
+    async def upsert(self) -> True:
+        async with async_session.begin() as session:
+            stmt = Insert(SpapiPrices).values(self.values)
+            stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
+            await session.execute(stmt)
+        return True
+
     @property
     def values(self):
         return {
@@ -161,6 +168,13 @@ class SpapiFees(Base):
             session.execute(stmt)
         return True
 
+    async def upsert(self) -> True:
+        async with async_session.begin() as session:
+            stmt = Insert(SpapiFees).values(self.value)
+            stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
+            await session.execute(stmt)
+        return True
+
     @classmethod
     def get(cls, asin: str, interval_days: int=30) -> dict|None:
         date = datetime.date.today() - datetime.timedelta(days=interval_days)
@@ -170,6 +184,16 @@ class SpapiFees(Base):
                 return asin_fee.values
             else:
                 return None
+
+    @classmethod
+    async def get(cls, asin: str, interval_days: int=30) -> dict|None:
+        date = datetime.date.today() - datetime.timedelta(days=interval_days)
+        async with async_session() as session:
+            stmt = select(cls).where(cls,asin == asin, cls.modified > date).scalars().first()
+            asin_fee = await session.execute(stmt)
+            if asin_fee:
+                return asin_fee.values
+            return None
 
     @property
     def values(self):
