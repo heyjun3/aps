@@ -1,6 +1,5 @@
 import datetime
 from contextlib import contextmanager
-import asyncio
 from typing import List
 
 from sqlalchemy import ForeignKey
@@ -13,22 +12,19 @@ from sqlalchemy import Date
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import Insert
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 import log_settings
 import settings
+from models_base import ModelsBase
 
 engine = create_engine(settings.DB_URL)
-async_engine = create_async_engine(settings.DB_ASYNC_URL)
 Session = sessionmaker(bind=engine)
-async_session = sessionmaker(async_engine, expire_on_commit=False, class_=AsyncSession)
 Base = declarative_base()
 logger = log_settings.get_logger(__name__)
 
 
-class AsinsInfo(Base):
+class AsinsInfo(Base, ModelsBase):
     __tablename__= 'asins_info'
     asin = Column(String, primary_key=True, nullable=False)
     jan = Column(String)
@@ -43,10 +39,14 @@ class AsinsInfo(Base):
         self.title = title
         self.quantity = quantity
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}({self.asin}, {self.jan}, "
+        f"{self.title}, {self.quantity}, {self.modified})")
+
 
     async def save(self) -> True:
-        async with async_session.begin() as session:
-            await session.add(self)
+        async with self.async_session.begin() as session:
+            session.add(self)
         return True
 
     # def upsert(self) -> True:
@@ -57,7 +57,7 @@ class AsinsInfo(Base):
     #     return True
 
     async def upsert(self) -> True:
-        async with async_session.begin() as session:
+        async with self.async_session.begin() as session:
             stmt = Insert(AsinsInfo).values(self.values)
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
             await session.execute(stmt)
@@ -77,11 +77,12 @@ class AsinsInfo(Base):
     @classmethod
     async def get(cls, jan: str, interval_days: int=30) -> List[dict]|None:
         date = (datetime.date.today() - datetime.timedelta(days=interval_days))
-        async with async_session.begin() as session:
-            stmt = select(cls).where(cls.jan == jan, cls.modified > date).scalars().all()
-            asins = await session.execute(stmt)
+        async with cls.async_session.begin() as session:
+            stmt = select(cls).where(cls.jan == jan, cls.modified > date)
+            result = await session.execute(stmt)
+            asins = result.scalars().all()
         if asins:
-            return asins
+            return [asin.values for asin in asins]
         return None
 
     @classmethod
@@ -94,11 +95,12 @@ class AsinsInfo(Base):
 
     @classmethod
     async def get_title(cls, asin: str) -> str|None:
-        async with async_session.begin() as session:
-            stmt = select(cls.title).where(cls.asin == asin).scalars().first()
-            title = await session.execute(stmt)
+        async with cls.async_session.begin() as session:
+            stmt = select(cls.title).where(cls.asin == asin)
+            result = await session.execute(stmt)
+            title = result.scalar()
         if title:
-            return title[0] # listが返ってくるのか確認する。
+            return title
         return None
 
     @property
@@ -112,7 +114,7 @@ class AsinsInfo(Base):
         }
 
 
-class SpapiPrices(Base):
+class SpapiPrices(Base, ModelsBase):
 
     __tablename__ = 'spapi_prices'
     asin = Column(String, ForeignKey('asins_info.asin'), primary_key=True, nullable=False)
@@ -132,7 +134,7 @@ class SpapiPrices(Base):
         return True
 
     async def upsert(self) -> True:
-        async with async_session.begin() as session:
+        async with self.async_session.begin() as session:
             stmt = Insert(SpapiPrices).values(self.values)
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
             await session.execute(stmt)
@@ -147,7 +149,7 @@ class SpapiPrices(Base):
         }
 
 
-class SpapiFees(Base):
+class SpapiFees(Base, ModelsBase):
 
     __tablename__ = 'spapi_fees'
     asin = Column(String, ForeignKey('asins_info.asin'), primary_key=True, nullable=False)
@@ -169,28 +171,29 @@ class SpapiFees(Base):
         return True
 
     async def upsert(self) -> True:
-        async with async_session.begin() as session:
+        async with self.async_session.begin() as session:
             stmt = Insert(SpapiFees).values(self.value)
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
             await session.execute(stmt)
         return True
 
-    @classmethod
-    def get(cls, asin: str, interval_days: int=30) -> dict|None:
-        date = datetime.date.today() - datetime.timedelta(days=interval_days)
-        with session_scope() as session:
-            asin_fee = session.query(cls).filter(cls.asin == asin, cls.modified > date).first()
-            if asin_fee:
-                return asin_fee.values
-            else:
-                return None
+    # @classmethod
+    # def get(cls, asin: str, interval_days: int=30) -> dict|None:
+    #     date = datetime.date.today() - datetime.timedelta(days=interval_days)
+    #     with session_scope() as session:
+    #         asin_fee = session.query(cls).filter(cls.asin == asin, cls.modified > date).first()
+    #         if asin_fee:
+    #             return asin_fee.values
+    #         else:
+    #             return None
 
     @classmethod
     async def get(cls, asin: str, interval_days: int=30) -> dict|None:
         date = datetime.date.today() - datetime.timedelta(days=interval_days)
-        async with async_session() as session:
-            stmt = select(cls).where(cls,asin == asin, cls.modified > date).scalars().first()
-            asin_fee = await session.execute(stmt)
+        async with cls.async_session() as session:
+            stmt = select(cls).where(cls.asin == asin, cls.modified > date)
+            result = await session.execute(stmt)
+            asin_fee = result.scalar()
             if asin_fee:
                 return asin_fee.values
             return None
