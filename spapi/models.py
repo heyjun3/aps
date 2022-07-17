@@ -45,7 +45,7 @@ class AsinsInfo(Base, ModelsBase):
 
 
     async def save(self) -> True:
-        async with self.async_session.begin() as session:
+        async with self.session_scope() as session:
             session.add(self)
         return True
 
@@ -57,7 +57,7 @@ class AsinsInfo(Base, ModelsBase):
     #     return True
 
     async def upsert(self) -> True:
-        async with self.async_session.begin() as session:
+        async with self.session_scope() as session:
             stmt = Insert(AsinsInfo).values(self.values)
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
             await session.execute(stmt)
@@ -77,7 +77,7 @@ class AsinsInfo(Base, ModelsBase):
     @classmethod
     async def get(cls, jan: str, interval_days: int=30) -> List[dict]|None:
         date = (datetime.date.today() - datetime.timedelta(days=interval_days))
-        async with cls.async_session.begin() as session:
+        async with cls.session_scope() as session:
             stmt = select(cls).where(cls.jan == jan, cls.modified > date)
             result = await session.execute(stmt)
             asins = result.scalars().all()
@@ -95,7 +95,7 @@ class AsinsInfo(Base, ModelsBase):
 
     @classmethod
     async def get_title(cls, asin: str) -> str|None:
-        async with cls.async_session.begin() as session:
+        async with cls.session_scope() as session:
             stmt = select(cls.title).where(cls.asin == asin)
             result = await session.execute(stmt)
             title = result.scalar()
@@ -134,7 +134,7 @@ class SpapiPrices(Base, ModelsBase):
         return True
 
     async def upsert(self) -> True:
-        async with self.async_session.begin() as session:
+        async with self.session_scope() as session:
             stmt = Insert(SpapiPrices).values(self.values)
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
             await session.execute(stmt)
@@ -171,7 +171,7 @@ class SpapiFees(Base, ModelsBase):
         return True
 
     async def upsert(self) -> True:
-        async with self.async_session.begin() as session:
+        async with self.session_scope() as session:
             stmt = Insert(SpapiFees).values(self.value)
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
             await session.execute(stmt)
@@ -190,7 +190,7 @@ class SpapiFees(Base, ModelsBase):
     @classmethod
     async def get(cls, asin: str, interval_days: int=30) -> dict|None:
         date = datetime.date.today() - datetime.timedelta(days=interval_days)
-        async with cls.async_session() as session:
+        async with cls.session_scope() as session:
             stmt = select(cls).where(cls.asin == asin, cls.modified > date)
             result = await session.execute(stmt)
             asin_fee = result.scalar()
