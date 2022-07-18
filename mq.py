@@ -51,7 +51,7 @@ class MQ(object):
                 yield None
                 time.sleep(30)
 
-    async def get(self, interval_sec: int=3) -> str:
+    def get(self) -> str|None:
 
         while True:
             resp = self.channel.basic_get(self.queue_name, auto_ack=True)
@@ -59,7 +59,7 @@ class MQ(object):
             if body:
                 yield body.decode()
             else:
-                await asyncio.sleep(interval_sec)
+                yield None
 
     def callback_recieve(self, func: FunctionType, interval_sec: float=1.0) -> None:
         logger.info('action=run_callback_recieve status=run')
