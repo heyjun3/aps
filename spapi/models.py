@@ -1,5 +1,4 @@
 import datetime
-from contextlib import contextmanager
 from typing import List
 
 from sqlalchemy import ForeignKey
@@ -49,30 +48,12 @@ class AsinsInfo(Base, ModelsBase):
             session.add(self)
         return True
 
-    # def upsert(self) -> True:
-    #     with session_scope() as session:
-    #         stmt = Insert(AsinsInfo).values(self.values)
-    #         stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
-    #         session.execute(stmt)
-    #     return True
-
     async def upsert(self) -> True:
         async with self.session_scope() as session:
             stmt = Insert(AsinsInfo).values(self.values)
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
             await session.execute(stmt)
         return True
-
-    # @classmethod 
-    # def get(cls, jan: str, interval_days: int=30) -> List[dict]|None:
-    #     date = (datetime.date.today() - datetime.timedelta(days=interval_days))
-    #     with session_scope() as session:
-    #         asins = session.query(cls).filter(cls.jan == jan, cls.modified > date).all()
-    #         if asins:
-    #             asins = [asin.values for asin in  asins]
-    #             return asins
-    #         else:
-    #             return None
 
     @classmethod
     async def get(cls, jan: str, interval_days: int=30) -> List[dict]|None:
@@ -84,14 +65,6 @@ class AsinsInfo(Base, ModelsBase):
         if asins:
             return [asin.values for asin in asins]
         return None
-
-    @classmethod
-    def get_title(cls, asin: str) -> str|None:
-        with session_scope() as session:
-            title = session.query(cls.title).filter(cls.asin == asin).first()
-            if title:
-                return title[0]
-            return None
 
     @classmethod
     async def get_title(cls, asin: str) -> str|None:
@@ -126,13 +99,6 @@ class SpapiPrices(Base, ModelsBase):
         self.price = price
         self.modified = datetime.date.today()
 
-    def upsert(self) -> True:
-        with session_scope() as session:
-            stmt = Insert(SpapiPrices).values(self.values)
-            stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
-            session.execute(stmt)
-        return True
-
     async def upsert(self) -> True:
         async with self.session_scope() as session:
             stmt = Insert(SpapiPrices).values(self.values)
@@ -163,29 +129,12 @@ class SpapiFees(Base, ModelsBase):
         self.ship_fee = ship_fee
         self.modified = datetime.date.today()
 
-    def upsert(self) -> True:
-        with session_scope() as session:
-            stmt = Insert(SpapiFees).values(self.values)
-            stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
-            session.execute(stmt)
-        return True
-
     async def upsert(self) -> True:
         async with self.session_scope() as session:
-            stmt = Insert(SpapiFees).values(self.value)
+            stmt = Insert(SpapiFees).values(self.values)
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
             await session.execute(stmt)
         return True
-
-    # @classmethod
-    # def get(cls, asin: str, interval_days: int=30) -> dict|None:
-    #     date = datetime.date.today() - datetime.timedelta(days=interval_days)
-    #     with session_scope() as session:
-    #         asin_fee = session.query(cls).filter(cls.asin == asin, cls.modified > date).first()
-    #         if asin_fee:
-    #             return asin_fee.values
-    #         else:
-    #             return None
 
     @classmethod
     async def get(cls, asin: str, interval_days: int=30) -> dict|None:
@@ -206,17 +155,6 @@ class SpapiFees(Base, ModelsBase):
             'ship_fee': self.ship_fee,
             'modified': self.modified,
         }
-
-
-@contextmanager
-def session_scope():
-    try:
-        session = Session()
-        yield session
-        session.commit()
-    except Exception as ex:
-        logger.error(ex)
-        session.rollback()
 
 
 def init_db():
