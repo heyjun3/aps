@@ -28,5 +28,5 @@ class ModelsBase(object):
             logger.error(ex)
             await session.rollback()
         except Exception as ex:
-            logger.errro(ex)
+            logger.error(ex)
             await session.rollback()
