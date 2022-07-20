@@ -220,13 +220,24 @@ class MWS(Base, ModelsBase):
             result = await session.execute(stmt)
             return result.scalars().all()
 
+    # @classmethod
+    # def update_price(cls, asin: str, price: int):
+    #     with session_scope() as session:
+    #         mws_list = session.query(cls).filter(cls.asin == asin).all()
+    #         for mws in mws_list:
+    #             mws.price = price
+    #             mws.cost = deepcopy(mws.cost)
+    #         return True
+
     @classmethod
-    def update_price(cls, asin: str, price: int):
-        with session_scope() as session:
-            mws_list = session.query(cls).filter(cls.asin == asin).all()
-            for mws in mws_list:
+    async def update_price(cls, asin:str, price: int):
+        async with cls.async_session() as session:
+            stmt = select(cls).where(cls.asin == asin)
+            result = await session.execute(stmt)
+            for mws in result.scalars():
                 mws.price = price
                 mws.cost = deepcopy(mws.cost)
+                await session.add(mws)
             return True
 
     @classmethod
