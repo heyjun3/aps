@@ -250,30 +250,57 @@ class MWS(Base, ModelsBase):
             return True
 
     @classmethod
-    def delete_objects(cls, filename_list: list):
-        with session_scope() as session:
-            session.query(cls).filter(cls.filename.in_(filename_list)).delete()
+    async def update_fee(cls, asin: str, fee_rate: float, shipping_fee: int):
+        async with cls.async_session() as session:
+            stmt = select(cls).where(cls.asin == asin)
+            result = await session.execute(stmt)
+            for mws in result.scalars():
+                mws.fee_rate = fee_rate
+                mws.shipping_fee = shipping_fee
+                await session.add(mws)
             return True
 
-    @classmethod
-    def delete_rows(cls, filename: str):
-        with session_scope() as session:
-            session.query(cls).filter(cls.filename == filename).delete()
-        return True
+    # @classmethod
+    # def delete_rows(cls, filename: str):
+    #     with session_scope() as session:
+    #         session.query(cls).filter(cls.filename == filename).delete()
+    #     return True
 
     @classmethod
-    def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1, unit_count: int=10, drops: int=3) -> bool:
-        with session_scope() as session:
-            products = session.query(cls.filename, cls.asin).join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).where(or_(
+    async def delete_rows(cls, filename: str):
+        async with cls.async_session() as session:
+            stmt = select(cls).where(cls.filename == filename)
+            await session.delete(stmt)
+            return True
+
+    # @classmethod
+    # def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1, unit_count: int=10, drops: int=3) -> bool:
+    #     with session_scope() as session:
+    #         products = session.query(cls.filename, cls.asin).join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).where(or_(
+    #             cls.profit < profit,
+    #             cls.profit_rate < profit_rate,
+    #             cls.unit > unit_count,
+    #             KeepaProducts.sales_drops_90 <= drops,
+    #         )).all()
+    #         for filename, asin in products:
+    #             session.query(cls).where(cls.filename == filename, cls.asin == asin).delete()
+
+        # return True
+
+    @classmethod
+    async def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1, unit_count: int=10, drops: int=3) -> True:
+        async with cls.async_session() as session:
+            stmt = select(cls.filename, cls.asin).join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).where(
                 cls.profit < profit,
                 cls.profit_rate < profit_rate,
                 cls.unit > unit_count,
                 KeepaProducts.sales_drops_90 <= drops,
-            )).all()
-            for filename, asin in products:
-                session.query(cls).where(cls.filename == filename, cls.asin == asin).delete()
-
-        return True
+            )
+            result = await session.execute(stmt)
+            for filename, asin in result.scalars():
+                stmt = select(cls).where(cls.filename == filename, cls.asin == asin)
+                await session.delete(stmt)
+            return True
 
     @property
     def value(self):
