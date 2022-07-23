@@ -1,10 +1,6 @@
 from __future__ import annotations
-from contextlib import contextmanager
 import datetime
-from multiprocessing import synchronize
 import threading
-from copy import deepcopy
-import itertools
 from typing import List
 
 from sqlalchemy import create_engine
@@ -22,7 +18,6 @@ from sqlalchemy import update
 from sqlalchemy import delete
 from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -65,15 +60,6 @@ class MWS(Base, ModelsBase):
     profit_rate =Column(Numeric(precision=10, scale=2), Computed(PROFIT_RATE))
     created_at = Column(DateTime, default=datetime.datetime.now)
 
-    # def save(self):
-    #     with session_scope() as session:
-    #         try:
-    #             session.add(self)
-    #         except IntegrityError as ex:
-    #             logger.debug(ex)
-    #             return False
-    #         return True
-
     async def save(self):
         async with self.session_scope() as session:
             session.add(self)
@@ -86,14 +72,6 @@ class MWS(Base, ModelsBase):
             result = await session.execute(stmt)
             return result.scalar()
 
-    # @classmethod
-    # def get_filenames(cls):
-    #     with session_scope() as session:
-    #         filenames = session.query(distinct(cls.filename)).all()
-    #         filenames = itertools.chain.from_iterable(filenames)
-
-    #     return sorted(filenames)
-
     @classmethod
     async def get_filenames(cls) -> List[str]:
         async with cls.session_scope() as session:
@@ -101,21 +79,6 @@ class MWS(Base, ModelsBase):
             result = await session.execute(stmt)
             filenames = result.scalars()
             return sorted(filenames)
-
-    # @classmethod
-    # def get_chart_data(cls, filename: str, page: int, count: int) -> List: 
-    #     start = (page - 1) * count
-    #     end = start + count
-    #     with session_scope() as session:
-    #         rows = session.query(cls, KeepaProducts.render_data).join(KeepaProducts, cls.asin == KeepaProducts.asin)\
-    #                 .filter(cls.profit >= 200, 
-    #                         cls.profit_rate >= 0.1, 
-    #                         cls.filename == filename, 
-    #                         cls.unit <= 10, 
-    #                         KeepaProducts.sales_drops_90 > 3, 
-    #                         KeepaProducts.render_data != None)\
-    #                 .order_by(MWS.profit.desc()).slice(start, end).all()
-    #     return rows
 
     @classmethod
     async def get_chart_data(cls, filename: str, page: int, count: int) -> List[MWS, dict]:
@@ -132,13 +95,6 @@ class MWS(Base, ModelsBase):
             result = await session.execute(stmt)
             return result.all()
 
-    # @classmethod
-    # def get_row_count(cls, filename: str) -> int:
-    #     with session_scope() as session:
-    #         rows = session.query(func.count(cls.asin)).join(KeepaProducts, cls.asin == KeepaProducts.asin)\
-    #         .filter(cls.profit >= 200, cls.profit_rate >= 0.1, cls.filename == filename, cls.unit <= 10, KeepaProducts.sales_drops_90 > 3, KeepaProducts.render_data != None).first()
-    #         return rows[0]
-
     @classmethod
     async def get_row_count(cls, filename: str) -> int:
         async with cls.session_scope() as session:
@@ -152,19 +108,6 @@ class MWS(Base, ModelsBase):
             )
             result = await session.execute(stmt)
             return result.scalar()
-
-    # @classmethod
-    # def get_asin_list_None_products(cls, profit: int=200, profit_rate: float=0.1):
-    #     with session_scope() as session:
-    #         try:
-    #             asin_list = session.query(cls.asin).filter(cls.profit >= profit, cls.profit_rate >= profit_rate)\
-    #                         .join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).filter(KeepaProducts.asin == None).all()
-    #             asin_list = list(set(map(lambda x: x[0], asin_list)))
-    #         except Exception as ex:
-    #             logger.error(f'action=get_asin_to_request_keepa error={ex}')
-    #             return None
-    #         return asin_list
-
     @classmethod
     async def get_asin_list_None_products(cls, profit: int=200, profit_rate: float=0.1) -> List[str]:
         async with cls.session_scope() as session:
@@ -175,39 +118,12 @@ class MWS(Base, ModelsBase):
             result = await session.execute(stmt)
             return result.scalars().all()
 
-    # @classmethod
-    # def get_price_is_None_products(cls):
-    #     with session_scope() as session:
-    #         products = session.query(cls.asin).filter(cls.price == None).all()
-    #         return products
-
-    # @classmethod
-    # def get_price_is_None_asins(cls):
-    #     with session_scope() as session:
-    #         products = session.query(cls.asin).filter(cls.price == None).all()
-    #         products = list(map(lambda x: x[0], products))
-    #         return products
-
     @classmethod
     async def get_price_is_None_asins(cls) -> List[str]:
         async with cls.session_scope() as session:
             stmt = select(cls.asin).where(cls.price == None)
             result = await session.execute(stmt)
             return result.scalars().all()
-
-    # @classmethod
-    # def get_fee_is_None_products(cls):
-    #     with session_scope() as session:
-    #         products = session.query(cls.asin).filter(or_(cls.fee_rate == None, cls.shipping_fee == None)).all()
-    #         return products
-
-    # @classmethod
-    # def get_fee_is_None_asins(cls, limit_count: int=1000):
-    #     with session_scope() as session:
-    #         products = session.query(cls.asin).filter(or_(cls.fee_rate == None, cls.shipping_fee == None))\
-    #         .order_by(cls.created_at).limit(limit_count).all()
-    #         products = list(map(lambda x: x[0], products))
-    #         return products
 
     @classmethod
     async def get_fee_is_None_asins(cls, limit_count: int=1000) -> List[str]:
@@ -217,15 +133,6 @@ class MWS(Base, ModelsBase):
             result = await session.execute(stmt)
             return result.scalars().all()
 
-    # @classmethod
-    # def update_price(cls, asin: str, price: int):
-    #     with session_scope() as session:
-    #         mws_list = session.query(cls).filter(cls.asin == asin).all()
-    #         for mws in mws_list:
-    #             mws.price = price
-    #             mws.cost = deepcopy(mws.cost)
-    #         return True
-
     @classmethod
     async def update_price(cls, asin:str, price: int):
         async with cls.session_scope() as session:
@@ -233,15 +140,6 @@ class MWS(Base, ModelsBase):
             result = await session.execute(stmt)
             result.close()
             return True
-
-    # @classmethod
-    # def update_fee(cls, asin: str, fee_rate: float, shipping_fee: int):
-    #     with session_scope() as session:
-    #         mws_list = session.query(cls).filter(cls.asin == asin).all()
-    #         for mws in mws_list:
-    #             mws.fee_rate = fee_rate
-    #             mws.shipping_fee = shipping_fee
-    #         return True
 
     @classmethod
     async def update_fee(cls, asin: str, fee_rate: float, shipping_fee: int):
@@ -252,33 +150,12 @@ class MWS(Base, ModelsBase):
             result.close()
             return True
 
-    # @classmethod
-    # def delete_rows(cls, filename: str):
-    #     with session_scope() as session:
-    #         session.query(cls).filter(cls.filename == filename).delete()
-    #     return True
-
     @classmethod
     async def delete_rows(cls, filename: str):
         async with cls.session_scope() as session:
             stmt = delete(cls).where(cls.filename == filename)
             await session.execute(stmt)
             return True
-
-    # @classmethod
-    # def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1, unit_count: int=10, drops: int=3) -> bool:
-    #     with session_scope() as session:
-    #         products = session.query(cls.filename, cls.asin).join(KeepaProducts, cls.asin == KeepaProducts.asin, isouter=True).where(or_(
-    #             cls.profit < profit,
-    #             cls.profit_rate < profit_rate,
-    #             cls.unit > unit_count,
-    #             KeepaProducts.sales_drops_90 <= drops,
-    #         )).all()
-    #         for filename, asin in products:
-    #             session.query(cls).where(cls.filename == filename, cls.asin == asin).delete()
-
-        # return True
-
 
     @classmethod
     async def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1, unit_count: int=10, drops: int=3) -> True:
@@ -313,25 +190,6 @@ class MWS(Base, ModelsBase):
     
     def __repr__(self):
         return f'{self.__class__}'
-
-
-@contextmanager
-def session_scope():
-    session = Session()
-    session.expire_on_commit = False
-    try:
-        lock.acquire()
-        yield session
-        session.commit()
-    except IntegrityError as ex:
-        logger.debug(f'action=session_scope error={ex}')
-        session.rollback()
-    except Exception as ex:
-        logger.error(f'action=session_scope error={ex}')
-        session.rollback()
-    finally:
-        session.expire_on_commit = True
-        lock.release()
 
 
 def init_db(engine):
