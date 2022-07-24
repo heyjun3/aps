@@ -86,11 +86,11 @@ def scrape_keepa_request(response: dict) -> list:
     return products
 
 
-def main(interval_sec: int=60, count: int=100):
+async def main(interval_sec: int=60, count: int=100):
     logger.info('action=main status=run')
 
     while True:
-        asin_list = MWS.get_asin_list_None_products()
+        asin_list = await MWS.get_asin_list_None_products()
         if asin_list:
             asin_list = [asin_list[i:i+count] for i in range(0, len(asin_list), count)]
             for asins in asin_list:

@@ -118,7 +118,7 @@ class RunAmzTask(object):
                 self.search_catalog_queue.publish(params)
             else:
                 for product in products:
-                    MWS(asin=product['asin'], filename=params_json['filename'], title=product['title'],
+                    await MWS(asin=product['asin'], filename=params_json['filename'], title=product['title'],
                         jan=params_json['jan'], unit=product['quantity'], cost=params_json['cost']).save()
 
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
@@ -140,7 +140,7 @@ class RunAmzTask(object):
                         logger.error(product)
                         continue
                     await AsinsInfo(asin=product['asin'], jan=product['jan'], title=product['title'], quantity=product['quantity']).upsert()
-                    MWS(asin=product['asin'], filename=parameter['filename'], title=product['title'], jan=product['jan'], unit=product['quantity'], cost=parameter['cost']).save()
+                    await MWS(asin=product['asin'], filename=parameter['filename'], title=product['title'], jan=product['jan'], unit=product['quantity'], cost=parameter['cost']).save()
 
                 await asyncio.sleep(interval_sec)
 
@@ -152,13 +152,13 @@ class RunAmzTask(object):
             response = await self.client.get_item_offers_batch(asins)
             products = SPAPIJsonParser.parse_get_item_offers_batch(response)
             for product in products:
-                MWS.update_price(asin=product['asin'], price=product['price'])
+                await MWS.update_price(asin=product['asin'], price=product['price'])
                 await SpapiPrices(asin=product['asin'], price=product['price']).upsert()
             
             logger.info({'action': '_get_item_offers_batch', 'status': 'done'})
 
         while True:
-            asin_list = MWS.get_price_is_None_asins()
+            asin_list = await MWS.get_price_is_None_asins()
             if asin_list:
                 asin_list = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
                 for asins in asin_list:
@@ -177,7 +177,7 @@ class RunAmzTask(object):
                 products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
                 for product in products:
                     await SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert()
-                    MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee'])
+                    await MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee'])
 
             asin_list = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
             for asins in asin_list:
@@ -186,7 +186,7 @@ class RunAmzTask(object):
                 await asyncio.gather(task, sleep)
 
         while True:
-            asin_list = MWS.get_fee_is_None_asins()
+            asin_list = await MWS.get_fee_is_None_asins()
             if asin_list:
                 fees = []
                 for asin in asin_list:
@@ -194,7 +194,7 @@ class RunAmzTask(object):
                     if fee is None:
                         fees.append(asin)
                     else:
-                        MWS.update_fee(fee['asin'], fee['fee_rate'], fee['ship_fee'])
+                        await MWS.update_fee(fee['asin'], fee['fee_rate'], fee['ship_fee'])
 
                 await _get_my_fees_estimate(fees)    
             else:
