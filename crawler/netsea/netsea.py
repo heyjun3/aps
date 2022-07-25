@@ -9,6 +9,7 @@ from urllib.parse import urljoin
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 from typing import List
+from collections import deque
 
 import requests
 from requests import Session
@@ -32,7 +33,7 @@ jan_regex = re.compile('[0-9]{13}')
 class Netsea(object):
 
     def __init__(self, urls: List[str], timestamp: datetime = datetime.now(), is_new_product_search: bool = False):
-        self.start_urls = urls
+        self.start_urls = deque(urls) 
         self.netsea_product_queue = Queue()
         self.mq = MQ('mws')
         self.session = self.login()
@@ -70,7 +71,7 @@ class Netsea(object):
 
         while self.url is not None and not self.start_urls:
             if not self.url:
-                self.url = self.start_urls.pop()
+                self.url = self.start_urls.popleft()
             logger.info(self.url)
             response = utils.request(session=self.session, url=self.url)
             time.sleep(interval_sec)
