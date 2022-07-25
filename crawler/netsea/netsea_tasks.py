@@ -24,16 +24,17 @@ def logger_decorator(func):
     return _logger_decorator
 
 @logger_decorator
-def run_netsea_at_shop_id(shop_id: str, path: str = 'search') -> None:
+def run_netsea_at_shop_id(shop_id: str, path: str = 'search_faceted') -> None:
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
     params = {'sort': 'PD', 'supplier_id': shop_id, 'ex_so': 'Y', 'searched': 'Y'}
+    url = requests.Request(method='GET', url=url, params=params).prepare().url
     timestamp = datetime.datetime.now()
-    client = Netsea(url, params, timestamp=timestamp)
+    client = Netsea([url], timestamp=timestamp)
     client.start_search_products()
 
 
 @logger_decorator
-def run_new_product_search(path: str = 'search') -> None:
+def run_new_product_search(path: str = 'search_faceted') -> None:
     timestamp = datetime.datetime.now()
     base_url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
     urls = []
@@ -47,15 +48,18 @@ def run_new_product_search(path: str = 'search') -> None:
     client.start_search_products()
 
 @logger_decorator
-def run_get_discount_products(path: str = 'search') -> None:
-
-    url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
+def run_get_discount_products(path: str = 'search_faceted') -> None:
+    base_url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
     timestamp = datetime.datetime.now()
+    urls = []
 
     for index in range(10, 1, -1):
         params = {'disc_flg': 'Y', 'ex_so': 'Y', 'sort': 'PD', 'searched': 'Y', 'category_id': str(index)}
-        client = Netsea(url, params, timestamp=timestamp)
-        client.start_search_products()
+        url = requests.Request(method='GET', url=base_url, params=params).prepare().url
+        urls.append(url)
+
+    client = Netsea(urls, timestamp=timestamp)
+    client.start_search_products()
 
 @logger_decorator
 def run_netsea_all_products():
@@ -81,6 +85,7 @@ def run_get_all_shop_info(path: str = 'shop', interval_sec: int = 2) -> None:
 def run_get_favorite_products(path: str = 'bookmark') -> pd.DataFrame:
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
     params = {'stock_option': 'in'}
-    client = Netsea(url, params)
+    url = requests.Request(method='GET', url=url, params=params).prepare().url
+    client = Netsea([url], params)
     df = client.pool_favorite_product_list_page()
     return df

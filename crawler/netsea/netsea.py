@@ -33,7 +33,8 @@ jan_regex = re.compile('[0-9]{13}')
 class Netsea(object):
 
     def __init__(self, urls: List[str], timestamp: datetime = datetime.now(), is_new_product_search: bool = False):
-        self.start_urls = deque(urls) 
+        self.start_urls = deque(urls)
+        self.url = ''
         self.netsea_product_queue = Queue()
         self.mq = MQ('mws')
         self.session = self.login()
@@ -69,7 +70,7 @@ class Netsea(object):
     def pool_product_list_page(self, interval_sec: int = 2) -> None:
         logger.info('action=pool_product_list_page status=run')
 
-        while self.url is not None and not self.start_urls:
+        while self.url is not None or self.start_urls:
             if not self.url:
                 self.url = self.start_urls.popleft()
             logger.info(self.url)
@@ -226,12 +227,14 @@ class NetseaHTMLPage(object):
         try:
             next_page_url_tag = soup.select_one('.next a')
             products = soup.select('.showcaseType01')
-            new_product_count = soup.select('.labelType04')
+            new_product_count = soup.select('.showcaseHd .labelType04')
         except AttributeError as e:
             logger.error(f"action=next_page_url_selector status={e}")
             return None
 
         if is_new_product_search and (not len(new_product_count) == 60 or not next_page_url_tag):
+            logger.info(f'next_page_url is None or new product flag is None')
+            logger.info({'next_page_url': next_page_url_tag, 'new_product_count': len(new_product_count)})
             return None
 
         if next_page_url_tag:
