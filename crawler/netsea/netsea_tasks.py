@@ -3,6 +3,7 @@ import time
 import datetime
 
 import pandas as pd
+import requests
 
 from crawler.netsea.netsea import Netsea
 from crawler.netsea.netsea import NetseaHTMLPage
@@ -34,12 +35,16 @@ def run_netsea_at_shop_id(shop_id: str, path: str = 'search') -> None:
 @logger_decorator
 def run_new_product_search(path: str = 'search') -> None:
     timestamp = datetime.datetime.now()
-    url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
+    base_url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
+    urls = []
 
     for index in range(2, 8):
         params = {'sort': 'new', 'category_id': str(index), 'ex_so': 'Y', 'searched': 'Y'}
-        client = Netsea(url, params, timestamp, is_new_product_search=True)
-        client.start_search_products()
+        url = requests.Request(method='GET', url=base_url, params=params).prepare().url
+        urls.append(url)
+    
+    client = Netsea(urls, timestamp, is_new_product_search=True)
+    client.start_search_products()
 
 @logger_decorator
 def run_get_discount_products(path: str = 'search') -> None:
