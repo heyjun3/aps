@@ -16,7 +16,7 @@ import log_settings
 
 logger = log_settings.get_logger(__name__)
 app = Flask(__name__)
-CORS(app, supports_credentials=True,)
+CORS(app, supports_credentials=True, origins=['http://192.168.0.8:5000'])
 
 
 @app.route('/list', methods=['GET'])
