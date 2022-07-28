@@ -89,7 +89,7 @@ class Netsea(object):
             netsea_product = self.netsea_product_queue.get()
             if netsea_product is None:
                 break
-            if re.fullmatch('[\d]{13}', netsea_product.product_code):
+            if re.fullmatch('[0-9]{13}', netsea_product.product_code):
                 netsea_product.jan = netsea_product.product_code
                 netsea_product.save()
             else:
@@ -132,7 +132,7 @@ class Netsea(object):
             netsea_object = NetseaProduct.get_object_filter_productcode_and_shopcode(product_id, shop_id)
             if netsea_object and netsea_object.jan:
                 jan = netsea_object.jan
-            elif re.fullmatch('[\d]{13}', product_id):
+            elif re.fullmatch('[0-9]{13}', product_id):
                 jan = product_id
             else:
                 continue
@@ -210,7 +210,7 @@ class NetseaHTMLPage(object):
         logger.info('action=scrape_detail_product_page status=run')
         soup = BeautifulSoup(response, 'lxml')
         try:
-            jan = re.fullmatch('[\d]{13}', soup.select('#itemDetailSec td')[-1].text.strip())
+            jan = re.fullmatch('[0-9]{13}', soup.select('#itemDetailSec td')[-1].text.strip())
             jan = jan.group()
         except (IndexError, AttributeError) as e:
             logger.error(f'action=get_jan error={e}')
@@ -220,7 +220,7 @@ class NetseaHTMLPage(object):
         return jan
 
     @classmethod
-    def scrape_next_page_url(cls, response: str, response_url: str, is_new_product_search: bool = False, consume_tax: float = 1.1) -> str | None:
+    def scrape_next_page_url(cls, response: str, response_url: str, is_new_product_search: bool = False) -> str | None:
         logger.info('action=scrape_next_page_url status=run')
 
         soup = BeautifulSoup(response, 'lxml')
