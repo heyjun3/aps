@@ -16,7 +16,7 @@ class TestModels(object):
         engine = create_async_engine(settings.DB_TEST_URL)
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        MWS.async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+        MWS.url = settings.DB_TEST_URL
         await MWS(asin="TEST", filename='testfilename', title='testtitle', jan='testjan',
              unit=10, price=10000, cost=1000, fee_rate=0.1, shipping_fee=500).save()
         await MWS(asin='testprice', filename='testfileprice').save()
