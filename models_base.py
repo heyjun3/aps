@@ -14,13 +14,14 @@ logger = get_logger(__name__)
 
 class ModelsBase(object):
 
-    engine = create_async_engine(settings.DB_ASYNC_URL, future=True)
-    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    url = settings.DB_ASYNC_URL
 
     @classmethod
     @asynccontextmanager
     async def session_scope(cls):
-        session = cls.async_session()
+        engine = create_async_engine(cls.url, future=True)
+        async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+        session = async_session()
         try:
             yield session
             await session.commit()
@@ -30,3 +31,5 @@ class ModelsBase(object):
         except Exception as ex:
             logger.error(ex)
             await session.rollback()
+        finally:
+            await session.close()
