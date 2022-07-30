@@ -368,7 +368,7 @@ class SPAPIJsonParser(object):
             try:
                 ranking = round(float(payload['Product']['SalesRankings'][0]['Rank']))
                 category_id = payload['Product']['SalesRankings'][0]['ProductCategoryId']
-                if re.fullmatch('[\d]+', category_id):
+                if re.fullmatch('[0-9]+', category_id):
                     raise NotRankingException
             except (NotRankingException, IndexError, KeyError) as ex:
                 logger.error(f"{asin} hasn't ranking error={ex}")
