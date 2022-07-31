@@ -2,6 +2,7 @@ import time
 from multiprocessing import Process, Queue
 import json
 import asyncio
+from typing import Coroutine
 
 from spapi.spapi import SPAPI
 from spapi.spapi import SPAPIJsonParser
@@ -84,16 +85,20 @@ class RunAmzTask(object):
     async def main(self) -> None:
         logger.info('action=main status=run')
 
-        get_mq_task = asyncio.create_task(self.get_queue())
-        search_catalog_items_task = asyncio.create_task(self.search_catalog_items_v20220401())
-        get_item_offers_task = asyncio.create_task(self.get_item_offers_batch())
-        get_my_fee_estimate_task = asyncio.create_task(self.get_my_fees_estimate())
-        await asyncio.wait({
-            get_mq_task, 
-            search_catalog_items_task,
-            get_item_offers_task,
-            get_my_fee_estimate_task,
-        }, return_when='FIRST_COMPLETED')
+        get_mq_process = Process(target=asyncio.run, args=(self.get_queue(), ))
+        search_catalog_items_process = Process(target=asyncio.run, args=(self.search_catalog_items_v20220401(), ))
+        get_item_offers_process = Process(target=asyncio.run, args=(self.get_item_offers_batch(), ))
+        get_my_fee_estimate_process = Process(target=asyncio.run, args=(self.get_my_fees_estimate(), ))
+
+        get_mq_process.start()
+        search_catalog_items_process.start()
+        get_item_offers_process.start()
+        get_my_fee_estimate_process.start()
+
+        get_mq_process.join()
+        search_catalog_items_process.join()
+        get_item_offers_process.join()
+        get_my_fee_estimate_process.join()
 
         logger.info('action=main status=done')
 
@@ -109,8 +114,8 @@ class RunAmzTask(object):
 
             params_json = json.loads(params)
             if not all(r in params_json for r in require):
-                logger.error('bad parameter')
-                raise Exception
+                logger.error({'bad parameter': params_json})
+                continue
 
             products = await AsinsInfo.get(params_json['jan'])
 
