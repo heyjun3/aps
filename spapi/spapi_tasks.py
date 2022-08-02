@@ -155,15 +155,12 @@ class RunAmzTask(object):
         logger.info({'action': 'get_item_offers_batch', 'status': 'run'})
 
         async def _get_item_offers_batch(asins):
-            logger.info({'action': '_get_item_offers_batch', 'status': 'run'})
             response = await self.client.get_item_offers_batch(asins)
             products = SPAPIJsonParser.parse_get_item_offers_batch(response)
             for product in products:
                 asyncio.ensure_future(MWS.update_price(asin=product['asin'], price=product['price']))
                 asyncio.ensure_future(SpapiPrices(asin=product['asin'], price=product['price']).upsert())
             
-            logger.info({'action': '_get_item_offers_batch', 'status': 'done'})
-
         while True:
             asin_list = await MWS.get_price_is_None_asins()
             if asin_list:
@@ -175,7 +172,7 @@ class RunAmzTask(object):
             else:
                 await asyncio.sleep(10)
 
-    async def get_my_fees_estimate(self, interval_sec: int=2, use_cache: bool=True) -> None:
+    async def get_my_fees_estimate(self, interval_sec: int=2) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
         async def _get_cache_db(asin_list) -> None:
@@ -208,6 +205,6 @@ class RunAmzTask(object):
         while True:
             asin_list = await MWS.get_fee_is_None_asins()
             if asin_list:
-                asyncio.ensure_future(_get_cache_db(asin_list))
+                await _get_cache_db(asin_list)
             else:
                 await asyncio.sleep(30)
