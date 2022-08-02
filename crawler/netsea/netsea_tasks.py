@@ -24,7 +24,7 @@ def logger_decorator(func):
     return _logger_decorator
 
 @logger_decorator
-def run_netsea_at_shop_id(shop_id: str, path: str = 'search_faceted') -> None:
+def run_netsea_at_shop_id(shop_id: str, path: str = 'search') -> None:
     url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
     params = {'sort': 'PD', 'supplier_id': shop_id, 'ex_so': 'Y', 'searched': 'Y'}
     url = requests.Request(method='GET', url=url, params=params).prepare().url
@@ -34,7 +34,7 @@ def run_netsea_at_shop_id(shop_id: str, path: str = 'search_faceted') -> None:
 
 
 @logger_decorator
-def run_new_product_search(path: str = 'search_faceted') -> None:
+def run_new_product_search(path: str = 'search') -> None:
     timestamp = datetime.datetime.now()
     base_url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
     urls = []
@@ -48,7 +48,7 @@ def run_new_product_search(path: str = 'search_faceted') -> None:
     client.start_search_products()
 
 @logger_decorator
-def run_get_discount_products(path: str = 'search_faceted') -> None:
+def run_get_discount_products(path: str = 'search') -> None:
     base_url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
     timestamp = datetime.datetime.now()
     urls = []
