@@ -107,26 +107,23 @@ class RunAmzTask(object):
         logger.info('action=get_queue status=run')
 
         require = ('cost', 'jan', 'filename')
+        for params in self.mq.get():
+            if params is None:
+                await asyncio.sleep(interval_sec)
+                continue
 
-        async def _get_queue(params_json: dict) -> None:
+            params_json = json.loads(params)
             if not all(r in params_json for r in require):
                 logger.error({'bad parameter': params_json})
-                return None
+                return
 
             products = await AsinsInfo.get(params_json['jan'])
-
             if not products:
                 self.search_catalog_queue.publish(params)
             else:
                 for product in products:
                     asyncio.ensure_future(MWS(asin=product['asin'], filename=params_json['filename'], title=product['title'],
                         jan=params_json['jan'], unit=product['quantity'], cost=params_json['cost']).save())
-
-        for params in self.mq.get():
-            if params is None:
-                await asyncio.sleep(interval_sec)
-                continue
-            asyncio.ensure_future(_get_queue(json.loads(params)))
 
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
         logger.info('action=search_catalog_items status=run')
@@ -153,21 +150,18 @@ class RunAmzTask(object):
 
     async def get_item_offers_batch(self, interval_sec: int=2):
         logger.info({'action': 'get_item_offers_batch', 'status': 'run'})
-
-        async def _get_item_offers_batch(asins):
-            response = await self.client.get_item_offers_batch(asins)
-            products = SPAPIJsonParser.parse_get_item_offers_batch(response)
-            for product in products:
-                asyncio.ensure_future(MWS.update_price(asin=product['asin'], price=product['price']))
-                asyncio.ensure_future(SpapiPrices(asin=product['asin'], price=product['price']).upsert())
-            
+                       
         while True:
             asin_list = await MWS.get_price_is_None_asins()
             if asin_list:
                 asin_list = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
                 for asins in asin_list:
-                    task = asyncio.create_task(_get_item_offers_batch(asins))
-                    await task
+                    response = await self.client.get_item_offers_batch(asins)
+                    products = SPAPIJsonParser.parse_get_item_offers_batch(response)
+                    for product in products:
+                        asyncio.ensure_future(MWS.update_price(asin=product['asin'], price=product['price']))
+                        asyncio.ensure_future(SpapiPrices(asin=product['asin'], price=product['price']).upsert())
+                    
                     await asyncio.sleep(interval_sec)
             else:
                 await asyncio.sleep(10)
@@ -194,8 +188,7 @@ class RunAmzTask(object):
             while True:
                 asins = [self.estimate_queue.get_nowait() for _ in range(20) if not self.estimate_queue.empty()]
                 if asins:
-                    task = asyncio.create_task(_wrapper_get_my_fees_estimate(asins))
-                    await task
+                    await _wrapper_get_my_fees_estimate(asins)
                     await asyncio.sleep(interval_sec)
                 else:
                     await asyncio.sleep(20)
