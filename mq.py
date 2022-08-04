@@ -31,14 +31,14 @@ class MQ(object):
         return channel
 
     def publish(self, value: str):
-        logger.info('action=publish status=run')
+        logger.debug('action=publish status=run')
         try:
             self.channel.basic_publish(exchange='', routing_key=self.queue_name, body=value, properties=self.properties)
         except AMQPConnectionError as ex:
             self.channel = self.create_mq_channel()
             self.channel.basic_publish(exchange='', routing_key=self.queue_name, body=value, properties=self.properties)
 
-        logger.info('action=publish status=done')
+        logger.debug('action=publish status=done')
     
     def receive(self) -> None:
 
@@ -54,7 +54,13 @@ class MQ(object):
     def get(self) -> str|None:
 
         while True:
-            resp = self.channel.basic_get(self.queue_name, auto_ack=True)
+            try:
+                resp = self.channel.basic_get(self.queue_name, auto_ack=True)
+            except FileNotFoundError as e:
+                logger.error({'message': e})
+                yield None
+                continue
+
             _method, _properties, body = resp
             if body:
                 yield body.decode()
