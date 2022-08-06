@@ -128,36 +128,26 @@ class RunAmzTask(object):
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
         logger.info('action=search_catalog_items status=run')
 
-        def _get_queue():
-            products = []
-            for product in self.search_catalog_queue.get():
-                if product is None:
-                    return products
-
-                params = json.loads(product)
-                products.append(params)
-
-                if len(products) == 20:
-                    return products
-
-        while True:
-            params = _get_queue()
-
-            if not params:
+        for get_objects in self.search_catalog_queue.receive():
+            if get_objects is None:
+                logger.info({'message': 'get_objects is None'})
                 await asyncio.sleep(10)
-            else:
-                params = {param['jan']: {'filename': param['filename'], 'cost': param['cost']} for param in params}
-                response = await self.client.search_catalog_items_v2022_04_01(params.keys(), id_type=id_type)
-                products = SPAPIJsonParser.parse_search_catalog_items_v2022_04_01(response)
-                for product in products:
-                    parameter = params.get(product['jan'])
-                    if parameter is None:
-                        logger.error(product)
-                        continue
-                    asyncio.ensure_future(AsinsInfo(asin=product['asin'], jan=product['jan'], title=product['title'], quantity=product['quantity']).upsert())
-                    asyncio.ensure_future(MWS(asin=product['asin'], filename=parameter['filename'], title=product['title'], jan=product['jan'], unit=product['quantity'], cost=parameter['cost']).save())
+                continue
 
-                await asyncio.sleep(interval_sec)
+            params = [json.loads(resp) for resp in get_objects]
+
+            params = {param['jan']: {'filename': param['filename'], 'cost': param['cost']} for param in params}
+            response = await self.client.search_catalog_items_v2022_04_01(params.keys(), id_type=id_type)
+            products = SPAPIJsonParser.parse_search_catalog_items_v2022_04_01(response)
+            for product in products:
+                parameter = params.get(product['jan'])
+                if parameter is None:
+                    logger.error(product)
+                    continue
+                asyncio.ensure_future(AsinsInfo(asin=product['asin'], jan=product['jan'], title=product['title'], quantity=product['quantity']).upsert())
+                asyncio.ensure_future(MWS(asin=product['asin'], filename=parameter['filename'], title=product['title'], jan=product['jan'], unit=product['quantity'], cost=parameter['cost']).save())
+
+            await asyncio.sleep(interval_sec)
 
     async def get_item_offers_batch(self, interval_sec: int=2):
         logger.info({'action': 'get_item_offers_batch', 'status': 'run'})

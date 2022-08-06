@@ -35,21 +35,23 @@ class MQ(object):
         try:
             self.channel.basic_publish(exchange='', routing_key=self.queue_name, body=value, properties=self.properties)
         except AMQPConnectionError as ex:
+            logger.error({'message': ex})
             self.channel = self.create_mq_channel()
             self.channel.basic_publish(exchange='', routing_key=self.queue_name, body=value, properties=self.properties)
+        except FileNotFoundError as ex:
+            logger.error({'message': ex})
 
         logger.debug('action=publish status=done')
     
-    def receive(self) -> None:
+    def receive(self, get_count: int=20) -> None:
 
         while True:
-            resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(5) if self.channel.queue_declare(self.queue_name, durable=True).method.message_count]
+            resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count) if self.channel.queue_declare(self.queue_name, durable=True).method.message_count]
             if resp:
                 asin_list = list(map(lambda x: x[2].decode(), resp))
                 yield asin_list
             else:
                 yield None
-                time.sleep(30)
 
     def get(self) -> str|None:
 
@@ -110,5 +112,5 @@ def receive_logs(queue_name: str) -> None:
             time.sleep(10)
 
 if __name__ == '__main__':
-    receive_logs('two')
-    # emit_log()
+    mq = MQ('mws')
+    print(mq.channel.queue_declare(mq.queue_name, durable=True).method.message_count)
