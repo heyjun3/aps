@@ -5,6 +5,7 @@ import threading
 
 import pika
 from pika.exceptions import AMQPConnectionError
+from pika.exceptions import DuplicateGetOkCallback
 
 import log_settings
 
@@ -55,7 +56,7 @@ class MQ(object):
         while True:
             try:
                 resp = self.channel.basic_get(self.queue_name, auto_ack=True)
-            except FileNotFoundError as e:
+            except (FileNotFoundError, DuplicateGetOkCallback) as e:
                 logger.error({'message': e})
                 yield None
                 time.sleep(1)
