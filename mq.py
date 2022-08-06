@@ -47,13 +47,17 @@ class MQ(object):
     def receive(self, get_count: int=20) -> None:
 
         while True:
-            queue_content_count = self.channel.queue_declare(self.queue_name, durable=True).method.message_count
-            if queue_content_count < get_count:
-                yield None
+            try:
+                queue_content_count = self.channel.queue_declare(self.queue_name, durable=True).method.message_count
+                if queue_content_count < get_count:
+                    yield None
+                    continue
+            except FileNotFoundError as ex:
+                logger.error({'message': ex})
                 continue
             try:
                 resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
-            except ConnectionClosedByBroker as ex:
+            except (ConnectionClosedByBroker, FileNotFoundError) as ex:
                 logger.error({'message': ex})
 
             if resp:
