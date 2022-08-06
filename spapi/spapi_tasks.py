@@ -128,9 +128,20 @@ class RunAmzTask(object):
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
         logger.info('action=search_catalog_items status=run')
 
+        def _get_queue():
+            products = []
+            for product in self.search_catalog_queue.get():
+                if product is None:
+                    return products
+
+                params = json.loads(product)
+                products.append(params)
+
+                if len(products) == 20:
+                    return products
+
         while True:
-            params = [next(self.search_catalog_queue.get()) for _ in range(20)]
-            params = [json.loads(param) for param in params if param is not None]
+            params = _get_queue()
 
             if not params:
                 await asyncio.sleep(10)
