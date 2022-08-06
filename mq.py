@@ -49,16 +49,16 @@ class MQ(object):
 
         while True:
             try:
-                resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
+                messages = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
             except (AMQPConnectionError, FileNotFoundError) as ex:
                 logger.error({'message': ex})
                 self.channel = self.create_mq_channel()
-                continue
+                if not messages:
+                    continue
 
-            asin_list = [body.decode() for _, _, body in resp if body]
-
-            if resp:
-                yield asin_list
+            message_list = [body.decode() for _, _, body in messages if body]
+            if message_list:
+                yield message_list
             else:
                 yield None
 
