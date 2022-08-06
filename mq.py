@@ -49,19 +49,15 @@ class MQ(object):
 
         while True:
             try:
-                queue_content_count = self.channel.queue_declare(self.queue_name, durable=True).method.message_count
-                if not queue_content_count:
-                    yield None
-                    continue
-                elif queue_content_count < 20:
-                    get_count = queue_content_count
-
                 resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
             except (AMQPConnectionError, FileNotFoundError) as ex:
                 logger.error({'message': ex})
+                self.channel = self.create_mq_channel()
+                continue
+
+            asin_list = [body.decode() for _, _, body in resp if body]
 
             if resp:
-                asin_list = list(map(lambda x: x[2].decode(), resp))
                 yield asin_list
             else:
                 yield None
@@ -125,5 +121,7 @@ def receive_logs(queue_name: str) -> None:
             time.sleep(10)
 
 if __name__ == '__main__':
-    mq = MQ('mws')
-    print(mq.channel.method.message_count)
+    mq = MQ('test')
+    for i in mq.receive():
+        print(i)
+        time.sleep(10)
