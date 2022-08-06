@@ -1,4 +1,5 @@
 import json
+import queue
 import time
 from types import FunctionType
 import threading
@@ -49,15 +50,14 @@ class MQ(object):
         while True:
             try:
                 queue_content_count = self.channel.queue_declare(self.queue_name, durable=True).method.message_count
-                if queue_content_count < get_count:
+                if not queue_content_count:
                     yield None
                     continue
-            except FileNotFoundError as ex:
-                logger.error({'message': ex})
-                continue
-            try:
+                elif queue_content_count < 20:
+                    get_count = queue_content_count
+
                 resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
-            except (ConnectionClosedByBroker, FileNotFoundError) as ex:
+            except (AMQPConnectionError, FileNotFoundError) as ex:
                 logger.error({'message': ex})
 
             if resp:
@@ -126,4 +126,4 @@ def receive_logs(queue_name: str) -> None:
 
 if __name__ == '__main__':
     mq = MQ('mws')
-    print(mq.channel.queue_declare(mq.queue_name, durable=True).method.message_count)
+    print(mq.channel.method.message_count)
