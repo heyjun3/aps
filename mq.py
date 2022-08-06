@@ -6,6 +6,7 @@ import threading
 import pika
 from pika.exceptions import AMQPConnectionError
 from pika.exceptions import DuplicateGetOkCallback
+from pika.exceptions import ConnectionClosedByBroker
 
 import log_settings
 
@@ -50,7 +51,11 @@ class MQ(object):
             if queue_content_count < get_count:
                 yield None
                 continue
-            resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
+            try:
+                resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
+            except ConnectionClosedByBroker as ex:
+                logger.error({'message': ex})
+
             if resp:
                 asin_list = list(map(lambda x: x[2].decode(), resp))
                 yield asin_list
