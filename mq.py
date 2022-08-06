@@ -46,7 +46,11 @@ class MQ(object):
     def receive(self, get_count: int=20) -> None:
 
         while True:
-            resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count) if self.channel.queue_declare(self.queue_name, durable=True).method.message_count]
+            queue_content_count = self.channel.queue_declare(self.queue_name, durable=True).method.message_count
+            if queue_content_count < get_count:
+                yield None
+                continue
+            resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
             if resp:
                 asin_list = list(map(lambda x: x[2].decode(), resp))
                 yield asin_list
