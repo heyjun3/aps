@@ -2,7 +2,6 @@ import json
 import time
 from types import FunctionType
 import threading
-import asyncio
 
 import pika
 from pika.exceptions import AMQPConnectionError
@@ -59,6 +58,7 @@ class MQ(object):
             except FileNotFoundError as e:
                 logger.error({'message': e})
                 yield None
+                time.sleep(1)
                 continue
 
             _method, _properties, body = resp
