@@ -8,6 +8,8 @@ from queue import Queue
 from urllib.parse import urljoin
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
+from typing import List
+from collections import deque
 
 import requests
 from requests import Session
@@ -30,8 +32,9 @@ jan_regex = re.compile('[0-9]{13}')
 
 class Netsea(object):
 
-    def __init__(self, url: str, params: dict = None, timestamp: datetime = datetime.now(), is_new_product_search: bool = False):
-        self.url = requests.Request(method='GET', url=url, params=params).prepare().url
+    def __init__(self, urls: List[str], timestamp: datetime = datetime.now(), is_new_product_search: bool = False):
+        self.start_urls = deque(urls)
+        self.url = ''
         self.netsea_product_queue = Queue()
         self.mq = MQ('mws')
         self.session = self.login()
@@ -67,7 +70,9 @@ class Netsea(object):
     def pool_product_list_page(self, interval_sec: int = 2) -> None:
         logger.info('action=pool_product_list_page status=run')
 
-        while self.url is not None:
+        while self.url is not None or self.start_urls:
+            if not self.url:
+                self.url = self.start_urls.popleft()
             logger.info(self.url)
             response = utils.request(session=self.session, url=self.url)
             time.sleep(interval_sec)
@@ -84,7 +89,7 @@ class Netsea(object):
             netsea_product = self.netsea_product_queue.get()
             if netsea_product is None:
                 break
-            if re.fullmatch('[\d]{13}', netsea_product.product_code):
+            if re.fullmatch('[0-9]{13}', netsea_product.product_code):
                 netsea_product.jan = netsea_product.product_code
                 netsea_product.save()
             else:
@@ -127,7 +132,7 @@ class Netsea(object):
             netsea_object = NetseaProduct.get_object_filter_productcode_and_shopcode(product_id, shop_id)
             if netsea_object and netsea_object.jan:
                 jan = netsea_object.jan
-            elif re.fullmatch('[\d]{13}', product_id):
+            elif re.fullmatch('[0-9]{13}', product_id):
                 jan = product_id
             else:
                 continue
@@ -205,7 +210,7 @@ class NetseaHTMLPage(object):
         logger.info('action=scrape_detail_product_page status=run')
         soup = BeautifulSoup(response, 'lxml')
         try:
-            jan = re.fullmatch('[\d]{13}', soup.select('#itemDetailSec td')[-1].text.strip())
+            jan = re.fullmatch('[0-9]{13}', soup.select('#itemDetailSec td')[-1].text.strip())
             jan = jan.group()
         except (IndexError, AttributeError) as e:
             logger.error(f'action=get_jan error={e}')
@@ -215,19 +220,21 @@ class NetseaHTMLPage(object):
         return jan
 
     @classmethod
-    def scrape_next_page_url(cls, response: str, response_url: str, is_new_product_search: bool = False, consume_tax: float = 1.1) -> str | None:
+    def scrape_next_page_url(cls, response: str, response_url: str, is_new_product_search: bool = False) -> str | None:
         logger.info('action=scrape_next_page_url status=run')
 
         soup = BeautifulSoup(response, 'lxml')
         try:
             next_page_url_tag = soup.select_one('.next a')
             products = soup.select('.showcaseType01')
-            new_product_count = soup.select('.labelType04')
+            new_product_count = soup.select('.showcaseHd .labelType04')
         except AttributeError as e:
             logger.error(f"action=next_page_url_selector status={e}")
             return None
 
         if is_new_product_search and (not len(new_product_count) == 60 or not next_page_url_tag):
+            logger.info(f'next_page_url is None or new product flag is None')
+            logger.info({'next_page_url': next_page_url_tag, 'new_product_count': len(new_product_count)})
             return None
 
         if next_page_url_tag:

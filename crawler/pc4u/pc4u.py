@@ -32,7 +32,7 @@ class CrawlerPc4u():
         logger.info('action=pool_product_list_page status=run')
 
         while self.url is not None:
-            print(self.url)
+            logger.info(self.url)
             response = utils.request(self.url)
             self.pc4u_product_list.extend(Pc4uHTMLPage.scrape_product_list_page(response.text))
             self.url = Pc4uHTMLPage.scrape_next_page_url(response.text)
@@ -128,8 +128,8 @@ class Pc4uHTMLPage(object):
             return None
 
         sold_out_flag = soup.select_one('.innerBox .btnWrap img')
-        print(sold_out_flag)
         if sold_out_flag and sold_out_flag.attrs['alt'] == '品切れ':
+            logger.info('next page url is None')
             return None
 
         next_url = urllib.parse.urljoin(settings.PC4U_ENDPOINT, next_url)

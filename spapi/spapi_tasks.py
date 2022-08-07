@@ -1,19 +1,17 @@
 import time
-import queue
-import threading
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 import json
-from concurrent.futures import ThreadPoolExecutor
+import asyncio
+from typing import Coroutine
 
 from spapi.spapi import SPAPI
 from spapi.spapi import SPAPIJsonParser
-from spapi.models import AsinsInfo
+from spapi.models import AsinsInfo, SpapiPrices
 from spapi.models import SpapiFees
 from keepa.models import KeepaProducts
 from mws.models import MWS
 from mq import MQ
 import log_settings
-from mws import api
 
 
 logger = log_settings.get_logger(__name__)
@@ -21,148 +19,195 @@ logger = log_settings.get_logger(__name__)
 
 class UpdatePriceAndRankTask(object):
 
-    def __init__(self, limit: int=20) -> None:
-        self.queue = queue.Queue()
-        self.asins = KeepaProducts.get_products_not_modified()
-        self.asins = [self.asins[i:i+limit] for i in range(0, len(self.asins), limit)]
+    def __init__(self) -> None:
+        self.queue = Queue()
         self.spapi_client = SPAPI()
 
-    def main(self) -> None:
-        logger.info(f'action={self.__class__.__name__} main status=run')
-
-        get_item_offers_thread = threading.Thread(target=self.get_item_offers_loop)
-        get_competitive_pricing_thread = threading.Thread(target=self.get_competitive_pricing_loop)
-
-        get_item_offers_thread.start()
-        get_competitive_pricing_thread.start()
-
-        get_competitive_pricing_thread.join()
-        get_item_offers_thread.join()
-
-        logger.info(f'action={self.__class__.__name__} main status=done')
-
-    def get_competitive_pricing_loop(self, interval_sec: int=2) -> None:
-        logger.info('action=get_competitive_pricing_loop status=run')
-
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            for asin_list in self.asins:
-                executor.submit(self.get_competitive_pricing, asin_list)
-                time.sleep(interval_sec)
-
-        self.queue.put(None)
-        logger.info('action=get_competitive_pricing_loop status=done')
-
-    def get_competitive_pricing(self, asin_list: list) -> None:
-        logger.info('action=get_competitive_pricing status=run')
-
-        response = self.spapi_client.get_competitive_pricing(asin_list)
-        products = SPAPIJsonParser.parse_get_competitive_pricing(response.json())
-        now = time.time()
-        for product in products:
-            KeepaProducts.update_price_and_rank_data(product['asin'], now, product['price'], product['ranking'])
-            if product['price'] == -1:
-                self.queue.put(product['asin'])
-
-        logger.info('action=get_competitive_pricing status=done')
-
-    def get_item_offers_loop(self, interval_sec: float=0.2) -> None:
-        logger.info('action=get_item_offers_loop status=run')
-
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            while True:
-                asin = self.queue.get()
-                if asin is None:
-                    break
-                executor.submit(self.get_item_offers, asin)
-                time.sleep(interval_sec)
-
-        logger.info('action=get_item_offers_loop status=done')
-
-    def get_item_offers(self, asin: str) -> None:
-        logger.info('action=get_item_offers status=run')
-
-        response = self.spapi_client.get_item_offers(asin)
-        product = SPAPIJsonParser.parse_get_item_offers(response.json())
-        if product is not None:
-            KeepaProducts.update_price_and_rank_data(product['asin'], time.time(), product['price'], product['ranking'])
-
-        logger.info('action=get_item_offers status=done')
-
-class RunAmzTask(object):
-
-    def __init__(self, queue_name: str='mws') -> None:
-        self.mq = MQ(queue_name)
-        self.client = SPAPI()
-
-    def main(self) -> None:
+    async def main(self, limit: int=20, timeout: int=86400) -> None:
         logger.info('action=main status=run')
+        update_data_process = Process(target=self.update_data, args=(self.queue, ))
+        update_data_process.start()
 
-        get_asins_info_process = Process(target=self.list_catalog_items_loop, daemon=True)
-        get_price_process = Process(target=api.run_get_lowest_priced_offer_listtings_for_asin, daemon=True)
-        get_fees_process = Process(target=self.get_my_fees_estimate_for_asin_loop, daemon=True)
-
-        get_asins_info_process.start()
-        get_price_process.start()
-        get_fees_process.start()
-
-        get_asins_info_process.join()
-        get_price_process.join()
-        get_fees_process.join()
+        try:
+            while True:
+                self.asins = KeepaProducts.get_products_not_modified()
+                if not self.asins:
+                    self.queue.put(None)
+                    break
+                self.asins = [self.asins[i:i+limit] for i in range(0, len(self.asins), limit)]
+                get_competitive_pricing_task = asyncio.create_task(self.get_competitive_pricing())
+                await asyncio.wait_for(get_competitive_pricing_task, timeout=timeout)
+            update_data_process.join()
+        except asyncio.TimeoutError as ex:
+            logger.error(f'action=main error={ex}')
+            self.queue.put(None)
+            update_data_process.join()
 
         logger.info('action=main status=done')
 
-    def list_catalog_items_loop(self) -> None:
-        logger.info('action=list_catalog_items_loop status=run')
+    def update_data(self, queue: Queue) -> None:
+        logger.info('action=update_data status=run')
 
-        with ThreadPoolExecutor(max_workers=6) as executor:
-            for body in self.mq.get():
-                executor.submit(self.list_catalog_items, json.loads(body))
-
-        logger.info('action=list_catalog_items_loop status=done')
-
-
-    def list_catalog_items(self, params: dict, interval_sec: float=0.17) -> None:
-        logger.info('action=list_catalog_items status=run')
-
-        products = AsinsInfo.get(params['jan'])
-
-        if not products:
-            response = self.client.list_catalog_items(params['jan'])
-            time.sleep(interval_sec)
-            products = SPAPIJsonParser.parse_list_catalog_items(response.json())
-            for product in products:
-                AsinsInfo(asin=product['asin'], jan=params['jan'], title=product['title'], quantity=product['quantity']).upsert()
-
-        for product in products:
-            MWS(asin=product['asin'], filename=params['filename'], title=product['title'],
-                        jan=params['jan'], unit=product['quantity'], cost=params['cost']).save()
-            
-        logger.info('action=list_catalog_items status=done')
-        return None
-
-
-    def get_my_fees_estimate_for_asin_loop(self) -> None:
-        logger.info('action=get_my_fees_estimate_for_asin_loop status=run')
         while True:
-            asin_list = MWS.get_fee_is_None_asins()
-            if asin_list:
-                with ThreadPoolExecutor(max_workers=9) as executor:
-                    [executor.submit(self.get_my_fees_estimate_for_asin, asin) for asin in asin_list]
+            product = queue.get()
+            if product is None:
+                break
+
+            now = time.time()
+            KeepaProducts.update_price_and_rank_data(product['asin'], now, product['price'], product['ranking'])
+
+        logger.info('action=update_data status=done')
+
+    async def get_competitive_pricing(self, interval_sec: int=2) -> None:
+        logger.info('action=get_competitive_pricing status=run')
+
+        async def _get_competitive_pricing(asin_list):
+            response = await self.spapi_client.get_competitive_pricing(asin_list)
+            products = SPAPIJsonParser.parse_get_competitive_pricing(response)
+            [self.queue.put(product) for product in products]
+
+        for asin_list in self.asins:
+            task = asyncio.create_task(_get_competitive_pricing(asin_list))
+            sleep = asyncio.create_task(asyncio.sleep(interval_sec))
+            await asyncio.gather(task, sleep)
+        
+        logger.info('action=get_competitive_pricing status=done')
+
+
+class RunAmzTask(object):
+
+    def __init__(self, queue_name: str='mws', search_queue: str='search_catalog') -> None:
+        self.mq = MQ(queue_name)
+        self.search_catalog_queue = MQ(search_queue)
+        self.estimate_queue = asyncio.Queue()
+        self.client = SPAPI()
+        self.fees_queue = asyncio.Queue()
+
+    async def main(self) -> None:
+        logger.info('action=main status=run')
+
+        get_mq_process = Process(target=asyncio.run, args=(self.get_queue(), ))
+        search_catalog_items_process = Process(target=asyncio.run, args=(self.search_catalog_items_v20220401(), ))
+        get_item_offers_process = Process(target=asyncio.run, args=(self.get_item_offers_batch(), ))
+        get_my_fee_estimate_process = Process(target=asyncio.run, args=(self.get_my_fees_estimate(), ))
+
+        get_mq_process.start()
+        search_catalog_items_process.start()
+        get_item_offers_process.start()
+        get_my_fee_estimate_process.start()
+
+        get_mq_process.join()
+        search_catalog_items_process.join()
+        get_item_offers_process.join()
+        get_my_fee_estimate_process.join()
+
+        logger.info('action=main status=done')
+
+    async def get_queue(self, interval_sec: int=10, task_count=100) -> None:
+        logger.info('action=get_queue status=run')
+
+        require = ('cost', 'jan', 'filename')
+
+        async def _get_queue():
+            params = self.mq.basic_get()
+            if params is None:
+                await asyncio.sleep(interval_sec)
+                return
+
+            params_json = json.loads(params)
+            if not all(r in params_json for r in require):
+                logger.error({'bad parameter': params_json})
+                return
+
+            products = await AsinsInfo.get(params_json['jan'])
+            if not products:
+                self.search_catalog_queue.publish(params)
             else:
-                time.sleep(30)
+                for product in products:
+                    asyncio.ensure_future(MWS(asin=product['asin'], filename=params_json['filename'], title=product['title'],
+                        jan=params_json['jan'], unit=product['quantity'], cost=params_json['cost']).save())
 
+        while True:
+            if self.mq.get_message_count:
+                tasks = [asyncio.create_task(_get_queue()) for _ in range(task_count)]
+                await asyncio.gather(*tasks)
+            else:
+                asyncio.sleep(interval_sec)
 
-    def get_my_fees_estimate_for_asin(self, asin: str, interval_sec: float=0.1, default_price: int=10000) -> None:
+    async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
+        logger.info('action=search_catalog_items status=run')
+
+        for get_objects in self.search_catalog_queue.receive():
+            if get_objects is None:
+                logger.info({'message': 'get_objects is None'})
+                await asyncio.sleep(10)
+                continue
+
+            params = [json.loads(resp) for resp in get_objects]
+
+            params = {param['jan']: {'filename': param['filename'], 'cost': param['cost']} for param in params}
+            response = await self.client.search_catalog_items_v2022_04_01(params.keys(), id_type=id_type)
+            products = SPAPIJsonParser.parse_search_catalog_items_v2022_04_01(response)
+            for product in products:
+                parameter = params.get(product['jan'])
+                if parameter is None:
+                    logger.error(product)
+                    continue
+                asyncio.ensure_future(AsinsInfo(asin=product['asin'], jan=product['jan'], title=product['title'], quantity=product['quantity']).upsert())
+                asyncio.ensure_future(MWS(asin=product['asin'], filename=parameter['filename'], title=product['title'], jan=product['jan'], unit=product['quantity'], cost=parameter['cost']).save())
+
+            await asyncio.sleep(interval_sec)
+
+    async def get_item_offers_batch(self, interval_sec: int=2):
+        logger.info({'action': 'get_item_offers_batch', 'status': 'run'})
+                       
+        while True:
+            asin_list = await MWS.get_price_is_None_asins()
+            if asin_list:
+                asin_list = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
+                for asins in asin_list:
+                    response = await self.client.get_item_offers_batch(asins)
+                    products = SPAPIJsonParser.parse_get_item_offers_batch(response)
+                    for product in products:
+                        asyncio.ensure_future(MWS.update_price(asin=product['asin'], price=product['price']))
+                        asyncio.ensure_future(SpapiPrices(asin=product['asin'], price=product['price']).upsert())
+                    
+                    await asyncio.sleep(interval_sec)
+            else:
+                await asyncio.sleep(10)
+
+    async def get_my_fees_estimate(self, interval_sec: int=2) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
-        fee = SpapiFees.get(asin=asin)
+        async def _get_cache_db(asin_list) -> None:
+            for asin in asin_list:
+                fee = await SpapiFees.get(asin)
+                if fee is None:
+                    self.estimate_queue.put_nowait(asin)
+                else:
+                    asyncio.ensure_future(MWS.update_fee(fee['asin'], fee['fee_rate'], fee['ship_fee']))
 
-        if fee is None:
-            response = self.client.get_my_fees_estimate_for_asin(asin, price=default_price)
-            time.sleep(interval_sec)
-            fee = SPAPIJsonParser.parse_get_my_fees_estimate_for_asin(response.json())
-            SpapiFees(asin=asin, fee_rate=fee['fee_rate'], ship_fee=fee['ship_fee']).upsert()
-        MWS.update_fee(asin=fee['asin'], fee_rate=fee['fee_rate'], shipping_fee=fee['ship_fee'])
+        async def _get_my_fees_estimate():
+            async def _wrapper_get_my_fees_estimate(asins):
+                response = await self.client.get_my_fees_estimates(asins)
+                products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
+                for product in products:
+                    asyncio.ensure_future(SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert())
+                    asyncio.ensure_future(MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee']))
 
-        logger.info('action=get_my_fees_estimate_for_asin status=done')
-        return None
+            while True:
+                asins = [self.estimate_queue.get_nowait() for _ in range(20) if not self.estimate_queue.empty()]
+                if asins:
+                    await _wrapper_get_my_fees_estimate(asins)
+                    await asyncio.sleep(interval_sec)
+                else:
+                    await asyncio.sleep(20)
+
+        asyncio.ensure_future(_get_my_fees_estimate())
+
+        while True:
+            asin_list = await MWS.get_fee_is_None_asins()
+            if asin_list:
+                await _get_cache_db(asin_list)
+            else:
+                await asyncio.sleep(30)

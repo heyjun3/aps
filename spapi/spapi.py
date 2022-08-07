@@ -1,16 +1,17 @@
 import datetime
 import hmac
 import hashlib
-from inspect import EndOfBlock
 import json
 import os
 import time
 import urllib.parse
 import re
 from typing import List
+import asyncio
 
 import redis
 import requests
+import aiohttp
 
 import settings
 import log_settings
@@ -36,19 +37,20 @@ redis_client = redis.Redis(
 ENDPOINT = 'https://sellingpartnerapi-fe.amazon.com'
 
 
-def request(req: requests.Request) -> requests.Response:
+async def request(method: str, url: str, params: dict=None, headers: dict=None, body: dict=None) -> aiohttp.ClientResponse:
     for _ in range(60):
-        try:
-            session = requests.Session()
-            response = session.send(req.prepare())
-            if response.status_code == 200 or response is not None:
-                return response
+        async with aiohttp.request(method, url, params=params, headers=headers, json=body) as response:
+            response_json = await response.json()
+            if response.status == 200 and response is not None or response.status == 400:
+                response_json = await response.json()
+                return response_json
+            elif response.status == 429:
+                logger.error(response_json)
+                await asyncio.sleep(2)
             else:
-                raise Exception
-        except Exception as ex:
-            logger.error(f'action=request error={ex}')
-            time.sleep(10)
-
+                logger.error(response_json)
+                await asyncio.sleep(10)
+                
 
 class SPAPI:
 
@@ -70,7 +72,7 @@ class SPAPI:
         kSigning = self.sign(kService, 'aws4_request')
         return kSigning
 
-    def get_spapi_access_token(self, timeout_sec: int = 3500):
+    async def get_spapi_access_token(self, timeout_sec: int = 3500):
 
         access_token = redis_client.get('access_token')
         if access_token is not None:
@@ -87,20 +89,20 @@ class SPAPI:
         'client_id': self.client_id,
         'client_secret': self.client_secret,
         }
-        req = requests.Request(method='POST', url=URL, params=params, headers=headers)
-        response = request(req)
+        response = await request('POST', URL, params, headers)
 
-        access_token = response.json().get('access_token')
+        access_token = response.get('access_token')
         
         if access_token is None:
-            logger.error(response.text)
+            text = await response.text()
+            logger.error(text)
             raise Exception
 
         redis_client.set('access_token', access_token, ex=timeout_sec)
 
         return access_token
 
-    def create_authorization_headers(self, req: requests.Request) -> requests.Request:
+    async def create_authorization_headers(self, method: str, url: str, params: dict={}, body: dict={}) -> dict:
         region = 'us-west-2'
         service = 'execute-api'
         algorithm = 'AWS4-HMAC-SHA256'
@@ -108,26 +110,28 @@ class SPAPI:
         user_agent = 'My SPAPI Client tool /1.0(Language=python/3.10)'
 
         host = urllib.parse.urlparse(ENDPOINT).netloc
-        canonical_uri = urllib.parse.urlparse(req.url).path
-        body = ''
+        canonical_uri = urllib.parse.urlparse(url).path
 
-        if  req.json:
-            body = json.dumps(req.json)
+        if body:
+            body = json.dumps(body)
+        else:
+            body = ''
 
         utcnow = datetime.datetime.utcnow()
         amz_date = utcnow.strftime('%Y%m%dT%H%M%SZ')
         datestamp = utcnow.strftime('%Y%m%d')
-        amz_access_token = self.get_spapi_access_token()
+        amz_access_token = await self.get_spapi_access_token()
         canonical_header_values = [host, user_agent, amz_access_token, f'{amz_date}\n']
         
         canonical_headers = '\n'.join([f'{head}:{value}' for head, value in zip(signed_headers.split(';'), canonical_header_values)])
         payload_hash = hashlib.sha256(body.encode('utf-8')).hexdigest()
-        canonical_querystring = ''
 
-        if req.params:
-            canonical_querystring = urllib.parse.urlencode(sorted(req.params.items(), key=lambda x: (x[0], x[1])))
+        if params:
+            canonical_querystring = urllib.parse.urlencode(sorted(params.items(), key=lambda x: (x[0], x[1])))
+        else:
+            canonical_querystring = ''
 
-        canonical_request = '\n'.join([req.method, canonical_uri, canonical_querystring, canonical_headers, signed_headers, payload_hash])
+        canonical_request = '\n'.join([method, canonical_uri, canonical_querystring, canonical_headers, signed_headers, payload_hash])
         credential_scope = os.path.join(datestamp, region, service, 'aws4_request')
         signing_key = self.get_signature_key(self.aws_secret_key, datestamp, region, service)
         string_to_sign = '\n'.join([algorithm, amz_date, credential_scope, hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()])
@@ -135,7 +139,7 @@ class SPAPI:
         signature = hmac.new(signing_key, (string_to_sign).encode('utf-8'), hashlib.sha256).hexdigest()
         authorization_header = f'{algorithm} Credential={self.aws_access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}'
         
-        req.headers = {
+        headers = {
             'host': urllib.parse.urlparse(ENDPOINT).netloc,
             'user-agent': user_agent,
             'x-amz-date': amz_date,
@@ -143,9 +147,14 @@ class SPAPI:
             'x-amz-access-token': amz_access_token,
         }
 
-        return req
+        return headers
+    
+    async def request(self, method: str, url: str, params: dict=None, body: dict=None) -> dict:
+        headers = await self.create_authorization_headers(method, url, params, body)
+        response = await request(method, url, params=params, body=body, headers=headers)
+        return response
 
-    def get_my_fees_estimate_for_asin(self, asin: str, price: int, is_fba: bool = True, currency_code: str = 'JPY'):
+    async def get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool = True, currency_code: str = 'JPY') -> dict:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
         method = 'POST'
@@ -164,13 +173,11 @@ class SPAPI:
                 'MarketplaceId': self.marketplace_id, 
             }
         }
-        req = requests.Request(method=method, url=url, json=body)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, body=body)
 
         return response
 
-    def get_pricing(self, asin_list: list, item_type: str='Asin') -> requests.Response:
+    async def get_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
         method = 'GET'
         path = '/products/pricing/v0/price'
         url = urllib.parse.urljoin(ENDPOINT, path)
@@ -179,13 +186,11 @@ class SPAPI:
             'ItemType': item_type,
             'MarketplaceId': self.marketplace_id,
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         return response
 
-    def get_competitive_pricing(self, asin_list: list, item_type: str='Asin') -> requests.Response:
+    async def get_competitive_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
         logger.info('action=get_competitive_pricing status=run')
 
         method = 'GET'
@@ -196,14 +201,12 @@ class SPAPI:
             'Asins': ','.join(asin_list),
             'ItemType': item_type,
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         logger.info('action=get_competitive_pricing status=done')
         return response
 
-    def get_item_offers(self, asin: str, item_condition: str='New') -> requests.Response:
+    async def get_item_offers(self, asin: str, item_condition: str='New') -> dict:
         logger.info('action=get_item_offers status=run')
 
         method = 'GET'
@@ -213,14 +216,12 @@ class SPAPI:
             'MarketplaceId': self.marketplace_id,
             'ItemCondition': item_condition,
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         logger.info('action=get_item_offers status=done')
         return response
 
-    def search_catalog_items(self, jan_list: list) -> requests.Response:
+    async def search_catalog_items(self, jan_list: list) -> dict:
         logger.info('action=search_catalog_items status=run')
 
         method = 'GET'
@@ -231,14 +232,12 @@ class SPAPI:
             'marketplaceIds': self.marketplace_id,
             'includedData': 'identifiers,images,productTypes,salesRanks,summaries,variations'
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         logger.info('action=search_catalog_items status=done')
         return response
 
-    def list_catalog_items(self, jan: str) -> requests.Request:
+    async def list_catalog_items(self, jan: str) -> dict:
         logger.info('action=list_catalog_items status=run')
 
         method = 'GET'
@@ -248,14 +247,12 @@ class SPAPI:
             'MarketplaceId': self.marketplace_id,
             'JAN': jan,
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         logger.info('action=list_catalog_items status=done')
         return response
 
-    def get_catalog_item(self, asin: str) -> requests.Response:
+    async def get_catalog_item(self, asin: str) -> dict:
         logger.info('action=get_catalog_item status=run')
 
         method = 'GET'
@@ -265,15 +262,16 @@ class SPAPI:
             'marketplaceIds': self.marketplace_id,
             'includedData': 'attributes,identifiers,images,productTypes,salesRanks,summaries,variations'
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, params=query)
 
         logger.info('action=get_catalog_item status=done')
         return response
 
-    def search_catalog_items_v2022_04_01(self, identifiers: List[str], id_type: str) -> requests.Response:
+    async def search_catalog_items_v2022_04_01(self, identifiers: List[str], id_type: str) -> dict:
         logger.info('action=search_catalog_items_v2022_04_01 status=run')
+
+        if (len(identifiers) > 20):
+            raise TooMatchParameterException
 
         method = "GET"
         path = "/catalog/2022-04-01/items"
@@ -285,21 +283,19 @@ class SPAPI:
             'includedData': 'attributes,dimensions,identifiers,productTypes,relationships,salesRanks,summaries',
             'pageSize': 20,
         }
-        req = requests.Request(method=method, url=url, params=query)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, query)
 
         logger.info('action=search_catalog_items_v2022_04_01 status=done')
         return response
 
-    def get_item_offers_batch(self, asin_list: List, item_condition: str='NEW', customer_type: str='Consumer') -> requests.Response:
+    async def get_item_offers_batch(self, asin_list: List, item_condition: str='NEW', customer_type: str='Consumer') -> dict:
         logger.info('action=get_item_offers_batch status=run')
 
         if len(asin_list) > 20:
             raise TooMatchParameterException
 
         request_list = []
-        for asin in asin_list:
+        for asin in list(set(asin_list)):
             request_list.append({
                 'uri': f'/products/pricing/v0/items/{asin}/offers',
                 'method': 'GET',
@@ -314,18 +310,49 @@ class SPAPI:
         body = {
             'requests' : request_list,
         }
-        req = requests.Request(method=method, url=url, json=body)
-        req = self.create_authorization_headers(req)
-        response = request(req)
+        response = await self.request(method, url, body=body)
 
         logger.info('action=get_item_offers_batch status=done')
+        return response
+
+    async def get_my_fees_estimates(self, asin_list: List, id_type: str='ASIN', price_amount: int=10000) -> dict:
+        logger.info('action=get_my_fees_estimates status=run')
+
+        if len(asin_list) > 20:
+            raise TooMatchParameterException
+
+        method = 'POST'
+        path = '/products/fees/v0/feesEstimate'
+        url = urllib.parse.urljoin(ENDPOINT, path)
+
+        body = []
+        for asin in asin_list:
+            body.append({
+                'FeesEstimateRequest': {
+                    'MarketplaceId': self.marketplace_id,
+                    'IsAmazonFulfilled': True,
+                    'PriceToEstimateFees': {
+                        'ListingPrice': {
+                            'CurrencyCode': 'JPY',
+                            'Amount': price_amount,
+                        },
+                    },
+                    'Identifier': asin,
+                    'OptionalFulfillmentProgram': 'FBA_CORE',
+                },
+                'IdType': id_type,
+                'IdValue': asin,
+            })
+        response = await self.request(method, url, body=body)
+        
+        logger.info('action=get_my_fees_estimates status=done')
         return response
 
 
 class SPAPIJsonParser(object):
 
     @staticmethod
-    def parse_get_competitive_pricing(response: json) -> dict:
+    def parse_get_competitive_pricing(response: dict) -> dict:
         logger.info('action=parse_get_competitive_pricing status=run')
 
         products = []
@@ -341,7 +368,7 @@ class SPAPIJsonParser(object):
             try:
                 ranking = round(float(payload['Product']['SalesRankings'][0]['Rank']))
                 category_id = payload['Product']['SalesRankings'][0]['ProductCategoryId']
-                if re.fullmatch('[\d]+', category_id):
+                if re.fullmatch('[0-9]+', category_id):
                     raise NotRankingException
             except (NotRankingException, IndexError, KeyError) as ex:
                 logger.error(f"{asin} hasn't ranking error={ex}")
@@ -353,22 +380,16 @@ class SPAPIJsonParser(object):
         return products
 
     @staticmethod
-    def parse_get_item_offers(response: json) -> dict|None:
+    def parse_get_item_offers(response: dict) -> dict:
         logger.info('action=parse_get_item_offers status=run')
-
-        try:
-            asin = response['payload']['ASIN']
-        except KeyError as ex:
-            logger.error(ex)
-            logger.error(response)
-            return None
-
+            
+        asin = response['payload']['ASIN']
         try:
             price = int(response['payload']['Summary']['LowestPrices'][0]['LandedPrice']['Amount'])
             ranking = response['payload']['Summary']['SalesRankings'][0]['Rank']
         except (IndexError, KeyError) as ex:
-            logger.error(f"{asin} hasn't data")
-            return None
+            logger.error(f"error={ex}")
+            price, ranking = -1, -1
 
         logger.info('action=parse_get_item_offers status=done')
         return {'asin': asin, 'price': price, 'ranking': ranking}
@@ -449,6 +470,16 @@ class SPAPIJsonParser(object):
                 continue
 
             try:
+                identifiers = item['identifiers']
+                for identifier in identifiers:
+                    jan = identifier['identifiers'][0]['identifier']
+                    if jan:
+                        break
+            except (KeyError, IndexError) as ex:
+                logger.error({'message': 'jan is None', 'error': ex})
+                continue
+
+            try:
                 unit_count_list = item['attributes']['unit_count']
                 for unit_count in unit_count_list:
                     quantity = unit_count['value']
@@ -458,7 +489,64 @@ class SPAPIJsonParser(object):
                 logger.info({'message': 'unit info is None', 'error': ex})
                 quantity = 1
 
-            products.append({'asin': asin, 'quantity': int(float(quantity)), 'title': title})
+            products.append({'asin': asin, 'quantity': int(float(quantity)), 'title': title, 'jan': jan})
+        return products
+
+    @classmethod
+    @logger_decorator
+    def parse_get_item_offers_batch(cls, response: dict) -> List[dict]:
+
+        products = []
+        responses = response['responses']
+        for response in responses:
+            try:
+                status_code = response.get('status').get('statusCode')
+                if status_code == 200:
+                    result = cls.parse_get_item_offers(response['body'])
+                    products.append(result)
+                else:
+                    asin = response.get('request').get('Asin')
+                    products.append({'asin': asin, 'price': -1, 'ranking': -1})
+            except KeyError as ex:
+                logger.error({'message':ex})
+                continue
+
+        return products
+
+    @staticmethod
+    @logger_decorator
+    def parse_get_my_fees_estimates(response: dict, default_fee_rate: float=0.1, default_ship_fee: int=500) -> List[dict]:
+        products = []
+
+        for product in response:
+            asin = product["FeesEstimateIdentifier"]['IdValue']
+            amount = product['FeesEstimateIdentifier']['PriceToEstimateFees']["ListingPrice"]["Amount"]
+
+            try:
+                fee_detail_list = product['FeesEstimate']["FeeDetailList"]
+                fee = [fee_detail for fee_detail in fee_detail_list if fee_detail.get('FeeType') == "ReferralFee"]
+                if not fee:
+                    fee_rate = default_fee_rate
+                else:
+                    fee = fee[0]['FeeAmount']["Amount"]
+                    fee_rate = round(int(fee) / int(amount), 2)
+            except (KeyError, IndexError) as ex:
+                logger.error({'message': ex})
+                fee_rate = default_fee_rate
+
+            try:
+                fee_detail_list = product['FeesEstimate']["FeeDetailList"]
+                ship_fee = [fee_detail for fee_detail in fee_detail_list if fee_detail.get('FeeType') == "FBAFees"]
+                if not ship_fee:
+                    ship_fee = default_ship_fee
+                else:
+                    ship_fee = ship_fee[0]["FeeAmount"]["Amount"]
+            except (KeyError, IndexError) as ex:
+                logger.error({'message': ex})
+                ship_fee = default_ship_fee
+
+            products.append({'asin': asin, 'fee_rate': fee_rate, 'ship_fee': ship_fee})
+        
         return products
 
 

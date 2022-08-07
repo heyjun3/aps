@@ -5,6 +5,7 @@ import threading
 
 import pika
 from pika.exceptions import AMQPConnectionError
+from pika.exceptions import DuplicateGetOkCallback
 
 import log_settings
 
@@ -16,6 +17,7 @@ class MQ(object):
 
     def __init__(self, queue_name: str):
         self.queue_name = queue_name
+        self.queue = None
         self.channel = self.create_mq_channel()
         self.properties = pika.BasicProperties(delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE)
 
@@ -24,41 +26,82 @@ class MQ(object):
 
         connection = pika.BlockingConnection()
         channel = connection.channel()
-        channel.queue_declare(self.queue_name, durable=True)
+        self.queue = channel.queue_declare(self.queue_name, durable=True)
 
         logger.info('action=create_mq_channel status=done')
         return channel
 
+    def get_message_count(self) -> int:
+        logger.info('action=get_message_count status=run')
+        while True:
+            try:
+                message_count = self.queue.method.message_count
+            except AMQPConnectionError as ex:
+                logger.error({'message': ex})
+                self.create_mq_channel()
+                continue
+
+            return message_count
+
     def publish(self, value: str):
-        logger.info('action=publish status=run')
+        logger.debug('action=publish status=run')
         try:
             self.channel.basic_publish(exchange='', routing_key=self.queue_name, body=value, properties=self.properties)
         except AMQPConnectionError as ex:
+            logger.error({'message': ex})
             self.channel = self.create_mq_channel()
             self.channel.basic_publish(exchange='', routing_key=self.queue_name, body=value, properties=self.properties)
+        except FileNotFoundError as ex:
+            logger.error({'message': ex})
 
-        logger.info('action=publish status=done')
+        logger.debug('action=publish status=done')
     
-    def receive(self) -> None:
+    def receive(self, get_count: int=20) -> None:
 
         while True:
-            resp = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(5) if self.channel.queue_declare(self.queue_name, durable=True).method.message_count]
-            if resp:
-                asin_list = list(map(lambda x: x[2].decode(), resp))
-                yield asin_list
+            try:
+                messages = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
+            except (AMQPConnectionError, FileNotFoundError) as ex:
+                logger.error({'message': ex})
+                self.channel = self.create_mq_channel()
+                if not messages:
+                    continue
+
+            message_list = [body.decode() for _, _, body in messages if body]
+            if message_list:
+                yield message_list
             else:
                 yield None
-                time.sleep(30)
 
-    def get(self, interval_sec: int=3) -> str:
+    def get(self) -> str|None:
 
         while True:
-            resp = self.channel.basic_get(self.queue_name, auto_ack=True)
+            try:
+                resp = self.channel.basic_get(self.queue_name, auto_ack=True)
+            except (FileNotFoundError, DuplicateGetOkCallback) as e:
+                logger.error({'message': e})
+                yield None
+                time.sleep(1)
+                continue
+
             _method, _properties, body = resp
             if body:
                 yield body.decode()
             else:
-                time.sleep(interval_sec)
+                yield None
+
+    def basic_get(self) -> str|None:
+        try:
+            message = self.channel.basic_get(self.queue_name, auto_ack=True)
+        except AMQPConnectionError as ex:
+            logger.error({'mesage': ex})
+            return None
+
+        _method, _properties, body = message
+        if body:
+            return body.decode()
+        else:
+            return None
 
     def callback_recieve(self, func: FunctionType, interval_sec: float=1.0) -> None:
         logger.info('action=run_callback_recieve status=run')
@@ -102,5 +145,5 @@ def receive_logs(queue_name: str) -> None:
             time.sleep(10)
 
 if __name__ == '__main__':
-    receive_logs('two')
-    # emit_log()
+    mq = MQ('mws')
+    print(type(mq.get_message_count()))

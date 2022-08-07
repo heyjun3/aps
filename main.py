@@ -1,5 +1,6 @@
 import argparse
 import sys
+import asyncio
 
 from keepa import keepa
 from mws.models import MWS
@@ -25,9 +26,9 @@ if __name__ == '__main__':
 
     match (task, shop_id):
         case ('keepa', None):
-            keepa.main()
+            asyncio.run(keepa.main())
         case ('amz', None):
-            RunAmzTask().main()
+            asyncio.run(RunAmzTask().main())
         case ('buffalo', None):
             buffalo.main()
         case ('pc4u', None):
@@ -55,10 +56,10 @@ if __name__ == '__main__':
         case ('monthly', None):
             monthly.main()
         case ('spapi', None):
-            UpdatePriceAndRankTask().main()
+            asyncio.run(UpdatePriceAndRankTask().main())
         case ('pcones', None):
             pcones.main()
         case ('mws', None):
-            MWS.delete_rows_lower_price()
+            asyncio.run(MWS.delete_rows_lower_price())
         case _:
             sys.stdout.write(f'{task} is not a command')
