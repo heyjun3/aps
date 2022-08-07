@@ -103,14 +103,16 @@ class RunAmzTask(object):
 
         logger.info('action=main status=done')
 
-    async def get_queue(self, interval_sec: int=10) -> None:
+    async def get_queue(self, interval_sec: int=10, task_count=100) -> None:
         logger.info('action=get_queue status=run')
 
         require = ('cost', 'jan', 'filename')
-        for params in self.mq.get():
+
+        async def _get_queue():
+            params = self.mq.basic_get()
             if params is None:
                 await asyncio.sleep(interval_sec)
-                continue
+                return
 
             params_json = json.loads(params)
             if not all(r in params_json for r in require):
@@ -124,6 +126,13 @@ class RunAmzTask(object):
                 for product in products:
                     asyncio.ensure_future(MWS(asin=product['asin'], filename=params_json['filename'], title=product['title'],
                         jan=params_json['jan'], unit=product['quantity'], cost=params_json['cost']).save())
+
+        while True:
+            if self.mq.get_message_count:
+                tasks = [asyncio.create_task(_get_queue()) for _ in range(task_count)]
+                await asyncio.gather(*tasks)
+            else:
+                asyncio.sleep(interval_sec)
 
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
         logger.info('action=search_catalog_items status=run')

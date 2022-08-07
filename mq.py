@@ -1,5 +1,4 @@
 import json
-import queue
 import time
 from types import FunctionType
 import threading
@@ -7,7 +6,6 @@ import threading
 import pika
 from pika.exceptions import AMQPConnectionError
 from pika.exceptions import DuplicateGetOkCallback
-from pika.exceptions import ConnectionClosedByBroker
 
 import log_settings
 
@@ -19,6 +17,7 @@ class MQ(object):
 
     def __init__(self, queue_name: str):
         self.queue_name = queue_name
+        self.queue = None
         self.channel = self.create_mq_channel()
         self.properties = pika.BasicProperties(delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE)
 
@@ -27,10 +26,22 @@ class MQ(object):
 
         connection = pika.BlockingConnection()
         channel = connection.channel()
-        channel.queue_declare(self.queue_name, durable=True)
+        self.queue = channel.queue_declare(self.queue_name, durable=True)
 
         logger.info('action=create_mq_channel status=done')
         return channel
+
+    def get_message_count(self) -> int:
+        logger.info('action=get_message_count status=run')
+        while True:
+            try:
+                message_count = self.queue.method.message_count
+            except AMQPConnectionError as ex:
+                logger.error({'message': ex})
+                self.create_mq_channel()
+                continue
+
+            return message_count
 
     def publish(self, value: str):
         logger.debug('action=publish status=run')
@@ -79,6 +90,19 @@ class MQ(object):
             else:
                 yield None
 
+    def basic_get(self) -> str|None:
+        try:
+            message = self.channel.basic_get(self.queue_name, auto_ack=True)
+        except AMQPConnectionError as ex:
+            logger.error({'mesage': ex})
+            return None
+
+        _method, _properties, body = message
+        if body:
+            return body.decode()
+        else:
+            return None
+
     def callback_recieve(self, func: FunctionType, interval_sec: float=1.0) -> None:
         logger.info('action=run_callback_recieve status=run')
 
@@ -121,7 +145,5 @@ def receive_logs(queue_name: str) -> None:
             time.sleep(10)
 
 if __name__ == '__main__':
-    mq = MQ('test')
-    for i in mq.receive():
-        print(i)
-        time.sleep(10)
+    mq = MQ('mws')
+    print(type(mq.get_message_count()))
