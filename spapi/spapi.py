@@ -34,7 +34,6 @@ redis_client = redis.Redis(
         port=settings.REDIS_PORT,
         db=settings.REDIS_DB,
     )
-ENDPOINT = 'https://sellingpartnerapi-fe.amazon.com'
 
 
 async def request(method: str, url: str, params: dict=None, headers: dict=None, body: dict=None) -> aiohttp.ClientResponse:
@@ -52,7 +51,7 @@ async def request(method: str, url: str, params: dict=None, headers: dict=None, 
                 await asyncio.sleep(10)
                 
 
-class SPAPI:
+class SPAPI(object):
 
     def __init__(self):
         self.refresh_toke = settings.REFRESH_TOKEN
@@ -61,6 +60,7 @@ class SPAPI:
         self.aws_secret_key = settings.AWS_SECRET_KEY
         self.aws_access_key = settings.AWS_ACCESS_ID
         self.marketplace_id = settings.MARKETPLACEID
+        self.seller_id = settings.SELLER_ID
 
     def sign(self, key, msg):
         return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
@@ -109,7 +109,7 @@ class SPAPI:
         signed_headers = 'host;user-agent;x-amz-access-token;x-amz-date'
         user_agent = 'My SPAPI Client tool /1.0(Language=python/3.10)'
 
-        host = urllib.parse.urlparse(ENDPOINT).netloc
+        host = urllib.parse.urlparse(settings.ENDPOINT).netloc
         canonical_uri = urllib.parse.urlparse(url).path
 
         if body:
@@ -140,7 +140,7 @@ class SPAPI:
         authorization_header = f'{algorithm} Credential={self.aws_access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}'
         
         headers = {
-            'host': urllib.parse.urlparse(ENDPOINT).netloc,
+            'host': urllib.parse.urlparse(settings.ENDPOINT).netloc,
             'user-agent': user_agent,
             'x-amz-date': amz_date,
             'Authorization': authorization_header,
@@ -159,7 +159,7 @@ class SPAPI:
 
         method = 'POST'
         path = f'/products/fees/v0/items/{asin}/feesEstimate'
-        url = urllib.parse.urljoin(ENDPOINT, path)
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
         body =  {
             'FeesEstimateRequest': {
                 'Identifier': asin,
@@ -180,7 +180,7 @@ class SPAPI:
     async def get_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
         method = 'GET'
         path = '/products/pricing/v0/price'
-        url = urllib.parse.urljoin(ENDPOINT, path)
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
         query = {
             'Asins': ','.join(asin_list),
             'ItemType': item_type,
@@ -195,7 +195,7 @@ class SPAPI:
 
         method = 'GET'
         path = '/products/pricing/v0/competitivePrice'
-        url = urllib.parse.urljoin(ENDPOINT, path)
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
         query = {
             'MarketplaceId': self.marketplace_id,
             'Asins': ','.join(asin_list),
@@ -211,7 +211,7 @@ class SPAPI:
 
         method = 'GET'
         path = f'/products/pricing/v0/items/{asin}/offers'
-        url = urllib.parse.urljoin(ENDPOINT, path)
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
         query = {
             'MarketplaceId': self.marketplace_id,
             'ItemCondition': item_condition,
@@ -226,7 +226,7 @@ class SPAPI:
 
         method = 'GET'
         path = '/catalog/2020-12-01/items'
-        url = urllib.parse.urljoin(ENDPOINT, path)
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
         query = {
             'keywords': ','.join(jan_list),
             'marketplaceIds': self.marketplace_id,
@@ -242,7 +242,7 @@ class SPAPI:
 
         method = 'GET'
         path = '/catalog/v0/items'
-        url = urllib.parse.urljoin(ENDPOINT, path)
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
         query = {
             'MarketplaceId': self.marketplace_id,
             'JAN': jan,
@@ -257,7 +257,7 @@ class SPAPI:
 
         method = 'GET'
         path = f'/catalog/2020-12-01/items/{asin}'
-        url = urllib.parse.urljoin(ENDPOINT, path)
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
         query = {
             'marketplaceIds': self.marketplace_id,
             'includedData': 'attributes,identifiers,images,productTypes,salesRanks,summaries,variations'
@@ -275,7 +275,7 @@ class SPAPI:
 
         method = "GET"
         path = "/catalog/2022-04-01/items"
-        url = urllib.parse.urljoin(ENDPOINT, path)
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
         query = {
             'identifiers': ','.join(identifiers),
             'identifiersType': id_type,
@@ -306,7 +306,7 @@ class SPAPI:
 
         method = 'POST'
         path = '/batches/products/pricing/v0/itemOffers'
-        url = urllib.parse.urljoin(ENDPOINT, path)
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
         body = {
             'requests' : request_list,
         }
@@ -323,7 +323,7 @@ class SPAPI:
 
         method = 'POST'
         path = '/products/fees/v0/feesEstimate'
-        url = urllib.parse.urljoin(ENDPOINT, path)
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
 
         body = []
         for asin in asin_list:
