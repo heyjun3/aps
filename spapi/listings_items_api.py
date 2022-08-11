@@ -31,10 +31,42 @@ class ListingsItemsAPI(SPAPI):
         logger.info({'action': 'get_listing_item', 'status': 'done'})
         return response
 
-    async def put_listings_item(self, sku: str, price: float, asin: str, product_type: str,
+    async def patch_listings_item(self, sku: str, price: float, asin: str, product_type: str,
                                 condition_note: str, condition_type: str='new_new',
                                 requirements: str='LISTING') -> dict:
-        logger.info({'action': 'put_listings_item', 'status': 'done'})
+        logger.info({'action': 'patch_listings_item', 'status': 'done'})
+
+        method = 'PATCH'
+        path = f'/listings/2021-08-01/items/{self.seller_id}/{sku}'
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
+        query = {
+            'marketplaceIds': self.marketplace_id,
+            'issueLocale': 'en_US',
+        }
+        body = {
+            'productType': product_type,
+            'patches': [{
+                'op': 'replace',
+                'path': '/attributes/purchasable_offer',
+                'value': [{
+                    'marketplace_id': self.marketplace_id,
+                    'currency': 'JPY',
+                    'our_price': [{
+                        'schedule': [{
+                            'value_with_tax': price,
+                        }]
+                    }]
+                }]
+            }],
+               
+        }
+
+        response = await self.request(method, url, query, body)
+        logger.info({'action': 'put_listings_item', 'action': 'done'})
+        return response
+
+    async def put_listings_item(self, sku: str, asin: str, price: float, condition_type: str='new_new', condition_note: str=None) -> dict:
+        logger.info({'action': 'put_listings_item', 'status': 'run'})
 
         method = 'PUT'
         path = f'/listings/2021-08-01/items/{self.seller_id}/{sku}'
@@ -44,10 +76,9 @@ class ListingsItemsAPI(SPAPI):
             'issueLocale': 'en_US',
         }
         body = {
-            'productType': product_type,
-            'requirements': requirements,
+            'productType': 'SCREEN_PROTECTOR',
             'attributes': {
-                'purchasable_offer': [{
+                 'purchasable_offer': [{
                     'currency': 'JPY',
                     'our_price': [{
                         'schedule': [{
@@ -73,19 +104,18 @@ class ListingsItemsAPI(SPAPI):
                     'fulfillment_channel_code': 'AMAZON_JP',
                     'marketplace_id': self.marketplace_id,
                 }],
-                # 'batteries_required': [{
-                #     'value': 'false',
-                #     'marketplace_id': self.marketplace_id,
-                # }],
-                # 'supplier_declared_dg_hz_regulation': [{
-                #     'value': 'not_applicable',
-                #     'marketplace_id': self.marketplace_id,
-                # }]
+                'batteries_required': [{
+                    'value': 'false',
+                    'marketplace_id': self.marketplace_id,
+                }],
+                'supplier_declared_dg_hz_regulation': [{
+                    'value': 'not_applicable',
+                    'marketplace_id': self.marketplace_id,
+                }]
             }
         }
 
         response = await self.request(method, url, query, body)
-        logger.info({'action': 'put_listings_item', 'action': 'done'})
         return response
 
     async def search_definitions_product_types(self) -> dict:
@@ -102,4 +132,20 @@ class ListingsItemsAPI(SPAPI):
         response = await self.request(method, url, query)
 
         logger.info({'action': 'search_difinitions_product_types', 'status': 'done'})
+        return response
+
+    async def get_definitinos_product_type(self, product_type: str) -> dict:
+        logger.info({'action': 'get_difinitions_product_type', 'status': 'run'})
+
+        method = 'GET'
+        path = f'/definitions/2020-09-01/productTypes/TELEVISION'
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
+        query = {
+            'sellerId': self.seller_id,
+            'marketplaceIds': self.marketplace_id,
+        }
+
+        response = await self.request(method, url, query)
+
+        logger.info({'action': 'get_difinitions_product_type', 'status': 'done'})
         return response
