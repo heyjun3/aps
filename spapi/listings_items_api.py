@@ -32,8 +32,7 @@ class ListingsItemsAPI(SPAPI):
         return response
 
     async def patch_listings_item(self, sku: str, price: float, asin: str, product_type: str,
-                                condition_note: str, condition_type: str='new_new',
-                                requirements: str='LISTING') -> dict:
+                                  condition_type: str='new_new') -> dict:
         logger.info({'action': 'patch_listings_item', 'status': 'done'})
 
         method = 'PATCH'
@@ -45,20 +44,48 @@ class ListingsItemsAPI(SPAPI):
         }
         body = {
             'productType': product_type,
-            'patches': [{
-                'op': 'replace',
-                'path': '/attributes/purchasable_offer',
-                'value': [{
-                    'marketplace_id': self.marketplace_id,
-                    'currency': 'JPY',
-                    'our_price': [{
-                        'schedule': [{
-                            'value_with_tax': price,
+            'patches': [
+                {
+                    'op': 'replace',
+                    'path': '/attributes/purchasable_offer',
+                    'value': [{
+                        'marketplace_id': self.marketplace_id,
+                        'currency': 'JPY',
+                        'our_price': [{
+                            'schedule': [{
+                                'value_with_tax': price,
+                            }]
                         }]
                     }]
+                },
+            # {
+            #     'op': 'add',
+            #     'path': '/attributes/offers',
+            #     'value': [{
+            #         'marketplace_id': self.marketplace_id,
+            #         'offerType': 'B2C',
+            #         'price':{
+            #             'currency': 'JPY',
+            #             'amount': price,
+            #         }
+            #     }]
+            # },
+            {
+                'op': 'add',
+                'path': '/attributes/merchant_suggested_asin',
+                'value': [{
+                    'value': asin,
+                    'marketplace_id': self.marketplace_id,
+                }]
+            },
+            {
+                'op': 'add',
+                'path': '/attributes/condition_type',
+                'value': [{
+                    'value': condition_type,
+                    'marketplace_id': self.marketplace_id,
                 }]
             }],
-               
         }
 
         response = await self.request(method, url, query, body)
