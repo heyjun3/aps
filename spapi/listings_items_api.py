@@ -31,7 +31,8 @@ class ListingsItemsAPI(SPAPI):
         logger.info({'action': 'get_listing_item', 'status': 'done'})
         return response
 
-    async def patch_listings_item(self, sku: str, price: float, asin: str, product_type: str,
+    async def patch_listings_item(self, sku: str, price: float, asin: str, 
+                                  condition_note: str, product_type: str='PRODUCT', 
                                   condition_type: str='new_new') -> dict:
         logger.info({'action': 'patch_listings_item', 'status': 'done'})
 
@@ -46,7 +47,7 @@ class ListingsItemsAPI(SPAPI):
             'productType': product_type,
             'patches': [
                 {
-                    'op': 'replace',
+                    'op': 'add',
                     'path': '/attributes/purchasable_offer',
                     'value': [{
                         'marketplace_id': self.marketplace_id,
@@ -58,34 +59,56 @@ class ListingsItemsAPI(SPAPI):
                         }]
                     }]
                 },
-            # {
-            #     'op': 'add',
-            #     'path': '/attributes/offers',
-            #     'value': [{
-            #         'marketplace_id': self.marketplace_id,
-            #         'offerType': 'B2C',
-            #         'price':{
-            #             'currency': 'JPY',
-            #             'amount': price,
-            #         }
-            #     }]
-            # },
-            {
-                'op': 'add',
-                'path': '/attributes/merchant_suggested_asin',
-                'value': [{
-                    'value': asin,
-                    'marketplace_id': self.marketplace_id,
-                }]
-            },
-            {
-                'op': 'add',
-                'path': '/attributes/condition_type',
-                'value': [{
-                    'value': condition_type,
-                    'marketplace_id': self.marketplace_id,
-                }]
-            }],
+                {
+                    'op': 'add',
+                    'path': '/attributes/merchant_suggested_asin',
+                    'value': [{
+                        'value': asin,
+                        'marketplace_id': self.marketplace_id,
+                    }]
+                },
+                {
+                    'op': 'add',
+                    'path': '/attributes/condition_type',
+                    'value': [{
+                        'value': condition_type,
+                        'marketplace_id': self.marketplace_id,
+                    }]
+                },
+                {
+                    'op': 'add',
+                    'path': '/attributes/condition_note',
+                    'value': [{
+                        'language_tag': 'ja_JP',
+                        'value': condition_note,
+                        'marketplace_id': self.marketplace_id,
+                    }]
+                },
+                {
+                    'op': 'add',
+                    'path': '/attributes/fulfillment_availability',
+                    'value': [{
+                        'fulfillment_channel_code': 'AMAZON_JP',
+                        'marketplace_id': self.marketplace_id,
+                    }]
+                },
+                {
+                    'op': 'add',
+                    'path': '/attributes/batteries_required',
+                    'value': [{
+                        'value': 'false',
+                        'marketplace_id': self.marketplace_id,
+                    }]
+                },
+                {
+                    'op': 'add',
+                    'path': '/attributes/supplier_declared_dg_hz_regulation',
+                    'value': [{
+                        'value': 'not_applicable',
+                        'marketplace_id': self.marketplace_id,
+                    }]
+                },
+            ],
         }
 
         response = await self.request(method, url, query, body)
