@@ -385,11 +385,24 @@ class SPAPIJsonParser(object):
             
         asin = response['payload']['ASIN']
         try:
-            price = int(response['payload']['Summary']['LowestPrices'][0]['LandedPrice']['Amount'])
+            new_buy_box = list(filter(lambda x: x['condition'] == 'new', response['payload']['Summary']['BuyBoxPrices']))
+            price = int(new_buy_box[0]['LandedPrice']['Amount'])
+        except (IndexError, KeyError) as ex:
+            logger.info('new buy box information is None')
+            try:
+                lowest_offer = response['payload']['Offers'][0]
+                price = int(lowest_offer['ListingPrice']['Amount'])
+                shipping_cost = int(lowest_offer['Shipping']['Amount'])
+                price += shipping_cost
+            except (IndexError, KeyError) as ex:
+                logger.info('lowest price offer is None')
+                price = -1
+
+        try:
             ranking = response['payload']['Summary']['SalesRankings'][0]['Rank']
         except (IndexError, KeyError) as ex:
             logger.error(f"error={ex}")
-            price, ranking = -1, -1
+            ranking = -1
 
         logger.info('action=parse_get_item_offers status=done')
         return {'asin': asin, 'price': price, 'ranking': ranking}
