@@ -49,7 +49,7 @@ class ScrapeNextPageUrl(unittest.TestCase):
             response.text = f.read()
 
         url = NetseaHTMLPage.scrape_next_page_url(response.text, response.url)
-        self.assertEqual(url, 'https://www.netsea.jp/search_faceted/?facet_price_to=4099&disc_flg=Y&ex_so=Y&sort=PD&searched=Y&page=1')
+        self.assertEqual(url, 'https://www.netsea.jp/search/?facet_price_to=4099&disc_flg=Y&ex_so=Y&sort=PD&searched=Y&page=1')
 
 
 class ScrapeProductListPage(unittest.TestCase):
