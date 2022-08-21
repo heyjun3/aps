@@ -1,5 +1,6 @@
 import datetime
 from typing import List
+from functools import lru_cache
 
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
@@ -79,7 +80,7 @@ class AsinsInfo(Base, ModelsBase):
     @classmethod
     async def get_asins_all(cls) -> List[str]|None:
         async with cls.session_scope() as session:
-            stmt = select(cls)
+            stmt = select(cls.asin)
             result = await session.execute(stmt)
             asins = result.scalars().all()
         if asins:
