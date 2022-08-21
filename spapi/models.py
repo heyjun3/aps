@@ -76,6 +76,16 @@ class AsinsInfo(Base, ModelsBase):
             return title
         return None
 
+    @classmethod
+    async def get_asins_all(cls) -> List[str]|None:
+        async with cls.session_scope() as session:
+            stmt = select(cls)
+            result = await session.execute(stmt)
+            asins = result.scalars().all()
+        if asins:
+            return asins
+        return None
+
     @property
     def values(self):
         return {
