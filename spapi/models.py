@@ -156,7 +156,15 @@ class SpapiFees(Base, ModelsBase):
             asin_fee = result.scalar()
             if asin_fee:
                 return asin_fee.values
-            return None
+            return 
+
+    @classmethod
+    async def get_asins_all(cls) -> List[str]:
+        async with cls.session_scope() as session:
+            stmt = select(cls.asin)
+            result = await session.execute(stmt)
+            asins = result.scalars().all()
+        return asins
 
     @property
     def values(self):
