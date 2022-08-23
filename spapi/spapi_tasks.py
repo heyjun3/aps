@@ -83,6 +83,7 @@ class RunAmzTask(object):
         self.search_catalog_queue = MQ(search_queue)
         self.client = SPAPI()
         self.cache = Cache(None, 3600)
+        self.estimate_queue = asyncio.Queue()
 
     async def main(self) -> None:
         logger.info('action=main status=run')
@@ -180,16 +181,15 @@ class RunAmzTask(object):
     async def get_my_fees_estimate(self, interval_sec: int=2) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
-        async def _get_cache_db(asins: set, asin: str) -> str|None:
-            async def _insert_db_using_cache(asin: str) -> None:
+        async def _insert_db_using_cache() -> None:
+            while True:
+                asin = self.estimate_queue.get_nowait()
+                if asin is None:
+                    asyncio.sleep(30)
+                    continue
+
                 fee = await SpapiFees.get(asin)
                 await MWS.update_fee(fee['asin'], fee['fee_rate'], fee['ship_fee'])
-                return
-
-            if asin in asins:
-                asyncio.ensure_future(_insert_db_using_cache(asin))
-                return
-            return asin
 
         async def _get_my_fees_estimate(asins: List[str]) -> None:
             response = await self.client.get_my_fees_estimates(asins)
@@ -197,6 +197,8 @@ class RunAmzTask(object):
             for product in products:
                 asyncio.ensure_future(SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert())
                 asyncio.ensure_future(MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee']))
+
+        asyncio.ensure_future(_insert_db_using_cache())
 
         while True:
             asin_list = await MWS.get_fee_is_None_asins()
@@ -210,8 +212,7 @@ class RunAmzTask(object):
 
             asins_in_database = self.cache.get_value()
 
-            asin_list = map(functools.partial(_get_cache_db, asins_in_database), asin_list)
-            asin_list = filter(lambda x: x is not None, asin_list)
+            asin_list = [self.estimate_queue.put_nowait(asin) if asin in asins_in_database else asin for asin in asins]
             asin_list = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
 
             for asin_collection in asin_list:
