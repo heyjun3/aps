@@ -22,6 +22,7 @@ DB_TEST_URL = f"postgresql+asyncpg://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{TEST_D
 REDIS_HOST = config['REDIS']['HOST']
 REDIS_PORT = config['REDIS']['PORT']
 REDIS_DB = config['REDIS']['DB']
+REDIS_PASSWORD = config['REDIS']['PASSWORD']
 
 # WEB settings
 HOST = config['WEB']['HOST']

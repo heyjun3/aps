@@ -33,6 +33,7 @@ redis_client = redis.Redis(
         host=settings.REDIS_HOST,
         port=settings.REDIS_PORT,
         db=settings.REDIS_DB,
+        password=settings.REDIS_PASSWORD,
     )
 
 
@@ -532,6 +533,7 @@ class SPAPIJsonParser(object):
         products = []
 
         for product in response:
+            logger.info(product)
             asin = product["FeesEstimateIdentifier"]['IdValue']
             amount = product['FeesEstimateIdentifier']['PriceToEstimateFees']["ListingPrice"]["Amount"]
 
