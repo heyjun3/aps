@@ -181,45 +181,46 @@ class RunAmzTask(object):
     async def get_my_fees_estimate(self, interval_sec: int=2) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
-        async def _insert_db_using_cache() -> None:
-            while True:
-                if self.estimate_queue.empty():
-                    await asyncio.sleep(30)
-                    continue
+        async def _insert_db_using_cache(asins: List[str]) -> None:
 
-                asin = self.estimate_queue.get_nowait()
+            for asin in asins:
                 fee = await SpapiFees.get(asin)
+                logger.info(fee)
                 await MWS.update_fee(fee['asin'], fee['fee_rate'], fee['ship_fee'])
 
-        async def _get_my_fees_estimate(asins: List[str]) -> None:
-            response = await self.client.get_my_fees_estimates(asins)
-            products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
-            for product in products:
-                asyncio.ensure_future(SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert())
-                asyncio.ensure_future(MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee']))
+        async def _get_my_fees_estimate(asin_list: List[str]) -> None:
+            if not asin_list:
+                return
 
-        asyncio.ensure_future(_insert_db_using_cache())
+            asin_collection = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
+            for asins in asin_collection:
+                response = await self.client.get_my_fees_estimates(asins)
+                products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
+                logger.info(products)
+                for product in products:
+                    asyncio.ensure_future(SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert())
+                    asyncio.ensure_future(MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee']))
+                await asyncio.sleep(interval_sec)
 
         while True:
-            asin_list = await MWS.get_fee_is_None_asins()
+            asin_list = await MWS.get_fee_is_None_asins(10)
             if not asin_list:
                 await asyncio.sleep(30)
                 continue
 
             if self.cache.get_value() is None:
-                asins = await SpapiFees.get_asins_all()
+                asins = await SpapiFees.get_asins_after_update_interval_days()
                 self.cache.set_value(set(asins))
 
             asins_in_database = self.cache.get_value()
 
-            asin_list = [self.estimate_queue.put_nowait(asin) if asin in asins_in_database else asin for asin in asins]
+            asins_exist_db = []
+            asin_list = [asins_exist_db.append(asin) if asin in asins_in_database else asin for asin in asin_list]
             asin_list = [asin for asin in asin_list if asin]
-            if not asin_list:
-                await asyncio.sleep(30)
-                continue
+            logger.info(asin_list)
+            logger.info(asins_exist_db)
 
-            asin_list = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
-
-            for asin_collection in asin_list:
-                await _get_my_fees_estimate(asin_collection)
-                await asyncio.sleep(interval_sec)
+            insert_task = asyncio.create_task(_insert_db_using_cache(asins_exist_db))
+            get_info_task = asyncio.create_task(_get_my_fees_estimate(asin_list))
+            await asyncio.gather(insert_task, get_info_task)
+            break
