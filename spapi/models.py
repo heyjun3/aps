@@ -1,6 +1,6 @@
+from __future__ import annotations
 import datetime
 from typing import List
-from functools import lru_cache
 
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
@@ -159,13 +159,15 @@ class SpapiFees(Base, ModelsBase):
             return 
 
     @classmethod
-    async def get_asins_fee(cls, asins: List[str], interval_days: int=30) -> dict|None:
+    async def get_asins_fee(cls, asins: List[str], interval_days: int=30) -> List[dict]:
         date = datetime.date.today() - datetime.timedelta(days=interval_days)
         async with cls.session_scope() as session:
             stmt = select(cls).where(cls.asin.in_(asins), cls.modified > date)
             result = await session.execute(stmt)
             asins_fee = result.scalars().all()
-        return asins_fee
+        if asins_fee:
+            return [fee.values for fee in asins_fee]
+        return []
 
     @classmethod
     async def get_asins_after_update_interval_days(cls, interval_days: int=30) -> List[str]:

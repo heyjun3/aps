@@ -183,9 +183,8 @@ class RunAmzTask(object):
 
         async def _insert_db_using_cache(asins: List[str]) -> None:
 
-            for asin in asins:
-                fee = await SpapiFees.get(asin)
-                logger.info(fee)
+            fees = await SpapiFees.get_asins_fee(asins)
+            for fee in fees:
                 await MWS.update_fee(fee['asin'], fee['fee_rate'], fee['ship_fee'])
 
         async def _get_my_fees_estimate(asin_list: List[str]) -> None:
@@ -196,14 +195,13 @@ class RunAmzTask(object):
             for asins in asin_collection:
                 response = await self.client.get_my_fees_estimates(asins)
                 products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
-                logger.info(products)
                 for product in products:
                     asyncio.ensure_future(SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert())
                     asyncio.ensure_future(MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee']))
                 await asyncio.sleep(interval_sec)
 
         while True:
-            asin_list = await MWS.get_fee_is_None_asins(10)
+            asin_list = await MWS.get_fee_is_None_asins()
             if not asin_list:
                 await asyncio.sleep(30)
                 continue
@@ -217,10 +215,7 @@ class RunAmzTask(object):
             asins_exist_db = []
             asin_list = [asins_exist_db.append(asin) if asin in asins_in_database else asin for asin in asin_list]
             asin_list = [asin for asin in asin_list if asin]
-            logger.info(asin_list)
-            logger.info(asins_exist_db)
 
             insert_task = asyncio.create_task(_insert_db_using_cache(asins_exist_db))
             get_info_task = asyncio.create_task(_get_my_fees_estimate(asin_list))
             await asyncio.gather(insert_task, get_info_task)
-            break
