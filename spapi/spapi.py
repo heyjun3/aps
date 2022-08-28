@@ -533,7 +533,6 @@ class SPAPIJsonParser(object):
         products = []
 
         for product in response:
-            logger.info(product)
             asin = product["FeesEstimateIdentifier"]['IdValue']
             amount = product['FeesEstimateIdentifier']['PriceToEstimateFees']["ListingPrice"]["Amount"]
 
