@@ -165,9 +165,9 @@ class SpapiFees(Base, ModelsBase):
             stmt = select(cls).where(cls.asin.in_(asins), cls.modified > date)
             result = await session.execute(stmt)
             asins_fee = result.scalars().all()
-        if asins_fee:
-            return [fee.values for fee in asins_fee]
-        return []
+            if asins_fee:
+                return [fee.values for fee in asins_fee]
+            return []
 
     @classmethod
     async def get_asins_after_update_interval_days(cls, interval_days: int=30) -> List[str]:
