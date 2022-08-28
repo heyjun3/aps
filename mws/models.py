@@ -126,10 +126,10 @@ class MWS(Base, ModelsBase):
             return result.scalars().all()
 
     @classmethod
-    async def get_fee_is_None_asins(cls) -> List[str]:
+    async def get_fee_is_None_asins(cls, limit_count=10000) -> List[str]:
         async with cls.session_scope() as session:
             stmt = select(cls.asin).where(or_(cls.fee_rate == None, cls.shipping_fee == None))\
-                    .order_by(cls.created_at)
+                    .order_by(cls.created_at).limit(limit_count)
             result = await session.execute(stmt)
             return result.scalars().all()
 
