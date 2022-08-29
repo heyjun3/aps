@@ -1,3 +1,4 @@
+from __future__ import annotations
 import datetime
 from typing import List
 
@@ -76,6 +77,16 @@ class AsinsInfo(Base, ModelsBase):
             return title
         return None
 
+    @classmethod
+    async def get_asins_all(cls) -> List[str]|None:
+        async with cls.session_scope() as session:
+            stmt = select(cls.asin)
+            result = await session.execute(stmt)
+            asins = result.scalars().all()
+        if asins:
+            return asins
+        return None
+
     @property
     def values(self):
         return {
@@ -145,7 +156,35 @@ class SpapiFees(Base, ModelsBase):
             asin_fee = result.scalar()
             if asin_fee:
                 return asin_fee.values
-            return None
+            return 
+
+    @classmethod
+    async def get_asins_fee(cls, asins: List[str], interval_days: int=30) -> List[dict]:
+        date = datetime.date.today() - datetime.timedelta(days=interval_days)
+        async with cls.session_scope() as session:
+            stmt = select(cls).where(cls.asin.in_(asins), cls.modified > date)
+            result = await session.execute(stmt)
+            asins_fee = result.scalars().all()
+            if asins_fee:
+                return [fee.values for fee in asins_fee]
+            return []
+
+    @classmethod
+    async def get_asins_after_update_interval_days(cls, interval_days: int=30) -> List[str]:
+        past_date = datetime.date.today() - datetime.timedelta(days=interval_days)
+        async with cls.session_scope() as session:
+            stmt = select(cls.asin).where(cls.modified > past_date)
+            result = await session.execute(stmt)
+            asins = result.scalars().all()
+        return asins
+
+    @classmethod
+    async def get_asins_all(cls) -> List[str]:
+        async with cls.session_scope() as session:
+            stmt = select(cls.asin)
+            result = await session.execute(stmt)
+            asins = result.scalars().all()
+        return asins
 
     @property
     def values(self):

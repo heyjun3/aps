@@ -22,6 +22,7 @@ DB_TEST_URL = f"postgresql+asyncpg://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{TEST_D
 REDIS_HOST = config['REDIS']['HOST']
 REDIS_PORT = config['REDIS']['PORT']
 REDIS_DB = config['REDIS']['DB']
+REDIS_PASSWORD = config['REDIS']['PASSWORD']
 
 # WEB settings
 HOST = config['WEB']['HOST']
@@ -53,6 +54,7 @@ CLIENT_ID = config['SPAPI']['CLIENT_ID']
 CLIENT_SECRET = config['SPAPI']['CLIENT_SECRET']
 AWS_ACCESS_ID = config['SPAPI']['AWS_ACCESS_ID']
 AWS_SECRET_KEY = config['SPAPI']['AWS_SECRET_KEY']
+ENDPOINT = 'https://sellingpartnerapi-fe.amazon.com'
 
 # BUFFALO settings
 BUFFALO_URL = 'https://www.buffalo-direct.com/'
