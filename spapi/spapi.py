@@ -10,7 +10,6 @@ from typing import List
 import asyncio
 
 import redis
-import requests
 import aiohttp
 
 import settings
@@ -73,7 +72,7 @@ class SPAPI(object):
         kSigning = self.sign(kService, 'aws4_request')
         return kSigning
 
-    async def get_spapi_access_token(self, timeout_sec: int = 3500):
+    async def get_spapi_access_token(self, timeout_sec: int = 3500) -> str:
 
         access_token = redis_client.get('access_token')
         if access_token is not None:
@@ -103,7 +102,7 @@ class SPAPI(object):
 
         return access_token
 
-    async def create_authorization_headers(self, method: str, url: str, params: dict={}, body: dict={}) -> dict:
+    async def create_authorization_headers(self, amz_access_token: str, method: str, url: str, params: dict={}, body: dict={}) -> dict:
         region = 'us-west-2'
         service = 'execute-api'
         algorithm = 'AWS4-HMAC-SHA256'
@@ -113,24 +112,21 @@ class SPAPI(object):
         host = urllib.parse.urlparse(settings.ENDPOINT).netloc
         canonical_uri = urllib.parse.urlparse(url).path
 
+        body_json = ''
         if body:
-            body = json.dumps(body)
-        else:
-            body = ''
+            body_json = json.dumps(body)
 
         utcnow = datetime.datetime.utcnow()
         amz_date = utcnow.strftime('%Y%m%dT%H%M%SZ')
         datestamp = utcnow.strftime('%Y%m%d')
-        amz_access_token = await self.get_spapi_access_token()
         canonical_header_values = [host, user_agent, amz_access_token, f'{amz_date}\n']
         
         canonical_headers = '\n'.join([f'{head}:{value}' for head, value in zip(signed_headers.split(';'), canonical_header_values)])
-        payload_hash = hashlib.sha256(body.encode('utf-8')).hexdigest()
+        payload_hash = hashlib.sha256(body_json.encode('utf-8')).hexdigest()
 
+        canonical_querystring = ''
         if params:
             canonical_querystring = urllib.parse.urlencode(sorted(params.items(), key=lambda x: (x[0], x[1])))
-        else:
-            canonical_querystring = ''
 
         canonical_request = '\n'.join([method, canonical_uri, canonical_querystring, canonical_headers, signed_headers, payload_hash])
         credential_scope = os.path.join(datestamp, region, service, 'aws4_request')
@@ -151,7 +147,8 @@ class SPAPI(object):
         return headers
     
     async def request(self, method: str, url: str, params: dict=None, body: dict=None) -> dict:
-        headers = await self.create_authorization_headers(method, url, params, body)
+        access_token = await self.get_spapi_access_token()
+        headers = await self.create_authorization_headers(access_token, method, url, params, body)
         response = await request(method, url, params=params, body=body, headers=headers)
         return response
 
@@ -175,7 +172,6 @@ class SPAPI(object):
             }
         }
         response = await self.request(method, url, body=body)
-
         return response
 
     async def get_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
