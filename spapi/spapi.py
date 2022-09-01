@@ -7,6 +7,7 @@ import time
 import urllib.parse
 import re
 from typing import List
+from typing import Coroutine
 import asyncio
 
 import redis
@@ -146,18 +147,23 @@ class SPAPI(object):
 
         return headers
     
-    async def request(self, method: str, url: str, params: dict=None, body: dict=None) -> dict:
+    async def request(self, coroutine: Coroutine) -> dict:
+        method, url, params, body = await coroutine()
         access_token = await self.get_spapi_access_token()
         headers = await self.create_authorization_headers(access_token, method, url, params, body)
         response = await request(method, url, params=params, body=body, headers=headers)
         return response
 
-    async def get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool = True, currency_code: str = 'JPY') -> dict:
+    async def get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool=True) -> dict:
+        return await self.request(self.create_request_get_my_fees_estimate_for_asin(asin, price, is_fba))
+
+    async def create_request_get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool = True, currency_code: str = 'JPY') -> dict:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
         method = 'POST'
         path = f'/products/fees/v0/items/{asin}/feesEstimate'
         url = urllib.parse.urljoin(settings.ENDPOINT, path)
+        query = ''
         body =  {
             'FeesEstimateRequest': {
                 'Identifier': asin,
@@ -171,8 +177,10 @@ class SPAPI(object):
                 'MarketplaceId': self.marketplace_id, 
             }
         }
-        response = await self.request(method, url, body=body)
-        return response
+        return (method, url, query, body)
+
+        # response = await self.request(method, url, body=body)
+        # return response
 
     async def get_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
         method = 'GET'
