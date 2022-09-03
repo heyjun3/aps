@@ -6,9 +6,10 @@ import os
 import time
 import urllib.parse
 import re
-from typing import List
-from typing import Coroutine
 import asyncio
+from functools import partial
+from typing import List
+from typing import Callable
 
 import redis
 import aiohttp
@@ -147,23 +148,50 @@ class SPAPI(object):
 
         return headers
     
-    async def request(self, coroutine: Coroutine) -> dict:
-        method, url, params, body = await coroutine()
+    async def _request(self, func: Callable) -> dict:
+        method, url, params, body = func()
         access_token = await self.get_spapi_access_token()
         headers = await self.create_authorization_headers(access_token, method, url, params, body)
         response = await request(method, url, params=params, body=body, headers=headers)
         return response
 
     async def get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool=True) -> dict:
-        return await self.request(self.create_request_get_my_fees_estimate_for_asin(asin, price, is_fba))
+        return await self._request(partial(self._get_my_fees_estimate_for_asin, asin, price, is_fba))
 
-    async def create_request_get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool = True, currency_code: str = 'JPY') -> dict:
+    async def get_pricing(self, asin_list: List[str], item_type: str='Asin') -> dict:
+        return await self._request(partial(self._get_pricing, asin_list, item_type))
+
+    async def get_competitive_pricing(self, asin_list: List[str], item_type: str='Asin') -> dict:
+        return await self._request(partial(self._get_competitive_pricing, asin_list, item_type))
+
+    async def get_item_offers(self, asin: str, item_condition: str='New') -> dict:
+        return await self._request(partial(self._get_item_offers, asin, item_condition))
+
+    async def search_catalog_items(self, jan_list: List[str]) -> dict:
+        return await self._request(partial(self._search_catalog_items, jan_list))
+
+    async def list_catalog_items(self, jan: str) -> dict:
+        return await self._request(partial(self._list_catalog_items, jan))
+
+    async def get_catalog_item(self, asin: str) -> dict:
+        return await self._request(partial(self._get_catalog_item, asin))
+
+    async def search_catalog_items_v2022_04_01(self, identifiers: List[str], id_type: str) -> dict:
+        return await self._request(partial(self._search_catalog_items_v2022_04_01, identifiers, id_type))
+
+    async def get_item_offers_batch(self, asin_list: List[str], item_condition: str='NEW', customer_type: str='Consumer') -> dict:
+        return await self._request(partial(self._get_item_offers_batch, asin_list, item_condition, customer_type))
+
+    async def get_my_fees_estimates(self, asin_list: List[str], id_type: str='ASIN', price_amount: int=10000) -> dict:
+        return await self._request(partial(self._get_my_fees_estimates, asin_list, id_type, price_amount))
+
+    def _get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool = True, currency_code: str = 'JPY') -> dict:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
         method = 'POST'
         path = f'/products/fees/v0/items/{asin}/feesEstimate'
         url = urllib.parse.urljoin(settings.ENDPOINT, path)
-        query = ''
+        query = None
         body =  {
             'FeesEstimateRequest': {
                 'Identifier': asin,
@@ -179,10 +207,7 @@ class SPAPI(object):
         }
         return (method, url, query, body)
 
-        # response = await self.request(method, url, body=body)
-        # return response
-
-    async def get_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
+    def _get_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
         method = 'GET'
         path = '/products/pricing/v0/price'
         url = urllib.parse.urljoin(settings.ENDPOINT, path)
@@ -191,11 +216,11 @@ class SPAPI(object):
             'ItemType': item_type,
             'MarketplaceId': self.marketplace_id,
         }
-        response = await self.request(method, url, params=query)
+        body = None
 
-        return response
+        return (method, url, query, body)
 
-    async def get_competitive_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
+    def _get_competitive_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
         logger.info('action=get_competitive_pricing status=run')
 
         method = 'GET'
@@ -206,12 +231,12 @@ class SPAPI(object):
             'Asins': ','.join(asin_list),
             'ItemType': item_type,
         }
-        response = await self.request(method, url, params=query)
+        body = None
 
         logger.info('action=get_competitive_pricing status=done')
-        return response
+        return (method, url, query, body)
 
-    async def get_item_offers(self, asin: str, item_condition: str='New') -> dict:
+    def _get_item_offers(self, asin: str, item_condition: str='New') -> dict:
         logger.info('action=get_item_offers status=run')
 
         method = 'GET'
@@ -221,12 +246,12 @@ class SPAPI(object):
             'MarketplaceId': self.marketplace_id,
             'ItemCondition': item_condition,
         }
-        response = await self.request(method, url, params=query)
+        body = None
 
         logger.info('action=get_item_offers status=done')
-        return response
+        return (method, url, query, body)
 
-    async def search_catalog_items(self, jan_list: list) -> dict:
+    def _search_catalog_items(self, jan_list: list) -> dict:
         logger.info('action=search_catalog_items status=run')
 
         method = 'GET'
@@ -237,12 +262,12 @@ class SPAPI(object):
             'marketplaceIds': self.marketplace_id,
             'includedData': 'identifiers,images,productTypes,salesRanks,summaries,variations'
         }
-        response = await self.request(method, url, params=query)
+        body = None
 
         logger.info('action=search_catalog_items status=done')
-        return response
+        return (method, url, query, body)
 
-    async def list_catalog_items(self, jan: str) -> dict:
+    def _list_catalog_items(self, jan: str) -> dict:
         logger.info('action=list_catalog_items status=run')
 
         method = 'GET'
@@ -252,12 +277,12 @@ class SPAPI(object):
             'MarketplaceId': self.marketplace_id,
             'JAN': jan,
         }
-        response = await self.request(method, url, params=query)
+        body = None 
 
         logger.info('action=list_catalog_items status=done')
-        return response
+        return (method, url, query, body)
 
-    async def get_catalog_item(self, asin: str) -> dict:
+    def _get_catalog_item(self, asin: str) -> dict:
         logger.info('action=get_catalog_item status=run')
 
         method = 'GET'
@@ -267,12 +292,12 @@ class SPAPI(object):
             'marketplaceIds': self.marketplace_id,
             'includedData': 'attributes,identifiers,images,productTypes,salesRanks,summaries,variations'
         }
-        response = await self.request(method, url, params=query)
+        body = None
 
         logger.info('action=get_catalog_item status=done')
-        return response
+        return (method, url, query, body)
 
-    async def search_catalog_items_v2022_04_01(self, identifiers: List[str], id_type: str) -> dict:
+    def _search_catalog_items_v2022_04_01(self, identifiers: List[str], id_type: str) -> dict:
         logger.info('action=search_catalog_items_v2022_04_01 status=run')
 
         if (len(identifiers) > 20):
@@ -288,12 +313,12 @@ class SPAPI(object):
             'includedData': 'attributes,dimensions,identifiers,productTypes,relationships,salesRanks,summaries',
             'pageSize': 20,
         }
-        response = await self.request(method, url, query)
+        body = None
 
         logger.info('action=search_catalog_items_v2022_04_01 status=done')
-        return response
+        return (method, url, query, body)
 
-    async def get_item_offers_batch(self, asin_list: List, item_condition: str='NEW', customer_type: str='Consumer') -> dict:
+    def _get_item_offers_batch(self, asin_list: List, item_condition: str='NEW', customer_type: str='Consumer') -> dict:
         logger.info('action=get_item_offers_batch status=run')
 
         if len(asin_list) > 20:
@@ -312,15 +337,15 @@ class SPAPI(object):
         method = 'POST'
         path = '/batches/products/pricing/v0/itemOffers'
         url = urllib.parse.urljoin(settings.ENDPOINT, path)
+        query = None
         body = {
             'requests' : request_list,
         }
-        response = await self.request(method, url, body=body)
 
         logger.info('action=get_item_offers_batch status=done')
-        return response
+        return (method, url, query, body)
 
-    async def get_my_fees_estimates(self, asin_list: List, id_type: str='ASIN', price_amount: int=10000) -> dict:
+    def _get_my_fees_estimates(self, asin_list: List, id_type: str='ASIN', price_amount: int=10000) -> dict:
         logger.info('action=get_my_fees_estimates status=run')
 
         if len(asin_list) > 20:
@@ -329,6 +354,7 @@ class SPAPI(object):
         method = 'POST'
         path = '/products/fees/v0/feesEstimate'
         url = urllib.parse.urljoin(settings.ENDPOINT, path)
+        query = None
 
         body = []
         for asin in asin_list:
@@ -348,10 +374,9 @@ class SPAPI(object):
                 'IdType': id_type,
                 'IdValue': asin,
             })
-        response = await self.request(method, url, body=body)
         
         logger.info('action=get_my_fees_estimates status=done')
-        return response
+        return (method, url, query, body)
 
 
 class SPAPIJsonParser(object):
