@@ -21,21 +21,13 @@ import log_settings
 logger = log_settings.get_logger(__name__)
 
 
-def logger_decorator(func):
+def logger_decorator(func: Callable) -> Callable:
     def _logger_decorator(*args, **kwargs):
         logger.info({'action': func.__name__, 'status': 'run'})
         result = func(*args, **kwargs)
         logger.info({'action': func.__name__, 'status': 'done'})
         return result
     return _logger_decorator
-
-
-redis_client = redis.Redis(
-        host=settings.REDIS_HOST,
-        port=settings.REDIS_PORT,
-        db=settings.REDIS_DB,
-        password=settings.REDIS_PASSWORD,
-    )
 
 
 async def request(method: str, url: str, params: dict=None, headers: dict=None, body: dict=None) -> aiohttp.ClientResponse:
@@ -63,6 +55,12 @@ class SPAPI(object):
         self.aws_access_key = settings.AWS_ACCESS_ID
         self.marketplace_id = settings.MARKETPLACEID
         self.seller_id = settings.SELLER_ID
+        self.redis_client = redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            db=settings.REDIS_DB,
+            password=settings.REDIS_PASSWORD,
+        )
 
     def sign(self, key, msg):
         return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
@@ -76,35 +74,42 @@ class SPAPI(object):
 
     async def get_spapi_access_token(self, timeout_sec: int = 3500) -> str:
 
-        access_token = redis_client.get('access_token')
+        access_token = self.redis_client.get('access_token')
         if access_token is not None:
             return access_token.decode()
 
-        URL = 'https://api.amazon.com/auth/o2/token'
+        method, url, params, headers = self._get_ephemeral_access_token()
+        response = await request(method, url, params, headers)
+
+        access_token = response.get('access_token')
+        if access_token is None:
+            text = await response.text()
+            logger.error(text)
+            raise Exception
+
+        self.redis_client.set('access_token', access_token, ex=timeout_sec)
+
+        return access_token
+
+    def _get_ephemeral_access_token(self) -> tuple[str, str, dict, dict]:
+
+        method = 'POST'
+        url = 'https://api.amazon.com/auth/o2/token'
+
         headers = {
         'Host': 'api.amazon.com',
         'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
         }
+
         params = {
         'grant_type': 'refresh_token',
         'refresh_token': self.refresh_toke,
         'client_id': self.client_id,
         'client_secret': self.client_secret,
         }
-        response = await request('POST', URL, params, headers)
+        return (method, url, params, headers)
 
-        access_token = response.get('access_token')
-        
-        if access_token is None:
-            text = await response.text()
-            logger.error(text)
-            raise Exception
-
-        redis_client.set('access_token', access_token, ex=timeout_sec)
-
-        return access_token
-
-    async def create_authorization_headers(self, amz_access_token: str, method: str, url: str, params: dict={}, body: dict={}) -> dict:
+    def create_authorization_headers(self, amz_access_token: str, method: str, url: str, params: dict={}, body: dict={}) -> dict:
         region = 'us-west-2'
         service = 'execute-api'
         algorithm = 'AWS4-HMAC-SHA256'
@@ -151,7 +156,7 @@ class SPAPI(object):
     async def _request(self, func: Callable) -> dict:
         method, url, params, body = func()
         access_token = await self.get_spapi_access_token()
-        headers = await self.create_authorization_headers(access_token, method, url, params, body)
+        headers = self.create_authorization_headers(access_token, method, url, params, body)
         response = await request(method, url, params=params, body=body, headers=headers)
         return response
 
@@ -185,7 +190,7 @@ class SPAPI(object):
     async def get_my_fees_estimates(self, asin_list: List[str], id_type: str='ASIN', price_amount: int=10000) -> dict:
         return await self._request(partial(self._get_my_fees_estimates, asin_list, id_type, price_amount))
 
-    def _get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool = True, currency_code: str = 'JPY') -> dict:
+    def _get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool = True, currency_code: str = 'JPY') -> tuple[str, str, None, dict]:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
         method = 'POST'
@@ -207,7 +212,7 @@ class SPAPI(object):
         }
         return (method, url, query, body)
 
-    def _get_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
+    def _get_pricing(self, asin_list: list, item_type: str='Asin') -> tuple[str, str, dict, None]:
         method = 'GET'
         path = '/products/pricing/v0/price'
         url = urllib.parse.urljoin(settings.ENDPOINT, path)
@@ -220,7 +225,7 @@ class SPAPI(object):
 
         return (method, url, query, body)
 
-    def _get_competitive_pricing(self, asin_list: list, item_type: str='Asin') -> dict:
+    def _get_competitive_pricing(self, asin_list: list, item_type: str='Asin') -> tuple[str, str, dict, None]:
         logger.info('action=get_competitive_pricing status=run')
 
         method = 'GET'
@@ -236,7 +241,7 @@ class SPAPI(object):
         logger.info('action=get_competitive_pricing status=done')
         return (method, url, query, body)
 
-    def _get_item_offers(self, asin: str, item_condition: str='New') -> dict:
+    def _get_item_offers(self, asin: str, item_condition: str='New') -> tuple[str, str, dict, None]:
         logger.info('action=get_item_offers status=run')
 
         method = 'GET'
@@ -251,7 +256,7 @@ class SPAPI(object):
         logger.info('action=get_item_offers status=done')
         return (method, url, query, body)
 
-    def _search_catalog_items(self, jan_list: list) -> dict:
+    def _search_catalog_items(self, jan_list: list) -> tuple[str, str, dict, None]:
         logger.info('action=search_catalog_items status=run')
 
         method = 'GET'
@@ -267,7 +272,7 @@ class SPAPI(object):
         logger.info('action=search_catalog_items status=done')
         return (method, url, query, body)
 
-    def _list_catalog_items(self, jan: str) -> dict:
+    def _list_catalog_items(self, jan: str) -> tuple[str, str, dict, None]:
         logger.info('action=list_catalog_items status=run')
 
         method = 'GET'
@@ -282,7 +287,7 @@ class SPAPI(object):
         logger.info('action=list_catalog_items status=done')
         return (method, url, query, body)
 
-    def _get_catalog_item(self, asin: str) -> dict:
+    def _get_catalog_item(self, asin: str) -> tuple[str, str, dict, None]:
         logger.info('action=get_catalog_item status=run')
 
         method = 'GET'
@@ -297,7 +302,7 @@ class SPAPI(object):
         logger.info('action=get_catalog_item status=done')
         return (method, url, query, body)
 
-    def _search_catalog_items_v2022_04_01(self, identifiers: List[str], id_type: str) -> dict:
+    def _search_catalog_items_v2022_04_01(self, identifiers: List[str], id_type: str) -> tuple[str, str, dict, None]:
         logger.info('action=search_catalog_items_v2022_04_01 status=run')
 
         if (len(identifiers) > 20):
@@ -318,7 +323,7 @@ class SPAPI(object):
         logger.info('action=search_catalog_items_v2022_04_01 status=done')
         return (method, url, query, body)
 
-    def _get_item_offers_batch(self, asin_list: List, item_condition: str='NEW', customer_type: str='Consumer') -> dict:
+    def _get_item_offers_batch(self, asin_list: List, item_condition: str='NEW', customer_type: str='Consumer') -> tuple[str, str, None, dict]:
         logger.info('action=get_item_offers_batch status=run')
 
         if len(asin_list) > 20:
@@ -345,7 +350,7 @@ class SPAPI(object):
         logger.info('action=get_item_offers_batch status=done')
         return (method, url, query, body)
 
-    def _get_my_fees_estimates(self, asin_list: List, id_type: str='ASIN', price_amount: int=10000) -> dict:
+    def _get_my_fees_estimates(self, asin_list: List, id_type: str='ASIN', price_amount: int=10000) -> tuple[str, str, None, dict]:
         logger.info('action=get_my_fees_estimates status=run')
 
         if len(asin_list) > 20:
