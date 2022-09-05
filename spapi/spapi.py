@@ -154,10 +154,10 @@ class SPAPI(object):
         return headers
     
     async def _request(self, func: Callable) -> dict:
-        method, url, params, body = func()
+        method, url, query, body = func()
         access_token = await self.get_spapi_access_token()
-        headers = self.create_authorization_headers(access_token, method, url, params, body)
-        response = await request(method, url, params=params, body=body, headers=headers)
+        headers = self.create_authorization_headers(access_token, method, url, query, body)
+        response = await request(method, url, params=query, body=body, headers=headers)
         return response
 
     async def get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool=True) -> dict:
