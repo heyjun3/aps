@@ -1,3 +1,4 @@
+from ast import parse
 import unittest
 import unittest.mock
 import os
@@ -34,8 +35,10 @@ class ScrapeProductDetailPage(unittest.TestCase):
         with open(html_path, 'r') as f:
             response.text = f.read()
 
-        jan = BuffaloHTMLPage.scrape_product_detail_page(response.text)
-        self.assertEqual(jan, '4988755224604')
+        parsed_value = BuffaloHTMLPage.scrape_product_detail_page(response.text)
+        self.assertEqual(parsed_value.get('jan'), '4988755224604')
+        self.assertEqual(parsed_value.get('price'), 620)
+        self.assertEqual(parsed_value.get('is_stocked'), True)
 
     # def test_product_jan_code_is_none(self):
     #     response = unittest.mock.MagicMock()
