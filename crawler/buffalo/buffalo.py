@@ -98,18 +98,21 @@ class BuffaloHTMLPage(object):
     def scrape_product_detail_page(response: str) -> dict|None:
         logger.info('action=scrape_product_detail_page status=run')
         soup = BeautifulSoup(response, 'lxml')
-        jan = soup.select_one('#detailBox02 .columnLeft p').get_text()
-        price = soup.select_one('#detailBox01 #price span').get_text()
+
+        jan = soup.select_one('#detailBox02 .columnLeft p')
+        if jan:
+            try:
+                jan = re.search('[0-9]{13}', jan.text).group()
+            except AttributeError as ex:
+                logger.info(f'jan code is None error={ex}')
+
+        price = soup.select_one('#detailBox01 #price span')
+        if price:
+            price = int(''.join(re.findall('[0-9]', price.text)))
+
         is_stocked = soup.select_one('#detailBox01 #cart')
-        try:
-            jan = re.search('[0-9]{13}', jan).group()
-        except AttributeError as ex:
-            logger.info(f'jan code is None error={ex}')
-            jan = None
-        
-        price = ''.join(re.findall('[0-9]', price))
-        
-        return {'jan': jan, 'price': int(price), 'is_stocked': bool(is_stocked)}
+
+        return {'jan': jan, 'price': price, 'is_stocked': bool(is_stocked)}
 
 
 def main():
