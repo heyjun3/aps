@@ -16,6 +16,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 import log_settings
 from mq import MQ
+from crawler.utils import HEADERS
 
 
 logger = log_settings.get_logger(__name__)
@@ -75,7 +76,7 @@ class SpreadSheetCrawler(object):
         if not all(require in value for require in self.requires):
             return
 
-        if not value.get('URL'):
+        if value.get('URL') is None:
             return
 
         return value
@@ -83,7 +84,10 @@ class SpreadSheetCrawler(object):
     @log_decorator
     def _send_request(self, sheet_value: dict, interval_sec: int=2) -> dict|None:
         value = deepcopy(sheet_value)
-        response = requests.get(value.get('URL'))
+        url = value.get('URL')
+        logger.info(url)
+
+        response = requests.get(url, headers=HEADERS)
         time.sleep(interval_sec)
 
         if response.status_code == 200:
@@ -103,9 +107,13 @@ class SpreadSheetCrawler(object):
     @log_decorator
     def _publish_queue(self, response: dict) -> None:
 
+        jan = response['parse_value'].get('jan') or response.get('JAN')
+        if jan is None:
+            return
+
         self.mq.publish(json.dumps({
             'filename': f'repeat_{self.start_time}',
-            'jan': response['parse_value'].get('jan') or response.get('JAN'),
+            'jan': jan,
             'cost': response['parse_value'].get('price'),
             'url': response['response'].url,
         }))
@@ -134,8 +142,6 @@ class SpreadSheetCrawler(object):
             return
         if re.search('[paypaymall.yahoo.co.jp]$', netloc):
             return
-        if re.search('[paypaymall.yahoo.co.jp]$', netloc):
-            return
         if re.search('[sofmap.com]$', netloc):
             return
         if re.search('[soundhouse.co.jp]$', netloc):
@@ -148,6 +154,8 @@ class SpreadSheetCrawler(object):
             return
         if re.search('[pioneer-itstore.jp]$', netloc):
             return
+
+        logger.error({'message': 'netloc is not match', 'value': netloc})
         
 
 if __name__ == '__main__':
