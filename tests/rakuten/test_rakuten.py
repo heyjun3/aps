@@ -15,6 +15,8 @@ class ScrapeDetailProductPage(unittest.TestCase):
         with open(html_path, 'r') as f:
             response = f.read()
 
-        jan = RakutenHTMLPage.scrape_product_detail_page(response)
-        self.assertEqual(jan, '4573201242433')
+        parsed_value = RakutenHTMLPage.scrape_product_detail_page(response)
+        self.assertEqual(parsed_value.get('jan'), '4573201242433')
+        self.assertEqual(parsed_value.get('price'), 253000)
+        self.assertEqual(parsed_value.get('is_stocked'), True)
         
