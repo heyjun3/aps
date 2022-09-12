@@ -1,4 +1,3 @@
-from ast import Call
 import time
 import urllib.parse
 import re
@@ -18,6 +17,10 @@ import log_settings
 from mq import MQ
 from crawler.utils import HEADERS
 from crawler.buffalo.buffalo import BuffaloHTMLPage
+from crawler.pc4u.pc4u import Pc4uHTMLPage
+from crawler.pcones.pcones import PconesHTMLPage
+from crawler.rakuten.rakuten import RakutenHTMLPage
+from crawler.paypaymall.paypaymoll import PayPayMollHTMLParser
 
 
 logger = log_settings.get_logger(__name__)
@@ -79,16 +82,11 @@ class SpreadSheetCrawler(object):
 
         if value.get('URL') is None:
             return
-        url = value.get('URL')
-        if 'buffalo' in url:
-            return value
-        else:
-            return 
 
         return value
 
     @log_decorator
-    def _send_request(self, sheet_value: dict, interval_sec: int=2) -> dict|None:
+    def _send_request(self, sheet_value: dict, interval_sec: int=4) -> dict|None:
         value = deepcopy(sheet_value)
         url = value.get('URL')
         logger.info(url)
@@ -142,16 +140,20 @@ class SpreadSheetCrawler(object):
         if re.search('(netmall.hardoff.co.jp)$', netloc):
             return
         if re.search('(item.rakuten.co.jp)$', netloc):
-            return 
+            result_response['parser'] = RakutenHTMLPage.scrape_product_detail_page
+            return result_response
         if re.search('(pc4u.co.jp)$', netloc):
-            return
+            result_response['parser'] = Pc4uHTMLPage.scrape_product_detail_page
+            return result_response
         if re.search('(1-s.jp)$', netloc):
-            return
+            result_response['parser'] = PconesHTMLPage.scrape_product_detail_page
+            return result_response
         if re.search('(buffalo-direct.com)$', netloc):
             result_response['parser'] = BuffaloHTMLPage.scrape_product_detail_page
             return result_response
         if re.search('(paypaymall.yahoo.co.jp)$', netloc):
-            return
+            result_response['parser'] = PayPayMollHTMLParser.product_detail_page_parser
+            return result_response
         if re.search('(sofmap.com)$', netloc):
             return
         if re.search('(soundhouse.co.jp)$', netloc):
@@ -166,9 +168,3 @@ class SpreadSheetCrawler(object):
             return
 
         logger.error({'message': 'netloc is not match', 'value': netloc})
-        
-
-if __name__ == '__main__':
-    client = SpreadSheetCrawler('gsheet-355401-5fbc168f98c2.json', 'business', 'repeat_list')
-    urls = client._get_crawl_urls_from_spread_sheet()
-    print(urls)

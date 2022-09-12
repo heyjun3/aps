@@ -88,3 +88,8 @@ SUPER_NEW_PRODUCTS_URL = 'https://www.superdelivery.com/p/do/psl/'
 
 # PC4U settings
 PC4U_ENDPOINT = 'https://www.pc4u.co.jp/'
+
+# SpreadSheet settings
+CREDENTIAL_FILE_NAME = 'gsheet-355401-5fbc168f98c2.json'
+SHEET_TITLE = 'bussiness'
+SHEET_NAME = 'repeat_list'

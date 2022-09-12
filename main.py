@@ -12,8 +12,10 @@ from crawler.rakuten import rakuten_tasks
 from crawler.super import super_tasks
 from crawler.netsea import netsea_tasks
 from crawler.pcones import pcones
+from crawler.spread_sheet.spread_sheet import SpreadSheetCrawler
 from ims import repeat
 from ims import monthly
+import settings
 
 
 if __name__ == '__main__':
@@ -61,5 +63,7 @@ if __name__ == '__main__':
             pcones.main()
         case ('mws', None):
             asyncio.run(MWS.delete_rows_lower_price())
+        case ('spread_sheet', None):
+            SpreadSheetCrawler(settings.CREDENTIAL_FILE_NAME, settings.SHEET_TITLE, settings.SHEET_NAME).start_crawler()
         case _:
             sys.stdout.write(f'{task} is not a command')
