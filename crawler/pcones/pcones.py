@@ -121,7 +121,7 @@ class PconesHTMLPage(object):
         try:
             jan = soup.select('.detail_etc_table td')[PRODUCT_CODE_ROW_NUM].attrs.get('content')
             jan = re.fullmatch('[0-9]{13}', jan).group()
-        except AttributeError as ex:
+        except (AttributeError, IndexError) as ex:
             logger.info({'message': 'jan code is None', 'error': ex})
             jan = None
 
