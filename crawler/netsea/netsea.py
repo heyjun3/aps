@@ -103,7 +103,8 @@ class Netsea(object):
                     time.sleep(interval_sec)
                     if response is None:
                         continue
-                    netsea_product.jan = NetseaHTMLPage.scrape_product_detail_page(response.text)
+                    parsed_value = NetseaHTMLPage.scrape_product_detail_page(response.text)
+                    netsea_product.jan = parsed_value.get('jan')
                     netsea_product.save()
             
             self.publish_queue(netsea_product.jan, netsea_product.price)
@@ -214,10 +215,10 @@ class NetseaHTMLPage(object):
             jan = jan.group()
         except (IndexError, AttributeError) as e:
             logger.error(f'action=get_jan error={e}')
-            return None
+            jan = None
 
         logger.info('action=scrape_detail_product_page status=done')
-        return jan
+        return {'jan': jan}
 
     @classmethod
     def scrape_next_page_url(cls, response: str, response_url: str, is_new_product_search: bool = False) -> str | None:
