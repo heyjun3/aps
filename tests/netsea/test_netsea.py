@@ -97,6 +97,6 @@ class ScrapeProductDetailPage(unittest.TestCase):
         with open(html_path, 'r') as f:
             response.text = f.read()
 
-        jan = NetseaHTMLPage.scrape_product_detail_page(response.text)
-        self.assertEqual(jan, '4962644942725')
+        parsed_value = NetseaHTMLPage.scrape_product_detail_page(response.text)
+        self.assertEqual(parsed_value.get('jan'), '4962644942725')
     

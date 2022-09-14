@@ -35,9 +35,11 @@ class ScrapeProductDetailPage(unittest.TestCase):
         with open(html_page, 'r') as f:
             response.text = f.read()
 
-        jan = Pc4uHTMLPage.scrape_product_detail_page(response.text)
+        parsed_value = Pc4uHTMLPage.scrape_product_detail_page(response.text)
         
-        self.assertEqual(jan, '4537694274043')
+        self.assertEqual(parsed_value.get('jan'), '4537694274043')
+        self.assertEqual(parsed_value.get('price'), 8393)
+        self.assertEqual(parsed_value.get('is_stocked'), True)
 
 
 class ScrapeNextPageUrl(unittest.TestCase):

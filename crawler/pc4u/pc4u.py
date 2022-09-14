@@ -48,7 +48,8 @@ class CrawlerPc4u():
             if product is None:
                 url = urllib.parse.urljoin(settings.PC4U_ENDPOINT, f'{path}/{pc4u_product.product_code}')
                 response = utils.request(url)
-                pc4u_product.jan = Pc4uHTMLPage.scrape_product_detail_page(response.text)
+                parsed_value = Pc4uHTMLPage.scrape_product_detail_page(response.text)
+                pc4u_product.jan = parsed_value.get('jan')
                 pc4u_product.save()
                 time.sleep(interval_sec)
             else:
@@ -102,19 +103,28 @@ class Pc4uHTMLPage(object):
         return pc4u_product_list
 
     @staticmethod
-    def scrape_product_detail_page(response: str) -> str|None:
+    def scrape_product_detail_page(response: str) -> dict:
         logger.info('action=scrape_product_detail_page status=run')
 
         soup = BeautifulSoup(response, 'lxml')
         detail_text = soup.select_one('.detailTxt')
         try:
-            jan = re.search('[\d]{13}', str(detail_text)).group()
+            jan = re.search('[0-9]{13}', str(detail_text)).group()
         except AttributeError as ex:
             logger.info(f'jan is None error={ex}')
             jan = None
 
+        try:
+            price = soup.select_one('#M_price1').attrs.get('value')
+            price = int(''.join(re.findall('[0-9]', price)))
+        except (AttributeError, TypeError) as ex:
+            logger.info({'message': 'price is None', 'error': ex})
+            price = None
+
+        is_stocked = soup.select_one('.cartBtn')
+
         logger.info('action=scrape_product_detail_page status=done')
-        return jan
+        return {'jan': jan, 'price': price, 'is_stocked': bool(is_stocked)}
 
     @staticmethod
     def scrape_next_page_url(response: str) -> str|None:

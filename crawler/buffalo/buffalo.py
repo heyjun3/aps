@@ -46,7 +46,8 @@ class BuffaloCrawler():
                 query = {'product_id': buffalo_product.product_code}
                 response = utils.request(url=settings.BUFFALO_DETAIL_PAGE_URL, params=query)
                 time.sleep(interval_sec)
-                buffalo_product.jan = BuffaloHTMLPage.scrape_product_detail_page(response.text)
+                parsed_value = BuffaloHTMLPage.scrape_product_detail_page(response.text)
+                buffalo_product.jan = parsed_value.get('jan')
                 buffalo_product.save()
             else:
                 buffalo_product.jan = product.jan
@@ -84,7 +85,7 @@ class BuffaloHTMLPage(object):
             is_sold_out = product.select_one('.soldout')
             if title_flag or is_sold_out:
                 continue
-            price = int(''.join(re.findall('[\d]', product.select_one('.price span').text.strip())))
+            price = int(''.join(re.findall('[0-9]', product.select_one('.price span').text.strip())))
             url = product.select_one('.columnRight a').attrs['href']
             product_code = parse_qs(urlparse(url).query).get('product_id').pop()
             buffalo = BuffaloProduct(name=title, price=price, product_code=product_code)
@@ -94,16 +95,24 @@ class BuffaloHTMLPage(object):
         return buffalo_product_list
 
     @staticmethod
-    def scrape_product_detail_page(response: str) -> str|None:
+    def scrape_product_detail_page(response: str) -> dict|None:
         logger.info('action=scrape_product_detail_page status=run')
         soup = BeautifulSoup(response, 'lxml')
-        jan = soup.select_one('#detailBox02 .columnLeft p').get_text()
-        try:
-            jan = re.search('[\d]{13}', jan).group()
-        except AttributeError as ex:
-            logger.info(f'jan code is None error={ex}')
-            jan = None
-        return jan
+
+        jan = soup.select_one('#detailBox02 .columnLeft p')
+        if jan:
+            try:
+                jan = re.search('[0-9]{13}', jan.text).group()
+            except AttributeError as ex:
+                logger.info(f'jan code is None error={ex}')
+
+        price = soup.select_one('#detailBox01 #price span')
+        if price:
+            price = int(''.join(re.findall('[0-9]', price.text)))
+
+        is_stocked = soup.select_one('#detailBox01 #cart')
+
+        return {'jan': jan, 'price': price, 'is_stocked': bool(is_stocked)}
 
 
 def main():

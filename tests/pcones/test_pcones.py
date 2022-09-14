@@ -21,3 +21,23 @@ class ScrapeProductListPage(unittest.TestCase):
 
         self.assertEqual(products[-1]['jan'], '4550161189572')
         self.assertEqual(products[-1]['cost'], 6080)
+
+    def test_scrape_detail_page_1(self):
+        path = os.path.join(dirname, 'scrape_product_detail_page1.html')
+        with open(path, 'r') as f:
+            response = f.read()
+        
+        parsed_value = PconesHTMLPage.scrape_product_detail_page(response)
+        assert parsed_value.get('jan') == '4589967503374'
+        assert parsed_value.get('price') == 13970
+        assert parsed_value.get('is_stocked') == False
+
+    def test_scrape_detail_page_2(self):
+        path = os.path.join(dirname, 'scrape_product_detail_page2.html')
+        with open(path, 'r') as f:
+            response = f.read()
+
+        parsed_value = PconesHTMLPage.scrape_product_detail_page(response)
+        assert parsed_value.get('jan') == None
+        assert parsed_value.get('price') == 3499
+        assert parsed_value.get('is_stocked') == True

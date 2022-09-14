@@ -82,7 +82,8 @@ class RakutenAPIClient:
                 if product is None:
                     response = utils.request(url=rakuten_product.url)
                     time.sleep(interval_sec)
-                    rakuten_product.jan = RakutenHTMLPage.scrape_product_detail_page(response.text)
+                    parsed_value = RakutenHTMLPage.scrape_product_detail_page(response.text)
+                    rakuten_product.jan = parsed_value.get('jan')
                     rakuten_product.save()
                 else:
                     rakuten_product.jan = product.jan
@@ -111,18 +112,26 @@ class RakutenAPIClient:
 class RakutenHTMLPage(object):
 
     @staticmethod
-    def scrape_product_detail_page(response: str) -> str|None:
+    def scrape_product_detail_page(response: str) -> dict:
         logger.info('action=scrape_product_detail_page status=run')
 
         soup = BeautifulSoup(response, 'lxml')
         try:
-            jan = re.fullmatch('[\d]{13}', soup.select_one('#ratRanCode').get('value')).group()
+            jan = re.fullmatch('[0-9]{13}', soup.select_one('#ratRanCode').get('value')).group()
         except AttributeError as e:
             logger.error(f'{e}')
             return None
+
+        try:
+            price = int(''.join(re.findall('[0-9]', soup.select_one('.price2').text)))
+        except (AttributeError, TypeError) as ex:
+            logger.info(f'price is None message {ex}')
+            price = None
+
+        is_stocked = soup.select_one('.cart-button-container')
         
         logger.info('action=scrape_product_detail_page status=done')
-        return jan
+        return {'jan': jan, 'price': price, 'is_stocked': bool(is_stocked)}
 
 
 class RakutenAPIJSON(object):

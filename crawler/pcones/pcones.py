@@ -3,6 +3,7 @@ import re
 import time
 import datetime
 import json
+from xml.dom.minidom import Attr
 
 import requests
 from bs4 import BeautifulSoup
@@ -96,7 +97,7 @@ class PconesHTMLPage(object):
             if not list_code or not list_price:
                 continue
             
-            jan = re.search('[\d]{13}', list_code.text)
+            jan = re.search('[0-9]{13}', list_code.text)
             price = re.search('.*円', list_price.text)
             try:
                 is_sold_out = product.select_one('.list_stock font').text
@@ -106,8 +107,31 @@ class PconesHTMLPage(object):
             if not jan or not price or is_sold_out == '×品切れ':
                 continue
             else:
-                price = int(''.join(re.findall('[\d]', price.group())))
+                price = int(''.join(re.findall('[0-9]', price.group())))
                 products.append({'jan': jan.group(), 'cost': price})
 
         logger.info('action=scrape_product_list_page status=done')
         return products
+
+    @staticmethod
+    def scrape_product_detail_page(response: str) -> dict:
+
+        PRODUCT_CODE_ROW_NUM = 2
+        soup = BeautifulSoup(response, 'lxml')
+        try:
+            jan = soup.select('.detail_etc_table td')[PRODUCT_CODE_ROW_NUM].attrs.get('content')
+            jan = re.fullmatch('[0-9]{13}', jan).group()
+        except (AttributeError, IndexError) as ex:
+            logger.info({'message': 'jan code is None', 'error': ex})
+            jan = None
+
+        try:
+            price = soup.select_one('.detail_price .price span').attrs.get('content')
+            price = int(''.join(re.findall('[0-9]', price)))
+        except AttributeError as ex:
+            logger.info({'message': 'price is None', 'error': ex})
+            price = None
+
+        is_stocked = soup.select_one('#cart')
+
+        return {'jan': jan, 'price': price, 'is_stocked': bool(is_stocked)}
