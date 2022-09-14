@@ -1,17 +1,13 @@
 import re
 import time
 import datetime
-import os
 import json
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 
-import requests
-import openpyxl
-from requests import Response
 from bs4 import BeautifulSoup
 
-from crawler import buffalo, utils
+from crawler import utils
 from crawler.buffalo.models import BuffaloProduct
 import settings
 import log_settings
@@ -52,13 +48,15 @@ class BuffaloCrawler():
             else:
                 buffalo_product.jan = product.jan
 
-            if buffalo_product.jan:
-                self.publish_queue(buffalo_product.jan, buffalo_product.price)
+            self.publish_queue(buffalo_product.jan, buffalo_product.price, buffalo_product.url)
 
         logger.info('action=pool_product_detail_page status=done')
 
-    def publish_queue(self, jan: str, price: int) -> None:
+    def publish_queue(self, jan: str, price: int, url: str) -> None:
         logger.info('action=publish_queue status=run')
+
+        if not all([jan, price, url]):
+            return
 
         self.mq.publish(json.dumps({
             'filename': f'buffalo_{self.timestamp}',
@@ -74,6 +72,8 @@ class BuffaloHTMLPage(object):
     def scrape_product_list_page(response: str) -> list[BuffaloProduct]:
         logger.info('action=scrape_product_list_page status=run')
 
+        FQDN = 'https://www.buffalo-direct.com'
+
         buffalo_product_list = []
         soup = BeautifulSoup(response, 'lxml')
         products_list = soup.select_one('.list')
@@ -88,7 +88,7 @@ class BuffaloHTMLPage(object):
             price = int(''.join(re.findall('[0-9]', product.select_one('.price span').text.strip())))
             url = product.select_one('.columnRight a').attrs['href']
             product_code = parse_qs(urlparse(url).query).get('product_id').pop()
-            buffalo = BuffaloProduct(name=title, price=price, product_code=product_code)
+            buffalo = BuffaloProduct(name=title, price=price, product_code=product_code, url=FQDN+url)
             buffalo_product_list.append(buffalo)
 
         logger.info('action=scrape_product_list_page status=done')
