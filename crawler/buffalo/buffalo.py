@@ -62,6 +62,7 @@ class BuffaloCrawler():
             'filename': f'buffalo_{self.timestamp}',
             'jan': jan,
             'cost': price,
+            'url': url,
         }))
         logger.info('action=publish_queue status=done')
 
