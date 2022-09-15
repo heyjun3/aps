@@ -88,25 +88,24 @@ class RakutenAPIClient:
                 else:
                     rakuten_product.jan = product.jan
 
-            self.publish_queue(rakuten_product.jan, rakuten_product.price)
+            self.publish_queue(rakuten_product.jan, rakuten_product.price, rakuten_product.url)
             
         logger.info('action=pool_rakuten_product_detail_page status=done')
 
-    def publish_queue(self, jan: str, price: int) -> None:
+    def publish_queue(self, jan: str, price: int, url: str) -> None:
         logger.info('action=publish_queue status=run')
 
-        if not jan or not price:
-            return None
+        if not all([jan, price, url]):
+            return
 
-        params = {
+        self.mq.publish(json.dumps({
             'filename': f'rakuten_{self.timestamp}',
             'jan': jan,
             'cost': price,
-        }
-        self.mq.publish(json.dumps(params))
+            'url': url,
+        }))
         
         logger.info('action=publish_queue status=done')
-        return None
 
 
 class RakutenHTMLPage(object):
