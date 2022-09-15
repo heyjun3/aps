@@ -23,11 +23,13 @@ class ScrapeProductListPage(unittest.TestCase):
         self.assertEqual(products[0].shop_code, '21321')
         self.assertEqual(products[0].product_code, '10032806')
         self.assertEqual(products[0].price, 2783)
+        self.assertEqual(products[0].url, 'https://www.superdelivery.com//p/r/pd_p/10032806/')
         
         self.assertEqual(products[-1].name, 'フロウト スポンジラック 置き型（RG-0461）')
         self.assertEqual(products[-1].shop_code, '21321')
         self.assertEqual(products[-1].product_code, '9925316')
         self.assertEqual(products[-1].price, 792)
+        self.assertEqual(products[-1].url, 'https://www.superdelivery.com//p/r/pd_p/9925316/')
 
 
 class ScrapeProductDetailPage(unittest.TestCase):

@@ -86,7 +86,7 @@ class SuperCrawler(object):
                 response = utils.request(url=url, session=self.session)
                 time.sleep(interval_sec)
                 super_product_details_list = SuperHTMLPage.scrape_product_detail_page(response.text)
-                [self.publish_queue(product.jan, product.price) for product in super_product_details_list]
+                [self.publish_queue(product.jan, product.price, super_product.url) for product in super_product_details_list]
 
         logger.info('action=get_product_detail_page status=done')
 
@@ -120,17 +120,18 @@ class SuperCrawler(object):
         df = df.dropna()
         return df
 
-    def publish_queue(self, jan: str, price: int) -> None:
+    def publish_queue(self, jan: str, price: int, url: str) -> None:
         logger.info('action=publish_queue status=run')
 
-        if not jan or not price:
-            return None
-        params = {
+        if not all([jan, price, url]):
+            return
+
+        self.mq.publish(json.dumps({
             'filename': f'super_{self.timestamp}',
             'jan': jan,
             'cost': price,
-        }
-        self.mq.publish(json.dumps(params))
+            'url': url,
+        }))
 
         logger.info('action=publish_queue status=done')
 
@@ -142,6 +143,7 @@ class SuperHTMLPage(object):
         logger.info('action=scrape_product_list_page status=run')
 
         super_product_list = []
+        FQDN = 'https://www.superdelivery.com/'
 
         soup = BeautifulSoup(response, 'lxml')
         products = soup.select('.itembox-parts')
@@ -149,11 +151,12 @@ class SuperHTMLPage(object):
             try:
                 item_name = product.select_one('.item-name a')
                 name = item_name.text.strip().replace('\u3000', '')
-                product_code = re.search('[\d]+', item_name.attrs.get('href')).group()
-                shop_code = re.search('[\d]+', urllib.parse.urlparse(response_url).path).group()
+                product_code = re.search('[0-9]+', item_name.attrs.get('href')).group()
+                url = FQDN + item_name.attrs.get('href')
+                shop_code = re.search('[0-9]+', urllib.parse.urlparse(response_url).path).group()
                 price = product.select_one('.item-price').text
                 price = int(int(''.join(re.findall('\\d+', price))) * sales_tax)
-                item = SuperProduct(name=name, product_code=product_code, shop_code=shop_code, price=price)
+                item = SuperProduct(name=name, product_code=product_code, shop_code=shop_code, price=price, url=url)
                 item.save()
 
             except AttributeError as e:

@@ -22,6 +22,7 @@ class SuperProduct(Base):
     product_code = Column(String, primary_key=True, nullable=False)
     price = Column(BigInteger)
     shop_code = Column(String)
+    url = Column(String)
 
     @classmethod
     def get_product(cls, product_code, price):
