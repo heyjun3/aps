@@ -54,19 +54,25 @@ class CrawlerPc4u():
                 time.sleep(interval_sec)
             else:
                 pc4u_product.jan = product.jan
+                product.url = pc4u_product.url
+                product.save()
             
             if pc4u_product.jan:
-                self.publish_queue(pc4u_product.jan, pc4u_product.price)
+                self.publish_queue(pc4u_product.jan, pc4u_product.price, pc4u_product.url)
 
         logger.info('action=detail_page_crawling status=done')
 
-    def publish_queue(self, jan: str, price: int):
+    def publish_queue(self, jan: str, price: int, url: str) -> None:
         logger.info('action=publish_queue status=run')
+
+        if not all([jan, price, url]):
+            return
 
         self.mq.publish(json.dumps({
             'filename': f'pc4u_{self.timestamp}',
             'jan': jan,
-            'cost': price
+            'cost': price,
+            'url': url,
         }))
 
         logger.info('action=publish_queue status=done')
@@ -79,6 +85,7 @@ class Pc4uHTMLPage(object):
         logger.info('action=scrape_product_list_page status=run')
 
         pc4u_product_list = []
+        FQDN = 'https://www.pc4u.co.jp/'
         soup = BeautifulSoup(response, 'lxml')
         products = soup.select('.innerBox')
 
@@ -92,11 +99,12 @@ class Pc4uHTMLPage(object):
             except AttributeError as ex:
                 logger.info(f'product_code is None error={ex}')
                 continue
-
+            url = title.attrs.get('href')
+            url = FQDN + url if url else None
             title = title.text.strip()
             cost = int(''.join(re.findall('[\\d+]', cost.text)))
 
-            pc4u_product = Pc4uProduct(name=title, price=cost, product_code=product_code)
+            pc4u_product = Pc4uProduct(name=title, price=cost, product_code=product_code, url=url)
             pc4u_product_list.append(pc4u_product)
         
         logger.info('action=scrape_product_list_page status=done')

@@ -21,10 +21,12 @@ class ScrapeProductListPage(unittest.TestCase):
         self.assertEqual(products[0].name, '【アウトレット特価・新品】Cooler Master MasterCase H500M E-ATX ミドルタワー型PCケース｜MCM-H500M-IHNN-S00')
         self.assertEqual(products[0].price, 21340)
         self.assertEqual(products[0].product_code, '000000078117')
+        self.assertEqual(products[0].url, 'https://www.pc4u.co.jp//shopdetail/000000078117/outlet/page1/order/')
 
         self.assertEqual(products[-1].name, '【アウトレット特価・新品】Arashi Vision GO2 レンズ保護フィルター｜CING2CB/B')
         self.assertEqual(products[-1].price, 1140)
         self.assertEqual(products[-1].product_code, '000000073973')
+        self.assertEqual(products[-1].url, 'https://www.pc4u.co.jp//shopdetail/000000073973/outlet/page1/order/')
 
 
 class ScrapeProductDetailPage(unittest.TestCase):

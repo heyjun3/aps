@@ -99,6 +99,8 @@ class Netsea(object):
             product = NetseaProduct.get_object_filter_productcode_and_shopcode(netsea_product.product_code, netsea_product.shop_code)
             if product:
                 netsea_product.jan = product.jan
+                product.url = netsea_product.url
+                product.save()
                 self.publish_queue(netsea_product.jan, netsea_product.price, netsea_product.url)
                 continue
 
