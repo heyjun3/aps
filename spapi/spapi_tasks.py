@@ -108,7 +108,7 @@ class RunAmzTask(object):
     async def get_queue(self, interval_sec: int=10, task_count=100) -> None:
         logger.info('action=get_queue status=run')
 
-        require = ('cost', 'jan', 'filename')
+        require = ('cost', 'jan', 'filename', 'url')
 
         async def _get_queue():
             params = self.mq.basic_get()
@@ -126,8 +126,14 @@ class RunAmzTask(object):
                 self.search_catalog_queue.publish(params)
             else:
                 for product in products:
-                    asyncio.ensure_future(MWS(asin=product['asin'], filename=params_json['filename'], title=product['title'],
-                        jan=params_json['jan'], unit=product['quantity'], cost=params_json['cost']).save())
+                    asyncio.ensure_future(MWS(
+                                        asin=product['asin'],
+                                        filename=params_json['filename'],
+                                        title=product['title'],
+                                        jan=params_json['jan'],
+                                        unit=product['quantity'],
+                                        cost=params_json['cost'],
+                                        url=params_json['url']).save())
 
         while True:
             if self.mq.get_message_count:
@@ -147,7 +153,7 @@ class RunAmzTask(object):
 
             params = [json.loads(resp) for resp in get_objects]
 
-            params = {param['jan']: {'filename': param['filename'], 'cost': param['cost']} for param in params}
+            params = {param['jan']: {'filename': param['filename'], 'cost': param['cost'], 'url': param['url']} for param in params}
             response = await self.client.search_catalog_items_v2022_04_01(params.keys(), id_type=id_type)
             products = SPAPIJsonParser.parse_search_catalog_items_v2022_04_01(response)
             for product in products:
@@ -156,7 +162,7 @@ class RunAmzTask(object):
                     logger.error(product)
                     continue
                 asyncio.ensure_future(AsinsInfo(asin=product['asin'], jan=product['jan'], title=product['title'], quantity=product['quantity']).upsert())
-                asyncio.ensure_future(MWS(asin=product['asin'], filename=parameter['filename'], title=product['title'], jan=product['jan'], unit=product['quantity'], cost=parameter['cost']).save())
+                asyncio.ensure_future(MWS(asin=product['asin'], filename=parameter['filename'], title=product['title'], jan=product['jan'], unit=product['quantity'], cost=parameter['cost'], url=parameter['url']).save())
 
             await asyncio.sleep(interval_sec)
 

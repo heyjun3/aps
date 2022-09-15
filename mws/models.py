@@ -52,6 +52,7 @@ class MWS(Base, ModelsBase):
     title = Column(String)
     jan = Column(String)
     unit = Column(BigInteger)
+    url = Column(String)
     price = Column(BigInteger)
     cost = Column(BigInteger)
     fee_rate = Column(Float)
