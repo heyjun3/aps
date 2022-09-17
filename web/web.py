@@ -73,6 +73,7 @@ async def get_chart_data(filename: str) -> str:
             data['asin'] = mws.asin
             data['jan'] = mws.jan
             data['title'] = mws.title
+            data['url'] = mws.url
             chart_data.append(data)
 
         return jsonify({'chart_data': chart_data, 'current_page': current_page_number, 'max_page': max_page}), 200
