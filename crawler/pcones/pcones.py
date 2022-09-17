@@ -24,7 +24,7 @@ def main():
 class PconesCrawler(object):
 
     def __init__(self, queue_name: str='mws'):
-        self.url = 'https://www.1-s.jp/products/list/'
+        self.url = 'https://www.1-s.jp/products/list'
         self.query = dict(sorted({
             'mode': 'search',
             'size': 100,

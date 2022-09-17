@@ -143,7 +143,7 @@ class SuperHTMLPage(object):
         logger.info('action=scrape_product_list_page status=run')
 
         super_product_list = []
-        FQDN = 'https://www.superdelivery.com/'
+        FQDN = 'https://www.superdelivery.com'
 
         soup = BeautifulSoup(response, 'lxml')
         products = soup.select('.itembox-parts')

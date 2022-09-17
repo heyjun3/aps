@@ -85,7 +85,7 @@ class Pc4uHTMLPage(object):
         logger.info('action=scrape_product_list_page status=run')
 
         pc4u_product_list = []
-        FQDN = 'https://www.pc4u.co.jp/'
+        FQDN = 'https://www.pc4u.co.jp'
         soup = BeautifulSoup(response, 'lxml')
         products = soup.select('.innerBox')
 
