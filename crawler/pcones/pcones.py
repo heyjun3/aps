@@ -90,7 +90,7 @@ class PconesHTMLPage(object):
     def scrape_product_list_page(response: str) -> list[dict]:
         logger.info('action=scrape_product_list_page status=run')
 
-        FQDN = 'https://www.1-s.jp/' 
+        FQDN = 'https://www.1-s.jp' 
         products = []
 
         soup = BeautifulSoup(response, 'lxml')
