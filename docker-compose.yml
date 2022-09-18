@@ -35,3 +35,11 @@ services:
       ME_CONFIG_MONGODB_SERVER: mongo
     depends_on:
       - mongo
+
+  fluent:
+    build:
+      context: .
+      dockerfile: ./docker/fluentd/Dockerfile
+    container_name: fluentd
+    ports:
+      - 9880:9880
