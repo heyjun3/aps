@@ -54,7 +54,6 @@ class SpreadSheetCrawler(object):
         funcs = (
             self._validation_sheet_value,
             self._send_request,
-            self._get_html_parser,
             self._parse_response,
             self._publish_queue,
         )
@@ -78,9 +77,11 @@ class SpreadSheetCrawler(object):
     def _validation_sheet_value(self, sheet_value: dict) -> dict|None:
         value = deepcopy(sheet_value)
         if not all(require in value for require in self.requires):
+            logger.error({'message': 'sheet_value is not valid headers', 'value': sheet_value})
             return
 
         if value.get('URL') is None:
+            logger.error({'message': 'sheet value is URL None'})
             return
 
         return value
@@ -98,14 +99,19 @@ class SpreadSheetCrawler(object):
             value['response'] = response
             return value
         if response.status_code == 404:
+            logger.error({'status_code': response.status_code, 'message': 'page not Found'})
             return
         logger.error(response.status_code, response.url)
 
     @log_decorator
     def _parse_response(self, response: dict) -> dict|None:
         value = deepcopy(response)
-        parser = value.get('parser')
-        value['parse_value'] = parser(value.get('response').text)
+        response = value.get('response')
+        parser = self._get_html_parser(response.url)
+
+        if parser is None:
+            return
+        value['parse_value'] = parser(response.text)
         return value
 
     @log_decorator
@@ -114,7 +120,8 @@ class SpreadSheetCrawler(object):
         jan = response['parse_value'].get('jan') or response.get('JAN')
         price = response['parse_value'].get('price')
         is_stocked = response['parse_value'].get('is_stocked')
-        if not all([jan, price, is_stocked]):
+        if not all((jan, price, is_stocked)):
+            logger.error({'message': 'publish queue bad parameter', 'values': (jan, price, is_stocked)})
             return
 
         self.mq.publish(json.dumps({
@@ -125,9 +132,8 @@ class SpreadSheetCrawler(object):
         }))
 
     @log_decorator
-    def _get_html_parser(self, response: dict) -> dict:
-        result_response = deepcopy(response)
-        netloc = urllib.parse.urlparse(response['response'].url).netloc
+    def _get_html_parser(self, url: str) -> Callable:
+        netloc = urllib.parse.urlparse(url).netloc
         # todo add parser
         if re.search('(geno-web.jp)$', netloc):
             return
@@ -140,20 +146,15 @@ class SpreadSheetCrawler(object):
         if re.search('(netmall.hardoff.co.jp)$', netloc):
             return
         if re.search('(item.rakuten.co.jp)$', netloc):
-            result_response['parser'] = RakutenHTMLPage.scrape_product_detail_page
-            return result_response
+            return RakutenHTMLPage.scrape_product_detail_page
         if re.search('(pc4u.co.jp)$', netloc):
-            result_response['parser'] = Pc4uHTMLPage.scrape_product_detail_page
-            return result_response
+            return Pc4uHTMLPage.scrape_product_detail_page
         if re.search('(1-s.jp)$', netloc):
-            result_response['parser'] = PconesHTMLPage.scrape_product_detail_page
-            return result_response
+            return PconesHTMLPage.scrape_product_detail_page
         if re.search('(buffalo-direct.com)$', netloc):
-            result_response['parser'] = BuffaloHTMLPage.scrape_product_detail_page
-            return result_response
+            return BuffaloHTMLPage.scrape_product_detail_page
         if re.search('(paypaymall.yahoo.co.jp)$', netloc):
-            result_response['parser'] = PayPayMollHTMLParser.product_detail_page_parser
-            return result_response
+            return PayPayMollHTMLParser.product_detail_page_parser
         if re.search('(sofmap.com)$', netloc):
             return
         if re.search('(soundhouse.co.jp)$', netloc):
