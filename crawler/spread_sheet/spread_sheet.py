@@ -1,3 +1,4 @@
+from __future__ import annotations
 import time
 import urllib.parse
 import re
@@ -34,6 +35,17 @@ def log_decorator(func: Callable) -> Callable:
     return _inner
 
 
+class SpreadSheetValue(object):
+    jan: str
+    url: str
+    response: requests.Response
+    parsed_value: dict
+
+    def __init__(self, url: str, jan: str) -> None:
+        self.url = url
+        self.jan = jan
+
+
 class SpreadSheetCrawler(object):
 
     scope = ('https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive')
@@ -55,11 +67,11 @@ class SpreadSheetCrawler(object):
             self._validation_sheet_value,
             self._send_request,
             self._parse_response,
-            self._publish_queue,
+            self._generate_string_for_enqueue,
+            self.mq.publish,
         )
         list(map(partial(self._request_sequence, funcs=funcs), sheet_values))
 
-    @log_decorator
     def _request_sequence(self, value: dict, funcs: tuple[Callable]) -> dict|None:
         if value is None:
             return
@@ -69,34 +81,29 @@ class SpreadSheetCrawler(object):
         return self._request_sequence(funcs[0](value), funcs[1:])
 
     @log_decorator
-    def _get_crawl_urls_from_spread_sheet(self) -> List[dict]:
+    def _get_crawl_urls_from_spread_sheet(self) -> List[SpreadSheetValue]:
         sheet = self.client.open(self.sheet_title).worksheet(self.sheet_name)
-        return sheet.get_all_records()
+        records = list(map(lambda x: SpreadSheetValue(x.get('URL'), x.get('JAN')), sheet.get_all_records()))
+        return records
 
     @log_decorator
-    def _validation_sheet_value(self, sheet_value: dict) -> dict|None:
-        value = deepcopy(sheet_value)
-        if not all(require in value for require in self.requires):
-            logger.error({'message': 'sheet_value is not valid headers', 'value': sheet_value})
-            return
-
-        if value.get('URL') is None:
+    def _validation_sheet_value(self, value: SpreadSheetValue) -> SpreadSheetValue|None:
+        if value.url is None:
             logger.error({'message': 'sheet value is URL None'})
             return
 
         return value
 
     @log_decorator
-    def _send_request(self, sheet_value: dict, interval_sec: int=4) -> dict|None:
+    def _send_request(self, sheet_value: SpreadSheetValue, interval_sec: int=4) -> SpreadSheetValue|None:
         value = deepcopy(sheet_value)
-        url = value.get('URL')
-        logger.info(url)
+        logger.info(value.url)
 
-        response = requests.get(url, headers=HEADERS)
+        response = requests.get(value.url, headers=HEADERS)
         time.sleep(interval_sec)
 
         if response.status_code == 200:
-            value['response'] = response
+            value.response = response
             return value
         if response.status_code == 404:
             logger.error({'status_code': response.status_code, 'message': 'page not Found'})
@@ -104,32 +111,30 @@ class SpreadSheetCrawler(object):
         logger.error(response.status_code, response.url)
 
     @log_decorator
-    def _parse_response(self, response: dict) -> dict|None:
-        value = deepcopy(response)
-        response = value.get('response')
-        parser = self._get_html_parser(response.url)
+    def _parse_response(self, sheet_value: SpreadSheetValue) -> SpreadSheetValue|None:
+        value = deepcopy(sheet_value)
+        parser = self._get_html_parser(value.response.url)
 
         if parser is None:
             return
-        value['parse_value'] = parser(response.text)
+        value.parsed_value = parser(value.response.text)
         return value
 
     @log_decorator
-    def _publish_queue(self, response: dict) -> None:
-
-        jan = response['parse_value'].get('jan') or response.get('JAN')
-        price = response['parse_value'].get('price')
-        is_stocked = response['parse_value'].get('is_stocked')
+    def _generate_string_for_enqueue(self, sheet_value: SpreadSheetValue) -> str:
+        jan = sheet_value.parsed_value.get('jan') or sheet_value.jan
+        price = sheet_value.parsed_value.get('price')
+        is_stocked = sheet_value.parsed_value.get('is_stocked')
         if not all((jan, price, is_stocked)):
             logger.error({'message': 'publish queue bad parameter', 'values': (jan, price, is_stocked)})
             return
 
-        self.mq.publish(json.dumps({
+        return json.dumps({
             'filename': f'repeat_{self.start_time}',
             'jan': jan,
             'cost': price,
-            'url': response['response'].url,
-        }))
+            'url': sheet_value.url,
+        })
 
     @log_decorator
     def _get_html_parser(self, url: str) -> Callable:
