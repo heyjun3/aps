@@ -68,6 +68,13 @@ class AsinsInfo(Base, ModelsBase):
         return None
 
     @classmethod
+    async def get_asin_object_by_jan_list(cls, jan_list: List[str]) -> List[AsinsInfo]:
+        async with cls.session_scope() as session:
+            stmt = select(cls).where(cls.jan.in_(jan_list))
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    @classmethod
     async def get_title(cls, asin: str) -> str|None:
         async with cls.session_scope() as session:
             stmt = select(cls.title).where(cls.asin == asin)
@@ -86,6 +93,13 @@ class AsinsInfo(Base, ModelsBase):
         if asins:
             return asins
         return None
+
+    @classmethod
+    async def get_jan_code_all(cls) -> List[str]:
+        async with cls.session_scope() as session:
+            stmt = select(cls.jan)
+            result = await session.execute(stmt)
+            return result.scalars().all()
 
     @property
     def values(self):

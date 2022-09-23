@@ -63,6 +63,7 @@ class PconesCrawler(object):
         logger.info('action=publish_queue status=run')
 
         if not all([jan, cost, url]):
+            logger.error({'message': 'enqueue bad parameter', 'parameter': (jan, cost, url)})
             return
 
         self.mq.publish(json.dumps({

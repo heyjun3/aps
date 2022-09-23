@@ -67,6 +67,12 @@ class MWS(Base, ModelsBase):
         return True
 
     @classmethod
+    async def save_all(cls, mws_records: List[MWS]):
+        async with cls.session_scope() as session:
+            session.add_all(mws_records)
+        return True
+
+    @classmethod
     async def get(cls, asin: str) -> MWS:
         async with cls.session_scope() as session:
             stmt = select(cls).where(cls.asin == asin)

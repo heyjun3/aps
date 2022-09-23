@@ -66,6 +66,7 @@ class CrawlerPc4u():
         logger.info('action=publish_queue status=run')
 
         if not all([jan, price, url]):
+            logger.error({'messag': 'Bad parameter', 'parameters': (jan, price, url)})
             return
 
         self.mq.publish(json.dumps({

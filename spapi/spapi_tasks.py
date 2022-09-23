@@ -1,9 +1,12 @@
 import time
-from multiprocessing import Process, Queue
 import json
+import itertools
 import asyncio
-import functools
 from typing import List
+from typing import Callable
+from multiprocessing import Process, Queue
+from functools import reduce
+from functools import partial
 
 from spapi.spapi import SPAPI
 from spapi.spapi import SPAPIJsonParser
@@ -17,6 +20,15 @@ import log_settings
 
 
 logger = log_settings.get_logger(__name__)
+
+
+def log_decorator(func: Callable) -> Callable:
+    def _inner(*args, **kwargs) -> any:
+        logger.info({'action': func.__name__, 'status': 'run'})
+        result = func(*args, **kwargs)
+        logger.info({'action': func.__name__, 'status': 'done'})
+        return result
+    return _inner
 
 
 class UpdatePriceAndRankTask(object):
@@ -83,6 +95,7 @@ class RunAmzTask(object):
         self.search_catalog_queue = MQ(search_queue)
         self.client = SPAPI()
         self.cache = Cache(None, 3600)
+        self.jan_cache = Cache(None, 3600)
         self.estimate_queue = asyncio.Queue()
 
     async def main(self) -> None:
@@ -110,37 +123,51 @@ class RunAmzTask(object):
 
         require = ('cost', 'jan', 'filename', 'url')
 
-        async def _get_queue():
-            params = self.mq.basic_get()
-            if params is None:
-                await asyncio.sleep(interval_sec)
+        @log_decorator
+        def _validation_parameter(parameter: str) -> dict|None:
+            param = json.loads(parameter)
+            if not all(r in param for r in require):
+                logger.error({'bad parameter': param})
+                return
+            return param
+
+        @log_decorator
+        def _check_param_in_cache(param: dict) -> dict|None:
+            if param is None: 
                 return
 
-            params_json = json.loads(params)
-            if not all(r in params_json for r in require):
-                logger.error({'bad parameter': params_json})
-                return
+            if param['jan'] in jan_cache:
+                return param
 
-            products = await AsinsInfo.get(params_json['jan'])
-            if not products:
-                self.search_catalog_queue.publish(params)
-            else:
-                for product in products:
-                    asyncio.ensure_future(MWS(
-                                        asin=product['asin'],
-                                        filename=params_json['filename'],
-                                        title=product['title'],
-                                        jan=params_json['jan'],
-                                        unit=product['quantity'],
-                                        cost=params_json['cost'],
-                                        url=params_json['url']).save())
+            self.search_catalog_queue.publish(json.dumps(param))
+
+        @log_decorator
+        def _combine_param_and_asins_objects(asin_object: AsinsInfo, params: List[dict]) -> MWS:
+            filter_params = filter(lambda x: x['jan'] == asin_object.jan, params)
+            return [MWS(
+                asin=asin_object.asin,
+                filename = param['filename'],
+                jan=asin_object.jan,
+                unit=asin_object.quantity,
+                cost=param['cost'],
+                url=param['url']) for param in filter_params]
 
         while True:
             if self.mq.get_message_count:
-                tasks = [asyncio.create_task(_get_queue()) for _ in range(task_count)]
-                await asyncio.gather(*tasks)
+                jan_cache = self.jan_cache.get_value()
+                if jan_cache is None:
+                    jan_cache = await AsinsInfo.get_jan_code_all()
+                    self.jan_cache.set_value(set(jan_cache))
+
+                params = list(filter(None, [self.mq.basic_get() for _ in range(task_count)]))
+                params = filter(None, reduce(lambda data, func: map(func, data), [_validation_parameter, _check_param_in_cache], params))
+                jan_list = list(map(lambda x: x.get('jan'), params))
+                asins = await AsinsInfo.get_asin_object_by_jan_list(jan_list)
+                mws_records = map(partial(_combine_param_and_asins_objects, params=params), asins)
+                mws_records = list(itertools.chain.from_iterable(mws_records))
+                await MWS.save_all(mws_records)
             else:
-                asyncio.sleep(interval_sec)
+                await asyncio.sleep(interval_sec)
 
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
         logger.info('action=search_catalog_items status=run')

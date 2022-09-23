@@ -30,6 +30,12 @@ class TestModels(object):
         assert result == True
 
     @pytest.mark.asyncio
+    async def test_save_all(self):
+        records = [MWS(asin=f'test{i}', filename=f'testfilename{i}') for i in range(10)]
+        result = await MWS.save_all(records)
+        assert result == True
+
+    @pytest.mark.asyncio
     async def test_get_filenames(self):
         result = await MWS.get_filenames()
         assert result == ['testfilename', 'testfileprice']
