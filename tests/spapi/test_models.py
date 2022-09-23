@@ -17,9 +17,9 @@ class TestModels(object):
         engine = create_async_engine(settings.DB_TEST_URL)
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        AsinsInfo.url = settings.DB_TEST_URL
-        SpapiFees.url = settings.DB_TEST_URL
-        SpapiPrices.url = settings.DB_TEST_URL
+        AsinsInfo.host_url = settings.DB_TEST_URL
+        SpapiFees.host_url = settings.DB_TEST_URL
+        SpapiPrices.host_url = settings.DB_TEST_URL
         await AsinsInfo('TEST', '9999', 'test row', 1).save()
         yield
         async with engine.begin() as conn:
