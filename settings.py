@@ -24,6 +24,12 @@ REDIS_PORT = config['REDIS']['PORT']
 REDIS_DB = config['REDIS']['DB']
 REDIS_PASSWORD = config['REDIS']['PASSWORD']
 
+# RABITTMQ settings
+MQ_HOST = config['MQ']['HOST']
+MQ_PORT = config['MQ']['PORT']
+MQ_USER = config['MQ']['USER']
+MQ_PASSWORD = config['MQ']['PASSWORD']
+
 # WEB settings
 HOST = config['WEB']['HOST']
 PORT = config['WEB']['PORT']

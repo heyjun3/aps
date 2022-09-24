@@ -2,6 +2,7 @@ version: '3.9'
 
 volumes:
   mongo_db_store:
+  rabbitmq_store:
 
 services:
   mongo:
@@ -46,3 +47,17 @@ services:
     container_name: fluentd
     ports:
       - 9880:9880
+  
+  rabbitmq:
+    image: rabbitmq:3.10.7-management
+    container_name: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbitmq
+      - RABBITMQ_DEFAULT_PASS=rabbitmq
+    volumes:
+      - type: volume
+        source: rabbitmq_store
+        target: /var/lib/rabbitmq

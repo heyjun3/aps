@@ -8,6 +8,7 @@ from pika.exceptions import AMQPConnectionError
 from pika.exceptions import DuplicateGetOkCallback
 
 import log_settings
+import settings
 
 
 logger = log_settings.get_logger(__name__)
@@ -18,13 +19,20 @@ class MQ(object):
     def __init__(self, queue_name: str):
         self.queue_name = queue_name
         self.queue = None
+        self.credentials = pika.PlainCredentials(settings.MQ_USER, settings.MQ_PASSWORD)
         self.channel = self.create_mq_channel()
         self.properties = pika.BasicProperties(delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE)
 
     def create_mq_channel(self) -> pika.BaseConnection.channel:
         logger.info('action=create_mq_channel status=run')
 
-        connection = pika.BlockingConnection()
+        connection = pika.BlockingConnection(
+            pika.ConnectionParameters(
+                host=settings.MQ_HOST,
+                port=settings.MQ_PORT,
+                credentials=self.credentials,
+            )
+        )
         channel = connection.channel()
         self.queue = channel.queue_declare(self.queue_name, durable=True)
 
