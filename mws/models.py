@@ -21,6 +21,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.dialects.postgresql import insert
 
 from models_base import ModelsBase
 from keepa.models import KeepaProducts
@@ -67,10 +68,12 @@ class MWS(Base, ModelsBase):
         return True
 
     @classmethod
-    async def save_all(cls, mws_records: List[MWS]):
+    async def insert_all_on_conflict_do_nothing(cls, records: List[MWS]):
+        stmt = insert(cls).values([record.insert_values for record in records])\
+               .on_conflict_do_nothing(index_elements=['asin', 'filename'])
         async with cls.session_scope() as session:
-            session.add_all(mws_records)
-        return True
+            await session.execute(stmt)
+            return True
 
     @classmethod
     async def get(cls, asin: str) -> MWS:
@@ -193,6 +196,20 @@ class MWS(Base, ModelsBase):
             'shipping_fee': self.shipping_fee,
             'profit': self.profit,
             'profit_rate': self.profit_rate,
+        }
+
+    @property
+    def insert_values(self):
+        return {
+            'asin': self.asin,
+            'filename': self.filename,
+            'jan': self.jan,
+            'unit': self.unit,
+            'cost': self.cost,
+            'title': self.title,
+            'price': self.price,
+            'fee_rate': self.fee_rate,
+            'shipping_fee': self.shipping_fee,
         }
     
     def __repr__(self):

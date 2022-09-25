@@ -152,22 +152,23 @@ class RunAmzTask(object):
                 cost=param['cost'],
                 url=param['url']) for param in filter_params]
 
-        while True:
-            if self.mq.get_message_count:
-                jan_cache = self.jan_cache.get_value()
-                if jan_cache is None:
-                    jan_cache = await AsinsInfo.get_jan_code_all()
-                    self.jan_cache.set_value(set(jan_cache))
-
-                params = list(filter(None, [self.mq.basic_get() for _ in range(task_count)]))
-                params = filter(None, reduce(lambda data, func: map(func, data), [_validation_parameter, _check_param_in_cache], params))
-                jan_list = list(map(lambda x: x.get('jan'), params))
-                asins = await AsinsInfo.get_asin_object_by_jan_list(jan_list)
-                mws_records = map(partial(_combine_param_and_asins_objects, params=params), asins)
-                mws_records = list(itertools.chain.from_iterable(mws_records))
-                await MWS.save_all(mws_records)
-            else:
+        for messages in self.mq.receive(task_count):
+            if messages is None:
                 await asyncio.sleep(interval_sec)
+                continue
+
+            jan_cache = self.jan_cache.get_value()
+            if jan_cache is None:
+                jan_cache = await AsinsInfo.get_jan_code_all()
+                self.jan_cache.set_value(set(jan_cache))
+
+            messages = list(filter(None, reduce(lambda data, func: map(func, data), [_validation_parameter, _check_param_in_cache], messages)))
+            if messages:
+                jan_list = list(map(lambda x: x.get('jan'), messages))
+                asins = await AsinsInfo.get_asin_object_by_jan_list(jan_list)
+                mws_records = map(partial(_combine_param_and_asins_objects, params=messages), asins)
+                mws_records = list(itertools.chain.from_iterable(mws_records))
+                await MWS.insert_all_on_conflict_do_nothing(mws_records)
 
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
         logger.info('action=search_catalog_items status=run')
