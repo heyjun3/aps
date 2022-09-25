@@ -66,18 +66,22 @@ class MQ(object):
     
     def receive(self, get_count: int=20) -> None:
 
+        messages = []
         while True:
             try:
-                messages = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
+                for _ in range(get_count):
+                    message = self.channel.basic_get(self.queue_name, auto_ack=True)
+                    if not all(message):
+                        break
+                    _, _, body = message
+                    messages.append(body.decode())
+                # messages = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
             except (AMQPConnectionError, FileNotFoundError) as ex:
                 logger.error({'message': ex})
                 self.channel = self.create_mq_channel()
-                if not messages:
-                    continue
 
-            message_list = [body.decode() for _, _, body in messages if body]
-            if message_list:
-                yield message_list
+            if messages:
+                yield messages
             else:
                 yield None
 
@@ -104,7 +108,6 @@ class MQ(object):
         except AMQPConnectionError as ex:
             logger.error({'mesage': ex})
             return None
-
         _method, _properties, body = message
         if body:
             return body.decode()
