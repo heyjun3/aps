@@ -205,6 +205,7 @@ class MWS(Base, ModelsBase):
             'filename': self.filename,
             'jan': self.jan,
             'unit': self.unit,
+            'url': self.url,
             'cost': self.cost,
             'title': self.title,
             'price': self.price,
