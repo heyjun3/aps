@@ -147,6 +147,7 @@ class RunAmzTask(object):
             return [MWS(
                 asin=asin_object.asin,
                 filename = param['filename'],
+                title=asin_object.title,
                 jan=asin_object.jan,
                 unit=asin_object.quantity,
                 cost=param['cost'],
