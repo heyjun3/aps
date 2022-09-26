@@ -3,6 +3,7 @@ version: '3.9'
 volumes:
   mongo_db_store:
   rabbitmq_store:
+  pg_store:
 
 services:
   mongo:
@@ -12,11 +13,11 @@ services:
     container_name: mongo_db
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: fluentd
-      MONGO_USERNAME: fluent
-      MONGO_PASSWORD: password
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+      MONGO_USERNAME: ${MONGO_USERNAME}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
     ports:
       - 27017:27017
     volumes:
@@ -34,13 +35,13 @@ services:
     ports:
       - 8081:8081
     environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
       ME_CONFIG_MONGODB_SERVER: mongo
     depends_on:
       - mongo
 
-  fluent:
+  fluentd:
     build:
       context: .
       dockerfile: ./docker/fluentd/Dockerfile
@@ -55,9 +56,43 @@ services:
       - 5672:5672
       - 15672:15672
     environment:
-      - RABBITMQ_DEFAULT_USER=rabbitmq
-      - RABBITMQ_DEFAULT_PASS=rabbitmq
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
     volumes:
       - type: volume
         source: rabbitmq_store
         target: /var/lib/rabbitmq
+
+  redis-server:
+    build:
+      context: .
+      dockerfile: ./docker/redis/Dockerfile
+    container_name: redis-server
+    ports:
+      - 6379:6379
+  
+  postgresql-server:
+    build:
+      context: .
+      dockerfile: ./docker/postgresql/Dockerfile
+    container_name: postgresql-server
+    command: -c 'config_file=/etc/postgresql/postgresql.conf'
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - type: volume
+        source: pg_store
+        target: /var/lib/postgresql/data
+
+  uwsgi:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: uwsgi
+    ports:
+      - 5000:5000
+    entrypoint: uwsgi --ini ./ApiServer.ini
