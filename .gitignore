@@ -1,5 +1,7 @@
 settings.ini
-.*
+.env
+.venv
+.pytest_cache
 *.pyc
 __pycache__
 scrape_files
