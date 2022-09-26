@@ -22,9 +22,9 @@ def get_logger(name: str, level=logging.INFO) -> logging.getLogger:
     fluent_handler.setLevel(level)
 
     # docker 移行時に削除する。
-    filehander = logging.FileHandler(os.path.join(settings.BASE_PATH, 'logs', f'{name}.log'))
-    filehander.setFormatter(formatter)
-    filehander.setLevel(level)
+    # filehander = logging.FileHandler(os.path.join(settings.BASE_PATH, 'logs', f'{name}.log'))
+    # filehander.setFormatter(formatter)
+    # filehander.setLevel(level)
 
     streamhandler = logging.StreamHandler()
     streamhandler.setFormatter(formatter)
