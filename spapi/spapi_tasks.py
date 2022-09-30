@@ -37,40 +37,27 @@ class UpdatePriceAndRankTask(object):
         self.queue = Queue()
         self.spapi_client = SPAPI()
 
-    async def main(self, limit: int=20, timeout: int=86400) -> None:
+    async def main(self, limit: int=20) -> None:
         logger.info('action=main status=run')
         update_data_process = Process(target=self.update_data, args=(self.queue, ))
         update_data_process.start()
 
-        try:
-            while True:
-                self.asins = KeepaProducts.get_products_not_modified()
-                if not self.asins:
-                    self.queue.put(None)
-                    break
-                self.asins = [self.asins[i:i+limit] for i in range(0, len(self.asins), limit)]
-                get_competitive_pricing_task = asyncio.create_task(self.get_competitive_pricing())
-                await asyncio.wait_for(get_competitive_pricing_task, timeout=timeout)
-            update_data_process.join()
-        except asyncio.TimeoutError as ex:
-            logger.error(f'action=main error={ex}')
-            self.queue.put(None)
-            update_data_process.join()
-
-        logger.info('action=main status=done')
+        while True:
+            self.asins = KeepaProducts.get_products_not_modified()
+            if not self.asins:
+                time.sleep(60)
+                continue
+            self.asins = [self.asins[i:i+limit] for i in range(0, len(self.asins), limit)]
+            get_competitive_pricing_task = asyncio.create_task(self.get_competitive_pricing())
+            await get_competitive_pricing_task
 
     def update_data(self, queue: Queue) -> None:
         logger.info('action=update_data status=run')
 
         while True:
             product = queue.get()
-            if product is None:
-                break
-
             now = time.time()
             KeepaProducts.update_price_and_rank_data(product['asin'], now, product['price'], product['ranking'])
-
-        logger.info('action=update_data status=done')
 
     async def get_competitive_pricing(self, interval_sec: int=2) -> None:
         logger.info('action=get_competitive_pricing status=run')

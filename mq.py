@@ -23,21 +23,29 @@ class MQ(object):
         self.channel = self.create_mq_channel()
         self.properties = pika.BasicProperties(delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE)
 
-    def create_mq_channel(self) -> pika.BaseConnection.channel:
+    def create_mq_channel(self, retry_count: int=30, interval_sec=10) -> pika.BaseConnection.channel:
         logger.info('action=create_mq_channel status=run')
 
-        connection = pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host=settings.MQ_HOST,
-                port=settings.MQ_PORT,
-                credentials=self.credentials,
-            )
-        )
-        channel = connection.channel()
-        self.queue = channel.queue_declare(self.queue_name, durable=True)
+        for _ in range(retry_count):
+            try:
+                connection = pika.BlockingConnection(
+                    pika.ConnectionParameters(
+                        host=settings.MQ_HOST,
+                        port=settings.MQ_PORT,
+                        credentials=self.credentials,
+                    )
+                )
+            except AMQPConnectionError as ex:
+                logger.info({'error': ex})
+                time.sleep(interval_sec)
+                continue
 
-        logger.info('action=create_mq_channel status=done')
-        return channel
+            channel = connection.channel()
+            self.queue = channel.queue_declare(self.queue_name, durable=True)
+
+            logger.info('action=create_mq_channel status=done')
+            return channel
+        logger.error({'message': 'create mq channel failed. connection refused'})
 
     def get_message_count(self) -> int:
         logger.info('action=get_message_count status=run')

@@ -98,3 +98,24 @@ services:
     entrypoint: uwsgi --ini ./ApiServer.ini
     depends_on:
       - postgresql-server
+
+  spapi-server:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: spapi-server
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py amz
+    depends_on:
+      - postgresql-server
+      - redis-server
+      - rabbitmq
+
+  spapi-chart-server:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: spapi-chart-server
+    entrypoint: /usr/loca/bin/python /usr/src/app/main/py spapi
+    depends_on:
+      - postgresql-server
+      - redis-server
