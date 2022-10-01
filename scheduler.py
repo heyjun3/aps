@@ -24,6 +24,7 @@ def run_coroutine_job(coroutine: Coroutine) -> None:
 def run_process(job_func: Callable) -> None:
     process = multiprocessing.Process(target=job_func)
     process.start()
+    process.join()
 
 
 def main() -> None:
