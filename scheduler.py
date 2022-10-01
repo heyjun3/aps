@@ -37,7 +37,7 @@ def main() -> None:
     schedule.every().day.at('16:00').do(run_process, pcones.main)
     schedule.every().day.at('17:00').do(run_process, pc4u.main)
     schedule.every().day.at('17:30').do(run_process, buffalo.main)
-    schedule.every().day.at('18:00').do(run_process, SpreadSheetCrawler(settings.CREDENTIAL_FILE_NAME, settings.SHEET_TITLE, settings.SHEET_NAME).start_crawler())
+    schedule.every().day.at('18:00').do(run_process, SpreadSheetCrawler(settings.CREDENTIAL_FILE_NAME, settings.SHEET_TITLE, settings.SHEET_NAME).start_crawler)
 
     schedule.every().saturday.at('04:00').do(run_process, rakuten_tasks.run_rakuten_search_all)
 
