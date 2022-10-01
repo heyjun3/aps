@@ -28,7 +28,7 @@ def run_process(job_func: Callable) -> None:
 
 def main() -> None:
 
-    schedule.every().minutes.do(run_process, partial(run_coroutine_job, MWS.delete_rows_lower_price()))
+    schedule.every(30).minutes.do(run_process, partial(run_coroutine_job, MWS.delete_rows_lower_price()))
 
     schedule.every().day.at('01:00').do(run_process, netsea_tasks.run_get_discount_products)
     schedule.every().day.at('02:00').do(run_process, super_tasks.run_discount_product_search)
