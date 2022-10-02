@@ -36,6 +36,19 @@ class TestModels(object):
         assert result == True
 
     @pytest.mark.asyncio
+    async def test_insert_all_update(self):
+        records = [
+            MWS(asin='TEST', filename='testfilename', price=2000),
+            MWS(asin='aaaaa', filename='testfilename', price=3000),
+        ]
+        result = await MWS.insert_all_on_conflict_do_update_price(records)
+        assert result == True
+        mws = await MWS.get('TEST')
+        assert mws.price == 2000
+        mws = await MWS.get('aaaaa')
+        assert mws.price == 3000
+
+    @pytest.mark.asyncio
     async def test_get_filenames(self):
         result = await MWS.get_filenames()
         assert result == ['testfilename']
