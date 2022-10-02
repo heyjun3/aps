@@ -12,6 +12,7 @@ from sqlalchemy import Date
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import Insert
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.future import select
 
 import log_settings
@@ -55,6 +56,20 @@ class AsinsInfo(Base, ModelsBase):
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
             await session.execute(stmt)
         return True
+
+    @classmethod
+    async def insert_all_on_conflict_do_update(cls, values: List[dict]) -> True:
+        stmt = insert(cls).values(values)
+        do_update_stmt = stmt.on_conflict_do_update(
+            index_elements=['asin'],
+            set_=dict(
+                jan=stmt.excluded.jan,
+                title=stmt.excluded.title,
+                quantity=stmt.excluded.quantity,
+            ))
+        async with cls.session_scope() as session:
+            await session.execute(do_update_stmt)
+            return True
 
     @classmethod
     async def get(cls, jan: str, interval_days: int=30) -> List[dict]|None:

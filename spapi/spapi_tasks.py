@@ -111,52 +111,50 @@ class RunAmzTask(object):
         require = ('cost', 'jan', 'filename', 'url')
 
         @log_decorator
-        def _validation_parameter(parameter: str) -> dict|None:
-            param = json.loads(parameter)
+        def _validation_parameter(param: dict) -> dict|None:
             if not all(r in param for r in require):
                 logger.error({'bad parameter': param})
                 return
             return param
 
+        async def _get_asins_info_objects(jan_codes: List[str]) -> dict[str, List[AsinsInfo]]:
+            asins = await AsinsInfo.get_asin_object_by_jan_list(jan_codes)
+            asins = sorted(asins, key=lambda x: x.jan)
+            return {k: list(g) for k, g in itertools.groupby(asins, lambda x: x.jan)}
+
         @log_decorator
-        def _check_param_in_cache(param: dict) -> dict|None:
+        def _check_param_in_cache(param: dict) -> List[MWS]|None:
             if param is None: 
                 return
 
-            if param['jan'] in jan_cache:
-                return param
-
-            self.search_catalog_queue.publish(json.dumps(param))
-
-        @log_decorator
-        def _combine_param_and_asins_objects(asin_object: AsinsInfo, params: List[dict]) -> MWS:
-            filter_params = filter(lambda x: x['jan'] == asin_object.jan, params)
+            db_cache = asins.get(param['jan'])
+            if db_cache is None:
+                self.search_catalog_queue.publish(json.dumps(param))
+                return
+                
             return [MWS(
-                asin=asin_object.asin,
-                filename = param['filename'],
-                title=asin_object.title,
-                jan=asin_object.jan,
-                unit=asin_object.quantity,
+                asin=asin_info.asin,
+                filename=param['filename'],
+                title=asin_info.title,
+                jan=asin_info.jan,
+                unit=asin_info.unit,
                 cost=param['cost'],
-                url=param['url']) for param in filter_params]
+                url=param['url'],
+            ) for asin_info in db_cache]
 
         for messages in self.mq.receive(task_count):
             if messages is None:
                 await asyncio.sleep(interval_sec)
                 continue
 
-            jan_cache = self.jan_cache.get_value()
-            if jan_cache is None:
-                jan_cache = await AsinsInfo.get_jan_code_all()
-                self.jan_cache.set_value(set(jan_cache))
-
-            messages = list(filter(None, reduce(lambda data, func: map(func, data), [_validation_parameter, _check_param_in_cache], messages)))
-            if messages:
-                jan_list = list(map(lambda x: x.get('jan'), messages))
-                asins = await AsinsInfo.get_asin_object_by_jan_list(jan_list)
-                mws_records = map(partial(_combine_param_and_asins_objects, params=messages), asins)
-                mws_records = list(itertools.chain.from_iterable(mws_records))
-                await MWS.insert_all_on_conflict_do_nothing(mws_records)
+            messages = [json.loads(message) for message in messages]
+            jan_codes = list(map(lambda x: x['jan'], messages))
+            asins = await _get_asins_info_objects(jan_codes)
+            mws_objects = list(filter(None, reduce(lambda data, func: map(func, data),
+                                [_validation_parameter, _check_param_in_cache], messages)))
+            if mws_objects:
+                mws_objects = itertools.chain.from_iterable(mws_objects)
+                await MWS.insert_all_on_conflict_do_nothing(mws_objects)
 
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
         logger.info('action=search_catalog_items status=run')
@@ -167,11 +165,13 @@ class RunAmzTask(object):
                 await asyncio.sleep(10)
                 continue
 
-            params = [json.loads(resp) for resp in get_objects]
+            params = sorted([json.loads(resp) for resp in get_objects], key=lambda x: x['jan'])
+            params = itertools.groupby(params, lambda x: x['jan'])
 
-            params = {param['jan']: {'filename': param['filename'], 'cost': param['cost'], 'url': param['url']} for param in params}
             response = await self.client.search_catalog_items_v2022_04_01(params.keys(), id_type=id_type)
             products = SPAPIJsonParser.parse_search_catalog_items_v2022_04_01(response)
+
+
             for product in products:
                 parameter = params.get(product['jan'])
                 if parameter is None:

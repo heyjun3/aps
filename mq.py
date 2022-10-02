@@ -1,6 +1,7 @@
 import json
 import time
 from types import FunctionType
+from typing import List
 import threading
 
 import pika
@@ -72,7 +73,7 @@ class MQ(object):
 
         logger.debug('action=publish status=done')
     
-    def receive(self, get_count: int=20) -> None:
+    def receive(self, get_count: int=20) -> List[str]:
 
         messages = []
         while True:

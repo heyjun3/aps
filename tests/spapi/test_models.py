@@ -1,7 +1,5 @@
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import sessionmaker
 import pytest_asyncio
 
 from spapi.models import AsinsInfo
@@ -58,6 +56,38 @@ class TestModels(object):
         assert obj[0]['title'] == 'test update'
         assert obj[0]['quantity'] == 10 
         assert obj[0]['jan'] == '2222'
+
+    @pytest.mark.asyncio
+    async def test_insert_all_on_conflict_do_update(cls):
+        values = [
+            {'asin': 'test1', 'jan': '1111', 'quantity': 1, 'title': 'title1'},
+            {'asin': 'test2', 'jan': '2222', 'quantity': 10, 'title': 'title2'},
+        ]
+        result = await AsinsInfo.insert_all_on_conflict_do_update(values)
+        assert result == True
+        obj = await AsinsInfo.get('2222')
+        assert obj[0]['asin'] == 'test2'
+        assert obj[0]['title'] == 'title2'
+        assert obj[0]['quantity'] == 10
+        assert obj[0]['jan'] == '2222'
+
+    @pytest.mark.asyncio
+    async def test_insert_all_on_conflict_do_update_update_value(cls):
+        values = [
+            {'asin': 'test1', 'jan': '1111', 'quantity': 1, 'title': 'title1'},
+            {'asin': 'test2', 'jan': '2222', 'quantity': 10, 'title': 'title2'},
+        ]
+        result = await AsinsInfo.insert_all_on_conflict_do_update(values)
+        assert result == True
+        values = [
+            {'asin': 'test2', 'jan': '3333', 'quantity': 30, 'title': 'title3'},
+        ]
+        result = await AsinsInfo.insert_all_on_conflict_do_update(values)
+        obj = await AsinsInfo.get('3333')
+        assert obj[0]['asin'] == 'test2'
+        assert obj[0]['title'] == 'title3'
+        assert obj[0]['quantity'] == 30
+        assert obj[0]['jan'] == '3333'
 
     @pytest.mark.asyncio
     async def test_spapi_prices_upsert(cls):
