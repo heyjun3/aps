@@ -115,7 +115,7 @@ services:
       context: .
       dockerfile: ./docker/python/Dockerfile
     container_name: spapi-chart-server
-    entrypoint: /usr/local/bin/python /usr/src/app/main/py spapi
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi
     depends_on:
       - postgresql-server
       - redis-server
