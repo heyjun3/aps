@@ -171,15 +171,24 @@ class RunAmzTask(object):
             response = await self.client.search_catalog_items_v2022_04_01(params.keys(), id_type=id_type)
             products = SPAPIJsonParser.parse_search_catalog_items_v2022_04_01(response)
 
-
+            mws_objects = []
             for product in products:
                 parameter = params.get(product['jan'])
                 if parameter is None:
                     logger.error(product)
                     continue
-                asyncio.ensure_future(AsinsInfo(asin=product['asin'], jan=product['jan'], title=product['title'], quantity=product['quantity']).upsert())
-                asyncio.ensure_future(MWS(asin=product['asin'], filename=parameter['filename'], title=product['title'], jan=product['jan'], unit=product['quantity'], cost=parameter['cost'], url=parameter['url']).save())
-
+                for param in parameter:
+                    mws_objects.append(MWS(
+                        asin=product['asin'],
+                        filename=param['filename'],
+                        title=product['title'],
+                        jan=product['jan'],
+                        unit=product['quantity'],
+                        cost=param['cost'],
+                        url=param['url'],
+                    ))
+            asyncio.ensure_future(AsinsInfo.insert_all_on_conflict_do_update(products))
+            asyncio.ensure_future(MWS.insert_all_on_conflict_do_nothing(mws_objects))
             await asyncio.sleep(interval_sec)
 
     async def get_item_offers_batch(self, interval_sec: int=2):
