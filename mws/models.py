@@ -85,7 +85,8 @@ class MWS(Base, ModelsBase):
     @classmethod
     async def get_filenames(cls) -> List[str]:
         async with cls.session_scope() as session:
-            stmt = select(distinct(cls.filename))
+            subq = select(distinct(cls.filename)).where(cls.price == None, cls.fee_rate == None)
+            stmt = select(distinct(cls.filename)).where(cls.filename.not_in(subq))
             result = await session.execute(stmt)
             filenames = result.scalars()
             return sorted(filenames)
