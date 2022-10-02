@@ -11,4 +11,5 @@ db.createUser({
     db: '$MONGO_INITDB_DATABASE'
   }]
 })
+db.createCollection('fluentd')
 EOF
