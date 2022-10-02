@@ -2,6 +2,7 @@ import time
 import json
 import itertools
 import asyncio
+import collections
 from typing import List
 from typing import Callable
 from multiprocessing import Process, Queue
@@ -195,19 +196,24 @@ class RunAmzTask(object):
         logger.info({'action': 'get_item_offers_batch', 'status': 'run'})
                        
         while True:
-            asin_list = await MWS.get_price_is_None_asins()
-            if asin_list:
-                asin_list = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
-                for asins in asin_list:
-                    response = await self.client.get_item_offers_batch(asins)
-                    products = SPAPIJsonParser.parse_get_item_offers_batch(response)
-                    for product in products:
-                        asyncio.ensure_future(MWS.update_price(asin=product['asin'], price=product['price']))
-                        asyncio.ensure_future(SpapiPrices(asin=product['asin'], price=product['price']).upsert())
-                    
-                    await asyncio.sleep(interval_sec)
-            else:
+            mws_objects = await MWS.get_object_by_price_is_None()
+            if not mws_objects:
                 await asyncio.sleep(10)
+                continue
+
+            mws_objects = [mws_objects[i:i+20] for i in range(0, len(mws_objects), 20)]
+            for mws_list in mws_objects:
+                asins = [mws.asin for mws in mws_list]
+                response = await self.client.get_item_offers_batch(asins)
+                products = SPAPIJsonParser.parse_get_item_offers_batch(response)
+                chain_products = collections.ChainMap(
+                            *[{product['asin']: product['price']} for product in products])
+                for mws in mws_list:
+                    mws.price = chain_products.get(mws.asin, default=0)
+
+                asyncio.ensure_future(MWS.insert_all_on_conflict_do_update_price(mws_list))
+                asyncio.ensure_future(SpapiPrices.insert_all_on_conflict_do_update_price(products))
+                await asyncio.sleep(interval_sec)
 
     async def get_my_fees_estimate(self, interval_sec: int=2) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')

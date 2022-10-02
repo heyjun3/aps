@@ -146,6 +146,22 @@ class SpapiPrices(Base, ModelsBase):
             await session.execute(stmt)
         return True
 
+    @classmethod
+    async def insert_all_on_conflict_do_update_price(cls, values: List[dict]) -> True:
+        stmt = insert(cls).values([{
+            'asin': value['asin'],
+            'price': value['price'],
+        }] for value in values)
+        update_on_stmt = stmt.on_conflict_do_update(
+            index_elements=['asin'],
+            set_=dict(
+                price=stmt.excluded.price,
+            )
+        )
+        async with cls.session_scope() as session:
+            await session.execute(update_on_stmt)
+            return True
+
     @property
     def values(self):
         return {

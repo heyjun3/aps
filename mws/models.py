@@ -76,6 +76,23 @@ class MWS(Base, ModelsBase):
             return True
 
     @classmethod
+    async def insert_all_on_conflict_do_update_price(cls, records: List[MWS]):
+        stmt = insert(cls).values([{
+            'asin': record.asin,
+            'filename': record.filename,
+            'price': record.price,
+        } for record in records])
+        update_do_stmt = stmt.on_conflict_do_update(
+            index_elements=['asin', 'filename'],
+            set_=dict(
+                price=stmt.excluded.price,
+            )
+        )
+        async with cls.session_scope() as session:
+            await session.execute(update_do_stmt)
+            return True
+
+    @classmethod
     async def get(cls, asin: str) -> MWS:
         async with cls.session_scope() as session:
             stmt = select(cls).where(cls.asin == asin)
@@ -130,9 +147,9 @@ class MWS(Base, ModelsBase):
             return result.scalars().all()
 
     @classmethod
-    async def get_price_is_None_asins(cls) -> List[str]:
+    async def get_object_by_price_is_None(cls) -> List[MWS]:
         async with cls.session_scope() as session:
-            stmt = select(cls.asin).where(cls.price == None)
+            stmt = select(cls).where(cls.price == None)
             result = await session.execute(stmt)
             return result.scalars().all()
 

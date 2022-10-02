@@ -38,12 +38,13 @@ class TestModels(object):
     @pytest.mark.asyncio
     async def test_get_filenames(self):
         result = await MWS.get_filenames()
-        assert result == ['testfilename', 'testfileprice']
+        assert result == ['testfilename']
 
     @pytest.mark.asyncio
     async def test_get_price_is_None_products(self):
-        result = await MWS.get_price_is_None_asins()
-        assert result == ['testprice']
+        result = await MWS.get_object_by_price_is_None()
+        assert result[0].asin == 'testprice'
+        assert result[0].filename == 'testfileprice'
 
     @pytest.mark.asyncio
     async def test_get_fee_is_None_asins(self):
@@ -70,4 +71,4 @@ class TestModels(object):
         result = await MWS.delete_rows('testfilename')
         assert result == True
         filenames = await MWS.get_filenames()
-        assert filenames == ['testfileprice']
+        assert filenames == []
