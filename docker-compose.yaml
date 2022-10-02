@@ -13,6 +13,7 @@ services:
     container_name: mongo_db
     restart: always
     environment:
+      TZ: Asia/Tokyo
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
@@ -35,6 +36,7 @@ services:
     ports:
       - 8081:8081
     environment:
+      TZ: Asia/Tokyo
       ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME}
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
       ME_CONFIG_MONGODB_SERVER: mongo
@@ -46,6 +48,8 @@ services:
       context: .
       dockerfile: ./docker/fluentd/Dockerfile
     container_name: fluentd
+    environment:
+      TZ: Asia/Tokyo
     ports:
       - 9880:9880
   
@@ -56,6 +60,7 @@ services:
       - 5672:5672
       - 15672:15672
     environment:
+      - TZ=Asia/Tokyo
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
     volumes:
@@ -68,6 +73,8 @@ services:
       context: .
       dockerfile: ./docker/redis/Dockerfile
     container_name: redis-server
+    environment:
+      - TZ=Asia/Tokyo
     ports:
       - 6379:6379
   
@@ -80,6 +87,7 @@ services:
     ports:
       - 5432:5432
     environment:
+      - TZ=Asia/Tokyo
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
@@ -93,6 +101,8 @@ services:
       context: .
       dockerfile: ./docker/python/Dockerfile
     container_name: uwsgi
+    environment:
+      - TZ=Asia/Tokyo
     ports:
       - 5000:5000
     entrypoint: uwsgi --ini ./ApiServer.ini
@@ -105,6 +115,8 @@ services:
       dockerfile: ./docker/python/Dockerfile
     container_name: spapi-server
     entrypoint: /usr/local/bin/python /usr/src/app/main.py amz
+    environment:
+      - TZ=Asia/Tokyo
     depends_on:
       - postgresql-server
       - redis-server
@@ -116,6 +128,8 @@ services:
       dockerfile: ./docker/python/Dockerfile
     container_name: spapi-chart-server
     entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi
+    environment:
+      - TZ=Asia/Tokyo
     depends_on:
       - postgresql-server
       - redis-server
@@ -126,6 +140,8 @@ services:
       dockerfile: ./docker/python/Dockerfile
     container_name: scheduler
     entrypoint: /usr/local/bin/python /usr/src/app/scheduler.py
+    environment:
+      - TZ=Asia/Tokyo
     depends_on:
       - postgresql-server
       - redis-server
