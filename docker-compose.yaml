@@ -146,3 +146,15 @@ services:
       - postgresql-server
       - redis-server
       - rabbitmq
+
+  keepa-server:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: keepa-server
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py keepa
+    environment:
+      - TZ=Asia/Tokyo
+    depends_on:
+      - postgresql-server
+      - redis-server
