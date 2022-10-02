@@ -151,7 +151,7 @@ class SpapiPrices(Base, ModelsBase):
         stmt = insert(cls).values([{
             'asin': value['asin'],
             'price': value['price'],
-        }] for value in values)
+        } for value in values])
         update_on_stmt = stmt.on_conflict_do_update(
             index_elements=['asin'],
             set_=dict(

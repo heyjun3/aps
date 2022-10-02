@@ -19,6 +19,7 @@ class TestModels(object):
         SpapiFees.host_url = settings.DB_TEST_URL
         SpapiPrices.host_url = settings.DB_TEST_URL
         await AsinsInfo('TEST', '9999', 'test row', 1).save()
+        await AsinsInfo('test', '19999', 'test row', 1).save()
         yield
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
@@ -92,6 +93,15 @@ class TestModels(object):
     @pytest.mark.asyncio
     async def test_spapi_prices_upsert(cls):
         result = await SpapiPrices('NNNN', 4000).upsert()
+        assert result == True
+
+    @pytest.mark.asyncio
+    async def test_insert_all_conflict(cls):
+        values = [
+            {'asin': 'TEST', 'price': 1000},
+            {'asin': 'test', 'price': 21000},
+        ]
+        result = await SpapiPrices.insert_all_on_conflict_do_update_price(values)
         assert result == True
 
     @pytest.mark.asyncio
