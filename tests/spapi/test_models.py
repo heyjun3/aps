@@ -117,4 +117,17 @@ class TestModels(object):
         assert fee['asin'] == 'TEST'
         assert fee['fee_rate'] == 0.1
         assert fee['ship_fee'] == 1000
+
+    @pytest.mark.asyncio
+    async def test_insert_all_on_conflict_do_update_fee(self):
+        values = [
+            SpapiFees('test', 0.5, 1000),
+            SpapiFees('TEST', 2, 2000),
+        ]
+        result = await SpapiFees.insert_all_on_conflict_do_update_fee(values)
+        assert result == True
+        fee = await SpapiFees.get('test')
+        assert fee['asin'] == 'test'
+        assert fee['fee_rate'] == 0.5
+        assert fee['ship_fee'] == 1000
         
