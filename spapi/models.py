@@ -222,7 +222,7 @@ class SpapiFees(Base, ModelsBase):
             return 
 
     @classmethod
-    async def get_asins_fee(cls, asins: List[str], interval_days: int=30) -> List[dict]:
+    async def get_asins_fee(cls, asins: List[str], interval_days: int=30) -> List[SpapiFees]:
         date = datetime.date.today() - datetime.timedelta(days=interval_days)
         async with cls.session_scope() as session:
             stmt = select(cls).where(cls.asin.in_(asins), cls.modified > date).order_by(cls.asin)

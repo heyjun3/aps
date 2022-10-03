@@ -218,7 +218,7 @@ class RunAmzTask(object):
     async def get_my_fees_estimate(self, interval_sec: int=2) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
-        async def _get_my_fees_estimate(asin_list: List[str]) -> None:
+        async def _get_my_fees_estimate(asin_list: List[str]) -> List[SpapiFees]:
             result = []
             if not asin_list:
                 return
@@ -241,8 +241,9 @@ class RunAmzTask(object):
             fees = await SpapiFees.get_asins_fee(list(asins))
             fees_asins = {fee.asin for fee in fees}
             search_asins = asins - fees_asins
-            result = _get_my_fees_estimate(list(search_asins))
-            chain_map_fees = collections.ChainMap(*[{fee['asin']: fee} for fee in fees + result])
+            result = await _get_my_fees_estimate(list(search_asins))
+            chain_map_fees = collections.ChainMap(
+                                    *[{fee['asin']: fee} for fee in fees + result])
 
             for mws in mws_objects:
                 fee = chain_map_fees.get(mws.asin)
