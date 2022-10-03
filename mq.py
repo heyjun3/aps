@@ -74,8 +74,8 @@ class MQ(object):
     
     def receive(self, get_count: int=20) -> None:
 
-        messages = []
         while True:
+            messages = []
             try:
                 for _ in range(get_count):
                     message = self.channel.basic_get(self.queue_name, auto_ack=True)
