@@ -31,6 +31,14 @@ if __name__ == '__main__':
             asyncio.run(keepa.main())
         case ('amz', None):
             asyncio.run(RunAmzTask().main())
+        case ('amz', 'queue'):
+            asyncio.run(RunAmzTask().get_queue())
+        case ('amz', 'catalog_item'):
+            asyncio.run(RunAmzTask().search_catalog_items_v20220401())
+        case ('amz', 'price'):
+            asyncio.run(RunAmzTask().get_item_offers_batch())
+        case ('amz', 'fees'):
+            asyncio.run(RunAmzTask().get_my_fees_estimate())
         case ('buffalo', None):
             buffalo.main()
         case ('pc4u', None):

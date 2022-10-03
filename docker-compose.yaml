@@ -109,12 +109,51 @@ services:
     depends_on:
       - postgresql-server
 
-  spapi-server:
+  spapi-queue-server:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
-    container_name: spapi-server
-    entrypoint: /usr/local/bin/python /usr/src/app/main.py amz
+    container_name: spapi-queue-server
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py amz -i queue
+    environment:
+      - TZ=Asia/Tokyo
+    depends_on:
+      - postgresql-server
+      - redis-server
+      - rabbitmq
+
+  spapi-search-item-server:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: spapi-search-item-server
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py amz -i catalog_item
+    environment:
+      - TZ=Asia/Tokyo
+    depends_on:
+      - postgresql-server
+      - redis-server
+      - rabbitmq
+
+  spapi-price-server:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: spapi-price-server
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py amz -i price
+    environment:
+      - TZ=Asia/Tokyo
+    depends_on:
+      - postgresql-server
+      - redis-server
+      - rabbitmq
+
+  spapi-fees-server:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: spapi-fees-server
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py amz -i fees
     environment:
       - TZ=Asia/Tokyo
     depends_on:
