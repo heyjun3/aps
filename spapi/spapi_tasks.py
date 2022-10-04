@@ -162,7 +162,6 @@ class RunAmzTask(object):
         logger.info('action=search_catalog_items status=run')
 
         for get_objects in self.search_catalog_queue.receive():
-            logger.info(len(get_objects))
             if get_objects is None:
                 logger.info({'message': 'get_objects is None'})
                 await asyncio.sleep(10)
