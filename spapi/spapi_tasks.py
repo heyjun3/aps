@@ -223,13 +223,13 @@ class RunAmzTask(object):
             if not asin_list:
                 return
 
-            asin_collection = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
-            for asins in asin_collection:
-                response = await self.client.get_my_fees_estimates(asins)
+            for i in range(0, len(asin_list), 20):
+                response = await self.client.get_my_fees_estimates(asin_list[i:i+20])
                 products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
                 for product in products:
                     result.append(SpapiFees(product['asin'], product['fee_rate'], product['ship_fee']))
                 await asyncio.sleep(interval_sec)
+            return result
 
         while True:
             mws_objects = await MWS.get_fee_is_None_asins()
