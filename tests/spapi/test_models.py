@@ -130,4 +130,3 @@ class TestModels(object):
         assert fee['asin'] == 'test'
         assert fee['fee_rate'] == 0.5
         assert fee['ship_fee'] == 1000
-        
