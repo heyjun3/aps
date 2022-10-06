@@ -12,6 +12,7 @@ from sqlalchemy import Date
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import Insert
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.future import select
 
 import log_settings
@@ -57,6 +58,20 @@ class AsinsInfo(Base, ModelsBase):
         return True
 
     @classmethod
+    async def insert_all_on_conflict_do_update(cls, values: List[dict]) -> True:
+        stmt = insert(cls).values(values)
+        do_update_stmt = stmt.on_conflict_do_update(
+            index_elements=['asin'],
+            set_=dict(
+                jan=stmt.excluded.jan,
+                title=stmt.excluded.title,
+                quantity=stmt.excluded.quantity,
+            ))
+        async with cls.session_scope() as session:
+            await session.execute(do_update_stmt)
+            return True
+
+    @classmethod
     async def get(cls, jan: str, interval_days: int=30) -> List[dict]|None:
         date = (datetime.date.today() - datetime.timedelta(days=interval_days))
         async with cls.session_scope() as session:
@@ -66,6 +81,13 @@ class AsinsInfo(Base, ModelsBase):
         if asins:
             return [asin.values for asin in asins]
         return None
+
+    @classmethod
+    async def get_asin_object_by_jan_list(cls, jan_list: List[str]) -> List[AsinsInfo]:
+        async with cls.session_scope() as session:
+            stmt = select(cls).where(cls.jan.in_(jan_list))
+            result = await session.execute(stmt)
+            return result.scalars().all()
 
     @classmethod
     async def get_title(cls, asin: str) -> str|None:
@@ -86,6 +108,13 @@ class AsinsInfo(Base, ModelsBase):
         if asins:
             return asins
         return None
+
+    @classmethod
+    async def get_jan_code_all(cls) -> List[str]:
+        async with cls.session_scope() as session:
+            stmt = select(cls.jan)
+            result = await session.execute(stmt)
+            return result.scalars().all()
 
     @property
     def values(self):
@@ -116,6 +145,22 @@ class SpapiPrices(Base, ModelsBase):
             stmt = stmt.on_conflict_do_update(index_elements=['asin'], set_=self.values)
             await session.execute(stmt)
         return True
+
+    @classmethod
+    async def insert_all_on_conflict_do_update_price(cls, values: List[dict]) -> True:
+        stmt = insert(cls).values([{
+            'asin': value['asin'],
+            'price': value['price'],
+        } for value in values])
+        update_on_stmt = stmt.on_conflict_do_update(
+            index_elements=['asin'],
+            set_=dict(
+                price=stmt.excluded.price,
+            )
+        )
+        async with cls.session_scope() as session:
+            await session.execute(update_on_stmt)
+            return True
 
     @property
     def values(self):
@@ -148,6 +193,24 @@ class SpapiFees(Base, ModelsBase):
         return True
 
     @classmethod
+    async def insert_all_on_conflict_do_update_fee(cls, values: List[SpapiFees]) -> True:
+        stmt = insert(cls).values([{
+            'asin': value.asin,
+            'fee_rate': value.fee_rate,
+            'ship_fee': value.ship_fee,
+        } for value in values])
+        update_on_stmt = stmt.on_conflict_do_update(
+            index_elements=['asin'],
+            set_=dict(
+                fee_rate=stmt.excluded.fee_rate,
+                ship_fee=stmt.excluded.ship_fee,
+            )
+        )
+        async with cls.session_scope() as session:
+            await session.execute(update_on_stmt)
+            return True
+
+    @classmethod
     async def get(cls, asin: str, interval_days: int=30) -> dict|None:
         date = datetime.date.today() - datetime.timedelta(days=interval_days)
         async with cls.session_scope() as session:
@@ -159,15 +222,12 @@ class SpapiFees(Base, ModelsBase):
             return 
 
     @classmethod
-    async def get_asins_fee(cls, asins: List[str], interval_days: int=30) -> List[dict]:
+    async def get_asins_fee(cls, asins: List[str], interval_days: int=30) -> List[SpapiFees]:
         date = datetime.date.today() - datetime.timedelta(days=interval_days)
         async with cls.session_scope() as session:
-            stmt = select(cls).where(cls.asin.in_(asins), cls.modified > date)
+            stmt = select(cls).where(cls.asin.in_(asins), cls.modified > date).order_by(cls.asin)
             result = await session.execute(stmt)
-            asins_fee = result.scalars().all()
-            if asins_fee:
-                return [fee.values for fee in asins_fee]
-            return []
+            return result.scalars().all()
 
     @classmethod
     async def get_asins_after_update_interval_days(cls, interval_days: int=30) -> List[str]:

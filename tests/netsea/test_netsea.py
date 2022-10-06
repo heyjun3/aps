@@ -65,11 +65,13 @@ class ScrapeProductListPage(unittest.TestCase):
         self.assertEqual(products[0].name, '非売品　注文しないてください' )
         self.assertEqual(products[0].shop_code, '750972')
         self.assertEqual(products[0].product_code, 'FMP001')
+        self.assertEqual(products[0].url, 'https://www.netsea.jp/shop/750972/FMP001?cx_search=PD&fw=ChQKEgoQCKWp9cWVi_YCFe2GBgoYHA')
 
         self.assertEqual(products[-1].price, 294030)
         self.assertEqual(products[-1].name, '☆原石一点物☆【原石】アメジスト カペーラ (3A) (ウルグアイ産) (台付) (22.5kg) No.39' )
         self.assertEqual(products[-1].shop_code, '172479')
         self.assertEqual(products[-1].product_code, 'FE09Jmi064-39')
+        self.assertEqual(products[-1].url,'https://www.netsea.jp/shop/172479/FE09Jmi064-39?cx_search=PD&fw=ChYKEgoQCKWp9cWVi_YCFe2GBgoYHBA7')
 
     def test_scrape_not_discount_price(self):
         response = unittest.mock.MagicMock()
@@ -82,11 +84,13 @@ class ScrapeProductListPage(unittest.TestCase):
         self.assertEqual(products[0].name, '[直送品]リッチェル コアラクーン 両対面式A型ベビーカー 1カ月頃から36カ月頃 ネイビーブルー' )
         self.assertEqual(products[0].shop_code, '5984')
         self.assertEqual(products[0].product_code, '4973655937907')
+        self.assertEqual(products[0].url, 'https://www.netsea.jp/shop/5984/4973655937907?cx_search=PD&fw=ChQKEgoQCL37j7ugi_YCFYuiBgoYHA')
 
         self.assertEqual(products[-1].price, 6600)
         self.assertEqual(products[-1].name, 'カプセル粉づめくん　本体　０号用' )
         self.assertEqual(products[-1].shop_code, '5984')
         self.assertEqual(products[-1].product_code, '4905712000521')
+        self.assertEqual(products[-1].url, 'https://www.netsea.jp/shop/5984/4905712000521?cx_search=PD&fw=ChYKEgoQCL37j7ugi_YCFYuiBgoYHBA7')
 
 
 class ScrapeProductDetailPage(unittest.TestCase):

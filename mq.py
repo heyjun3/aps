@@ -1,6 +1,7 @@
 import json
 import time
 from types import FunctionType
+from typing import List
 import threading
 
 import pika
@@ -8,6 +9,7 @@ from pika.exceptions import AMQPConnectionError
 from pika.exceptions import DuplicateGetOkCallback
 
 import log_settings
+import settings
 
 
 logger = log_settings.get_logger(__name__)
@@ -18,18 +20,33 @@ class MQ(object):
     def __init__(self, queue_name: str):
         self.queue_name = queue_name
         self.queue = None
+        self.credentials = pika.PlainCredentials(settings.MQ_USER, settings.MQ_PASSWORD)
         self.channel = self.create_mq_channel()
         self.properties = pika.BasicProperties(delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE)
 
-    def create_mq_channel(self) -> pika.BaseConnection.channel:
+    def create_mq_channel(self, retry_count: int=30, interval_sec=10) -> pika.BaseConnection.channel:
         logger.info('action=create_mq_channel status=run')
 
-        connection = pika.BlockingConnection()
-        channel = connection.channel()
-        self.queue = channel.queue_declare(self.queue_name, durable=True)
+        for _ in range(retry_count):
+            try:
+                connection = pika.BlockingConnection(
+                    pika.ConnectionParameters(
+                        host=settings.MQ_HOST,
+                        port=settings.MQ_PORT,
+                        credentials=self.credentials,
+                    )
+                )
+            except AMQPConnectionError as ex:
+                logger.info({'error': ex})
+                time.sleep(interval_sec)
+                continue
 
-        logger.info('action=create_mq_channel status=done')
-        return channel
+            channel = connection.channel()
+            self.queue = channel.queue_declare(self.queue_name, durable=True)
+
+            logger.info('action=create_mq_channel status=done')
+            return channel
+        logger.error({'message': 'create mq channel failed. connection refused'})
 
     def get_message_count(self) -> int:
         logger.info('action=get_message_count status=run')
@@ -56,20 +73,24 @@ class MQ(object):
 
         logger.debug('action=publish status=done')
     
-    def receive(self, get_count: int=20) -> None:
+    def receive(self, get_count: int=20) -> List[str]:
 
         while True:
+            messages = []
             try:
-                messages = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
+                for _ in range(get_count):
+                    message = self.channel.basic_get(self.queue_name, auto_ack=True)
+                    if not all(message):
+                        break
+                    _, _, body = message
+                    messages.append(body.decode())
+                # messages = [self.channel.basic_get(self.queue_name, auto_ack=True) for _ in range(get_count)]
             except (AMQPConnectionError, FileNotFoundError) as ex:
                 logger.error({'message': ex})
                 self.channel = self.create_mq_channel()
-                if not messages:
-                    continue
 
-            message_list = [body.decode() for _, _, body in messages if body]
-            if message_list:
-                yield message_list
+            if messages:
+                yield messages
             else:
                 yield None
 
@@ -96,7 +117,6 @@ class MQ(object):
         except AMQPConnectionError as ex:
             logger.error({'mesage': ex})
             return None
-
         _method, _properties, body = message
         if body:
             return body.decode()

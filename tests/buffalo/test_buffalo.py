@@ -21,11 +21,12 @@ class ScrapeProductListPage(unittest.TestCase):
         self.assertEqual(products[0].name, '《アウトレット・未使用》HD-QHA32U3/R5(保証有り)')
         self.assertEqual(products[0].price, 177800)
         self.assertEqual(products[0].product_code, '25444')
+        self.assertEqual(products[0].url, 'https://www.buffalo-direct.com/directshop/products/detail.php?product_id=25444')
 
         self.assertEqual(products[-1].name, '《アウトレット・未使用》CF-BRIDGE(保証有り)')
         self.assertEqual(products[-1].price, 620)
         self.assertEqual(products[-1].product_code, '23327')
-
+        self.assertEqual(products[-1].url, 'https://www.buffalo-direct.com/directshop/products/detail.php?product_id=23327')
 
 class ScrapeProductDetailPage(unittest.TestCase):
 

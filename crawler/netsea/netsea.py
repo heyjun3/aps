@@ -20,7 +20,7 @@ import settings
 import log_settings
 from mq import MQ
 from crawler.netsea.models import NetseaProduct
-from crawler import utils
+from crawler import netsea, utils
 from crawler.netsea.models import NetseaShop
 
 
@@ -89,25 +89,32 @@ class Netsea(object):
             netsea_product = self.netsea_product_queue.get()
             if netsea_product is None:
                 break
+
             if re.fullmatch('[0-9]{13}', netsea_product.product_code):
                 netsea_product.jan = netsea_product.product_code
                 netsea_product.save()
-            else:
-                product = NetseaProduct.get_object_filter_productcode_and_shopcode(netsea_product.product_code, netsea_product.shop_code)
-                if product:
-                    netsea_product.jan = product.jan
-                else:
-                    url = urljoin(settings.NETSEA_SHOP_URL, f'{netsea_product.shop_code}/{netsea_product.product_code}')
-                    logger.info({'url': url})
-                    response = utils.request(session=self.session, url=url)
-                    time.sleep(interval_sec)
-                    if response is None:
-                        continue
-                    parsed_value = NetseaHTMLPage.scrape_product_detail_page(response.text)
-                    netsea_product.jan = parsed_value.get('jan')
-                    netsea_product.save()
-            
-            self.publish_queue(netsea_product.jan, netsea_product.price)
+                self.publish_queue(netsea_product.jan, netsea_product.price, netsea_product.url)
+                continue
+
+            product = NetseaProduct.get_object_filter_productcode_and_shopcode(netsea_product.product_code, netsea_product.shop_code)
+            if product:
+                netsea_product.jan = product.jan
+                product.url = netsea_product.url
+                product.save()
+                self.publish_queue(netsea_product.jan, netsea_product.price, netsea_product.url)
+                continue
+
+            logger.info({'url': netsea_product.url})
+            response = utils.request(session=self.session, url=netsea_product.url)
+            time.sleep(interval_sec)
+            if response is None:
+                continue
+
+            parsed_value = NetseaHTMLPage.scrape_product_detail_page(response.text)
+            netsea_product.jan = parsed_value.get('jan')
+            netsea_product.save()
+
+            self.publish_queue(netsea_product.jan, netsea_product.price, netsea_product.url)
 
         logger.info('action=pool_product_detail_page status=done')
 
@@ -142,18 +149,19 @@ class Netsea(object):
         logger.info('action=pool_favorite_product_list_page status=done')
         return df
 
-    def publish_queue(self, jan: str, price: int) -> None:
+    def publish_queue(self, jan: str, price: int, url: str) -> None:
         logger.info('action=publish_queue status=run')
 
-        if not jan or not price:
-            return None
+        if not all([jan, price, url]):
+            return
 
-        params = {
+        self.mq.publish(json.dumps({
                 'filename': f'netsea_{self.timestamp}',
                 'jan': jan,
                 'cost': price,
-            }
-        self.mq.publish(json.dumps(params))
+                'url': url,
+            }))
+
         logger.info('action=publish_queue status=done')
 
     def start_search_products(self):
@@ -196,10 +204,16 @@ class NetseaHTMLPage(object):
                 logger.error('price is None')
                 continue
 
-            url = urlparse(product.select_one('.showcaseHd a').attrs.get('href'))
-            shop_code = url.path.split('/')[SHOP_CODE_NUM]
-            product_code = url.path.split('/')[PRODUCT_CODE_NUM]
-            netsea_product = NetseaProduct(name=title, price=price, shop_code=shop_code, product_code=product_code)
+            url = product.select_one('.showcaseHd a').attrs.get('href')
+            shop_code = urlparse(url).path.split('/')[SHOP_CODE_NUM]
+            product_code = urlparse(url).path.split('/')[PRODUCT_CODE_NUM]
+            netsea_product = NetseaProduct(
+                                        name=title, 
+                                        price=price,
+                                        shop_code=shop_code,
+                                        product_code=product_code,
+                                        url=url,
+                                    )
 
             netsea_product_list.append(netsea_product)
         

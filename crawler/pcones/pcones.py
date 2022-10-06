@@ -24,7 +24,7 @@ def main():
 class PconesCrawler(object):
 
     def __init__(self, queue_name: str='mws'):
-        self.url = 'https://www.1-s.jp/products/list/'
+        self.url = 'https://www.1-s.jp/products/list'
         self.query = dict(sorted({
             'mode': 'search',
             'size': 100,
@@ -43,7 +43,7 @@ class PconesCrawler(object):
             response = utils.request(self.url, params=self.query)
             time.sleep(interval_sec)
             products = PconesHTMLPage.scrape_product_list_page(response.text)
-            [self.publish_queue(product['jan'], product['cost']) for product in products]
+            [self.publish_queue(product['jan'], product['cost'], product.get('url')) for product in products]
             self.query['pageno'] += 1
 
         logger.info('action=products_list_page_loop status=done')
@@ -59,13 +59,18 @@ class PconesCrawler(object):
         logger.info('action=get_products_count')
         return max_pages
 
-    def publish_queue(self, jan: str, cost: int):
+    def publish_queue(self, jan: str, cost: int, url: str) -> None:
         logger.info('action=publish_queue status=run')
+
+        if not all([jan, cost, url]):
+            logger.error({'message': 'enqueue bad parameter', 'parameter': (jan, cost, url)})
+            return
 
         self.mq.publish(json.dumps({
             'filename': f'pcones_{self.timestamp}',
             'jan': jan,
             'cost': cost,
+            'url': url,
         }))
         logger.info('action=publish_queue status=done')
 
@@ -85,7 +90,8 @@ class PconesHTMLPage(object):
     @staticmethod
     def scrape_product_list_page(response: str) -> list[dict]:
         logger.info('action=scrape_product_list_page status=run')
-        
+
+        FQDN = 'https://www.1-s.jp' 
         products = []
 
         soup = BeautifulSoup(response, 'lxml')
@@ -93,10 +99,11 @@ class PconesHTMLPage(object):
         for product in product_list:
             list_code = product.select_one('.list_code')
             list_price = product.select_one('.list_price')
+            name = product.select_one('.list_voice a')
 
-            if not list_code or not list_price:
+            if not all([list_code, list_price, name]):
                 continue
-            
+            url = FQDN + name.attrs.get('href')
             jan = re.search('[0-9]{13}', list_code.text)
             price = re.search('.*円', list_price.text)
             try:
@@ -108,7 +115,7 @@ class PconesHTMLPage(object):
                 continue
             else:
                 price = int(''.join(re.findall('[0-9]', price.group())))
-                products.append({'jan': jan.group(), 'cost': price})
+                products.append({'jan': jan.group(), 'cost': price, 'url': url})
 
         logger.info('action=scrape_product_list_page status=done')
         return products

@@ -306,6 +306,7 @@ class SPAPI(object):
         logger.info('action=search_catalog_items_v2022_04_01 status=run')
 
         if (len(identifiers) > 20):
+            logger.error({'message': 'identifiers over 20', 'length': len(identifiers)})
             raise TooMatchParameterException
 
         method = "GET"

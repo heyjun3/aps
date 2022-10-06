@@ -14,12 +14,12 @@ logger = get_logger(__name__)
 
 class ModelsBase(object):
 
-    url = settings.DB_ASYNC_URL
+    host_url = settings.DB_ASYNC_URL
 
     @classmethod
     @asynccontextmanager
     async def session_scope(cls):
-        engine = create_async_engine(cls.url, future=True)
+        engine = create_async_engine(cls.host_url, future=True)
         async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
         session = async_session()
         try:

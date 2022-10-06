@@ -21,6 +21,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.dialects.postgresql import insert
 
 from models_base import ModelsBase
 from keepa.models import KeepaProducts
@@ -52,6 +53,7 @@ class MWS(Base, ModelsBase):
     title = Column(String)
     jan = Column(String)
     unit = Column(BigInteger)
+    url = Column(String)
     price = Column(BigInteger)
     cost = Column(BigInteger)
     fee_rate = Column(Float)
@@ -66,6 +68,50 @@ class MWS(Base, ModelsBase):
         return True
 
     @classmethod
+    async def insert_all_on_conflict_do_nothing(cls, records: List[MWS]):
+        stmt = insert(cls).values([record.insert_values for record in records])\
+               .on_conflict_do_nothing(index_elements=['asin', 'filename'])
+        async with cls.session_scope() as session:
+            await session.execute(stmt)
+            return True
+
+    @classmethod
+    async def insert_all_on_conflict_do_update_price(cls, records: List[MWS]):
+        stmt = insert(cls).values([{
+            'asin': record.asin,
+            'filename': record.filename,
+            'price': record.price,
+        } for record in records])
+        update_do_stmt = stmt.on_conflict_do_update(
+            index_elements=['asin', 'filename'],
+            set_=dict(
+                price=stmt.excluded.price,
+            )
+        )
+        async with cls.session_scope() as session:
+            await session.execute(update_do_stmt)
+            return True
+
+    @classmethod
+    async def insert_all_on_conflict_do_update_fee(cls, records: List[MWS]):
+        stmt = insert(cls).values([{
+            'asin': record.asin,
+            'filename': record.filename,
+            'fee_rate': record.fee_rate,
+            'shipping_fee': record.shipping_fee,
+        } for record in records])
+        update_do_stmt = stmt.on_conflict_do_update(
+            index_elements=['asin', 'filename'],
+            set_=dict(
+                fee_rate=stmt.excluded.fee_rate,
+                shipping_fee=stmt.excluded.shipping_fee,
+            )
+        )
+        async with cls.session_scope() as session:
+            await session.execute(update_do_stmt)
+            return True
+
+    @classmethod
     async def get(cls, asin: str) -> MWS:
         async with cls.session_scope() as session:
             stmt = select(cls).where(cls.asin == asin)
@@ -75,7 +121,8 @@ class MWS(Base, ModelsBase):
     @classmethod
     async def get_filenames(cls) -> List[str]:
         async with cls.session_scope() as session:
-            stmt = select(distinct(cls.filename))
+            subq = select(distinct(cls.filename)).where(cls.price == None, cls.fee_rate == None)
+            stmt = select(distinct(cls.filename)).where(cls.filename.not_in(subq))
             result = await session.execute(stmt)
             filenames = result.scalars()
             return sorted(filenames)
@@ -119,16 +166,16 @@ class MWS(Base, ModelsBase):
             return result.scalars().all()
 
     @classmethod
-    async def get_price_is_None_asins(cls) -> List[str]:
+    async def get_object_by_price_is_None(cls) -> List[MWS]:
         async with cls.session_scope() as session:
-            stmt = select(cls.asin).where(cls.price == None)
+            stmt = select(cls).where(cls.price == None)
             result = await session.execute(stmt)
             return result.scalars().all()
 
     @classmethod
-    async def get_fee_is_None_asins(cls, limit_count=10000) -> List[str]:
+    async def get_fee_is_None_asins(cls, limit_count=10000) -> List[MWS]:
         async with cls.session_scope() as session:
-            stmt = select(cls.asin).where(or_(cls.fee_rate == None, cls.shipping_fee == None))\
+            stmt = select(cls).where(or_(cls.fee_rate == None, cls.shipping_fee == None))\
                     .order_by(cls.created_at).limit(limit_count)
             result = await session.execute(stmt)
             return result.scalars().all()
@@ -186,6 +233,21 @@ class MWS(Base, ModelsBase):
             'shipping_fee': self.shipping_fee,
             'profit': self.profit,
             'profit_rate': self.profit_rate,
+        }
+
+    @property
+    def insert_values(self):
+        return {
+            'asin': self.asin,
+            'filename': self.filename,
+            'jan': self.jan,
+            'unit': self.unit,
+            'url': self.url,
+            'cost': self.cost,
+            'title': self.title,
+            'price': self.price,
+            'fee_rate': self.fee_rate,
+            'shipping_fee': self.shipping_fee,
         }
     
     def __repr__(self):

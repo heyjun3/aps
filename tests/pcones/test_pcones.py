@@ -18,9 +18,11 @@ class ScrapeProductListPage(unittest.TestCase):
 
         self.assertEqual(products[0]['jan'], '4545708003824')
         self.assertEqual(products[0]['cost'], 15800)
+        self.assertEqual(products[0].get('url'), 'https://www.1-s.jp/products/detail/255013')
 
         self.assertEqual(products[-1]['jan'], '4550161189572')
         self.assertEqual(products[-1]['cost'], 6080)
+        self.assertEqual(products[-1].get('url'), 'https://www.1-s.jp/products/detail/254585')
 
     def test_scrape_detail_page_1(self):
         path = os.path.join(dirname, 'scrape_product_detail_page1.html')

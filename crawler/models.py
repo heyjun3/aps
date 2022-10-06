@@ -1,3 +1,4 @@
+from __future__ import annotations
 import threading
 
 from sqlalchemy import create_engine
@@ -75,6 +76,7 @@ class Product:
     price = Column(BigInteger)
     shop_code = Column(String, primary_key=True, nullable=False)
     product_code = Column(String, primary_key=True, nullable=False)
+    url = Column(String)
 
     @classmethod
     def get_jan(cls, jan):
@@ -91,7 +93,7 @@ class Product:
             return products
 
     @classmethod
-    def get_object_filter_productcode_and_shopcode(cls, product_code, shop_code):
+    def get_object_filter_productcode_and_shopcode(cls, product_code, shop_code) -> Product|None:
         logger.info('action=get_object_filter_productcode_and_shopcode status=run')
         with session_scope() as session:
             product = session.query(cls).filter(and_(cls.product_code == product_code, cls.shop_code == shop_code)).first()
