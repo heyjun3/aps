@@ -221,8 +221,6 @@ class RunAmzTask(object):
 
         async def _get_my_fees_estimate(asin_list: List[str]) -> List[SpapiFees]:
             result = []
-            if not asin_list:
-                return
 
             for i in range(0, len(asin_list), 20):
                 response = await self.client.get_my_fees_estimates(asin_list[i:i+20])
@@ -246,7 +244,7 @@ class RunAmzTask(object):
             return mws_objects
 
         while True:
-            mws_objects = await MWS.get_fee_is_None_asins()
+            mws_objects = await MWS.get_fee_is_None_asins(1000)
             if not mws_objects:
                 await asyncio.sleep(30)
                 continue

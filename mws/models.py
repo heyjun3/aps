@@ -95,7 +95,9 @@ class MWS(Base, ModelsBase):
             return True
 
     @classmethod
-    async def insert_all_on_conflict_do_update_fee(cls, records: List[MWS]):
+    async def insert_all_on_conflict_do_update_fee(cls, records: List[MWS]) -> True|None:
+        if not records:
+            return 
         stmt = insert(cls).values([{
             'asin': record.asin,
             'filename': record.filename,
