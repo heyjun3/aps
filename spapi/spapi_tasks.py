@@ -1,3 +1,4 @@
+from copy import deepcopy
 import time
 import json
 import itertools
@@ -160,13 +161,13 @@ class RunAmzTask(object):
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
         logger.info('action=search_catalog_items status=run')
 
-        for get_objects in self.search_catalog_queue.receive():
-            if get_objects is None:
+        for messages in self.search_catalog_queue.receive():
+            if messages is None:
                 logger.info({'message': 'get_objects is None'})
                 await asyncio.sleep(10)
                 continue
 
-            params = sorted([json.loads(resp) for resp in get_objects], key=lambda x: x['jan'])
+            params = sorted([json.loads(resp) for resp in messages], key=lambda x: x['jan'])
             params = {k: list(g) for k, g in itertools.groupby(params, lambda x: x['jan'])}
 
             response = await self.client.search_catalog_items_v2022_04_01(params.keys(), id_type=id_type)
@@ -231,6 +232,19 @@ class RunAmzTask(object):
                 await asyncio.sleep(interval_sec)
             return result
 
+        def _mws_mapping_spapi_fees(mws_list: List[MWS], spapi_fees: List[SpapiFees]) -> List[MWS]:
+            mws_objects = deepcopy(mws_list)
+            chain_map_fees = collections.ChainMap(
+                                    *[{fee['asin']: fee} for fee in spapi_fees])
+
+            for mws in mws_objects:
+                fee = chain_map_fees.get(mws.asin)
+                if fee:
+                    mws.fee_rate = fee.fee_rate
+                    mws.shipping_fee = fee.ship_fee
+
+            return mws_objects
+
         while True:
             mws_objects = await MWS.get_fee_is_None_asins()
             if not mws_objects:
@@ -239,16 +253,7 @@ class RunAmzTask(object):
 
             asins = {mws.asin for mws in mws_objects}
             fees = await SpapiFees.get_asins_fee(list(asins))
-            fees_asins = {fee.asin for fee in fees}
-            search_asins = asins - fees_asins
-            result = await _get_my_fees_estimate(list(search_asins))
-            chain_map_fees = collections.ChainMap(
-                                    *[{fee['asin']: fee} for fee in fees + result])
-
-            for mws in mws_objects:
-                fee = chain_map_fees.get(mws.asin)
-                if fee:
-                    mws.fee_rate = fee.fee_rate
-                    mws.shipping_fee = fee.ship_fee
+            result = await _get_my_fees_estimate(list(asins - {fee.asin for fee in fees}))
+            mws_objects = _mws_mapping_spapi_fees(mws_objects, fees + result)
             asyncio.ensure_future(SpapiFees.insert_all_on_conflict_do_update_fee(result))
             asyncio.ensure_future(MWS.insert_all_on_conflict_do_update_fee(mws_objects))
