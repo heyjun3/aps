@@ -68,7 +68,9 @@ class MWS(Base, ModelsBase):
         return True
 
     @classmethod
-    async def insert_all_on_conflict_do_nothing(cls, records: List[MWS]):
+    async def insert_all_on_conflict_do_nothing(cls, records: List[MWS]) -> True|None:
+        if not records:
+            return
         stmt = insert(cls).values([record.insert_values for record in records])\
                .on_conflict_do_nothing(index_elements=['asin', 'filename'])
         async with cls.session_scope() as session:
