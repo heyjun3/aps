@@ -1,7 +1,9 @@
+from copy import deepcopy
 import time
 import json
 import itertools
 import asyncio
+import collections
 from typing import List
 from typing import Callable
 from multiprocessing import Process, Queue
@@ -111,133 +113,147 @@ class RunAmzTask(object):
         require = ('cost', 'jan', 'filename', 'url')
 
         @log_decorator
-        def _validation_parameter(parameter: str) -> dict|None:
-            param = json.loads(parameter)
+        def _validation_parameter(param: dict) -> dict|None:
             if not all(r in param for r in require):
                 logger.error({'bad parameter': param})
                 return
             return param
 
+        async def _get_asins_info_objects(jan_codes: List[str]) -> dict[str, List[AsinsInfo]]:
+            asins = await AsinsInfo.get_asin_object_by_jan_list(jan_codes)
+            asins = sorted(asins, key=lambda x: x.jan)
+            return {k: list(g) for k, g in itertools.groupby(asins, lambda x: x.jan)}
+
         @log_decorator
-        def _check_param_in_cache(param: dict) -> dict|None:
+        def _check_param_in_cache(param: dict) -> List[MWS]|None:
             if param is None: 
                 return
 
-            if param['jan'] in jan_cache:
-                return param
-
-            self.search_catalog_queue.publish(json.dumps(param))
-
-        @log_decorator
-        def _combine_param_and_asins_objects(asin_object: AsinsInfo, params: List[dict]) -> MWS:
-            filter_params = filter(lambda x: x['jan'] == asin_object.jan, params)
+            db_cache = asins.get(param['jan'])
+            if db_cache is None:
+                self.search_catalog_queue.publish(json.dumps(param))
+                return
+                
             return [MWS(
-                asin=asin_object.asin,
-                filename = param['filename'],
-                title=asin_object.title,
-                jan=asin_object.jan,
-                unit=asin_object.quantity,
+                asin=asin_info.asin,
+                filename=param['filename'],
+                title=asin_info.title,
+                jan=asin_info.jan,
+                unit=asin_info.quantity,
                 cost=param['cost'],
-                url=param['url']) for param in filter_params]
+                url=param['url'],
+            ) for asin_info in db_cache]
 
         for messages in self.mq.receive(task_count):
             if messages is None:
                 await asyncio.sleep(interval_sec)
                 continue
 
-            jan_cache = self.jan_cache.get_value()
-            if jan_cache is None:
-                jan_cache = await AsinsInfo.get_jan_code_all()
-                self.jan_cache.set_value(set(jan_cache))
-
-            messages = list(filter(None, reduce(lambda data, func: map(func, data), [_validation_parameter, _check_param_in_cache], messages)))
-            if messages:
-                jan_list = list(map(lambda x: x.get('jan'), messages))
-                asins = await AsinsInfo.get_asin_object_by_jan_list(jan_list)
-                mws_records = map(partial(_combine_param_and_asins_objects, params=messages), asins)
-                mws_records = list(itertools.chain.from_iterable(mws_records))
-                await MWS.insert_all_on_conflict_do_nothing(mws_records)
+            messages = [json.loads(message) for message in messages]
+            jan_codes = list(map(lambda x: x['jan'], messages))
+            asins = await _get_asins_info_objects(jan_codes)
+            mws_objects = list(filter(None, reduce(lambda data, func: map(func, data),
+                                [_validation_parameter, _check_param_in_cache], messages)))
+            if mws_objects:
+                mws_objects = itertools.chain.from_iterable(mws_objects)
+                await MWS.insert_all_on_conflict_do_nothing(mws_objects)
 
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
         logger.info('action=search_catalog_items status=run')
 
-        for get_objects in self.search_catalog_queue.receive():
-            if get_objects is None:
+        for messages in self.search_catalog_queue.receive():
+            if messages is None:
                 logger.info({'message': 'get_objects is None'})
                 await asyncio.sleep(10)
                 continue
 
-            params = [json.loads(resp) for resp in get_objects]
+            params = sorted([json.loads(resp) for resp in messages], key=lambda x: x['jan'])
+            params = {k: list(g) for k, g in itertools.groupby(params, lambda x: x['jan'])}
 
-            params = {param['jan']: {'filename': param['filename'], 'cost': param['cost'], 'url': param['url']} for param in params}
             response = await self.client.search_catalog_items_v2022_04_01(params.keys(), id_type=id_type)
             products = SPAPIJsonParser.parse_search_catalog_items_v2022_04_01(response)
+
+            mws_objects = []
             for product in products:
                 parameter = params.get(product['jan'])
                 if parameter is None:
                     logger.error(product)
                     continue
-                asyncio.ensure_future(AsinsInfo(asin=product['asin'], jan=product['jan'], title=product['title'], quantity=product['quantity']).upsert())
-                asyncio.ensure_future(MWS(asin=product['asin'], filename=parameter['filename'], title=product['title'], jan=product['jan'], unit=product['quantity'], cost=parameter['cost'], url=parameter['url']).save())
-
+                for param in parameter:
+                    mws_objects.append(MWS(
+                        asin=product['asin'],
+                        filename=param['filename'],
+                        title=product['title'],
+                        jan=product['jan'],
+                        unit=product['quantity'],
+                        cost=param['cost'],
+                        url=param['url'],
+                    ))
+            asyncio.ensure_future(AsinsInfo.insert_all_on_conflict_do_update(products))
+            asyncio.ensure_future(MWS.insert_all_on_conflict_do_nothing(mws_objects))
             await asyncio.sleep(interval_sec)
 
     async def get_item_offers_batch(self, interval_sec: int=2):
         logger.info({'action': 'get_item_offers_batch', 'status': 'run'})
                        
         while True:
-            asin_list = await MWS.get_price_is_None_asins()
-            if asin_list:
-                asin_list = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
-                for asins in asin_list:
-                    response = await self.client.get_item_offers_batch(asins)
-                    products = SPAPIJsonParser.parse_get_item_offers_batch(response)
-                    for product in products:
-                        asyncio.ensure_future(MWS.update_price(asin=product['asin'], price=product['price']))
-                        asyncio.ensure_future(SpapiPrices(asin=product['asin'], price=product['price']).upsert())
-                    
-                    await asyncio.sleep(interval_sec)
-            else:
+            mws_objects = await MWS.get_object_by_price_is_None()
+            if not mws_objects:
                 await asyncio.sleep(10)
+                continue
+
+            mws_objects = [mws_objects[i:i+20] for i in range(0, len(mws_objects), 20)]
+            for mws_list in mws_objects:
+                asins = [mws.asin for mws in mws_list]
+                response = await self.client.get_item_offers_batch(asins)
+                products = SPAPIJsonParser.parse_get_item_offers_batch(response)
+                chain_products = collections.ChainMap(
+                            *[{product['asin']: product['price']} for product in products])
+                for mws in mws_list:
+                    mws.price = chain_products.get(mws.asin, default=0)
+
+                asyncio.ensure_future(MWS.insert_all_on_conflict_do_update_price(mws_list))
+                asyncio.ensure_future(SpapiPrices.insert_all_on_conflict_do_update_price(products))
+                await asyncio.sleep(interval_sec)
 
     async def get_my_fees_estimate(self, interval_sec: int=2) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
-        async def _insert_db_using_cache(asins: List[str]) -> None:
-
-            fees = await SpapiFees.get_asins_fee(asins)
-            for fee in fees:
-                await MWS.update_fee(fee['asin'], fee['fee_rate'], fee['ship_fee'])
-
-        async def _get_my_fees_estimate(asin_list: List[str]) -> None:
+        async def _get_my_fees_estimate(asin_list: List[str]) -> List[SpapiFees]:
+            result = []
             if not asin_list:
                 return
 
-            asin_collection = [asin_list[i:i+20] for i in range(0, len(asin_list), 20)]
-            for asins in asin_collection:
-                response = await self.client.get_my_fees_estimates(asins)
+            for i in range(0, len(asin_list), 20):
+                response = await self.client.get_my_fees_estimates(asin_list[i:i+20])
                 products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
                 for product in products:
-                    asyncio.ensure_future(SpapiFees(asin=product['asin'], fee_rate=product['fee_rate'], ship_fee=product['ship_fee']).upsert())
-                    asyncio.ensure_future(MWS.update_fee(asin=product['asin'], fee_rate=product['fee_rate'], shipping_fee=product['ship_fee']))
+                    result.append(SpapiFees(product['asin'], product['fee_rate'], product['ship_fee']))
                 await asyncio.sleep(interval_sec)
+            return result
+
+        def _mws_mapping_spapi_fees(mws_list: List[MWS], spapi_fees: List[SpapiFees]) -> List[MWS]:
+            mws_objects = deepcopy(mws_list)
+            chain_map_fees = collections.ChainMap(
+                                    *[{fee['asin']: fee} for fee in spapi_fees])
+
+            for mws in mws_objects:
+                fee = chain_map_fees.get(mws.asin)
+                if fee:
+                    mws.fee_rate = fee.fee_rate
+                    mws.shipping_fee = fee.ship_fee
+
+            return mws_objects
 
         while True:
-            asin_list = await MWS.get_fee_is_None_asins()
-            if not asin_list:
+            mws_objects = await MWS.get_fee_is_None_asins()
+            if not mws_objects:
                 await asyncio.sleep(30)
                 continue
 
-            if self.cache.get_value() is None:
-                asins = await SpapiFees.get_asins_after_update_interval_days()
-                self.cache.set_value(set(asins))
-
-            asins_in_database = self.cache.get_value()
-
-            asins_exist_db = []
-            asin_list = [asins_exist_db.append(asin) if asin in asins_in_database else asin for asin in asin_list]
-            asin_list = [asin for asin in asin_list if asin]
-
-            insert_task = asyncio.create_task(_insert_db_using_cache(asins_exist_db))
-            get_info_task = asyncio.create_task(_get_my_fees_estimate(asin_list))
-            await asyncio.gather(insert_task, get_info_task)
+            asins = {mws.asin for mws in mws_objects}
+            fees = await SpapiFees.get_asins_fee(list(asins))
+            result = await _get_my_fees_estimate(list(asins - {fee.asin for fee in fees}))
+            mws_objects = _mws_mapping_spapi_fees(mws_objects, fees + result)
+            asyncio.ensure_future(SpapiFees.insert_all_on_conflict_do_update_fee(result))
+            asyncio.ensure_future(MWS.insert_all_on_conflict_do_update_fee(mws_objects))

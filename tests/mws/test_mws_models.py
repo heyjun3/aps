@@ -36,19 +36,46 @@ class TestModels(object):
         assert result == True
 
     @pytest.mark.asyncio
+    async def test_insert_all_update(self):
+        records = [
+            MWS(asin='TEST', filename='testfilename', price=2000),
+            MWS(asin='aaaaa', filename='testfilename', price=3000),
+        ]
+        result = await MWS.insert_all_on_conflict_do_update_price(records)
+        assert result == True
+        mws = await MWS.get('TEST')
+        assert mws.price == 2000
+        mws = await MWS.get('aaaaa')
+        assert mws.price == 3000
+
+    @pytest.mark.asyncio
+    async def test_insert_all_update_fee(self):
+        records = [
+            MWS(asin='test', filename='test', fee_rate=0.1, shipping_fee=1000),
+            MWS(asin='test1', filename='test', fee_rate=1.1, shipping_fee=9000),
+        ]
+        result = await MWS.insert_all_on_conflict_do_update_fee(records)
+        assert result == True
+        mws = await MWS.get('test')
+        assert mws.fee_rate == 0.1
+        assert mws.shipping_fee == 1000
+
+    @pytest.mark.asyncio
     async def test_get_filenames(self):
         result = await MWS.get_filenames()
-        assert result == ['testfilename', 'testfileprice']
+        assert result == ['testfilename']
 
     @pytest.mark.asyncio
     async def test_get_price_is_None_products(self):
-        result = await MWS.get_price_is_None_asins()
-        assert result == ['testprice']
+        result = await MWS.get_object_by_price_is_None()
+        assert result[0].asin == 'testprice'
+        assert result[0].filename == 'testfileprice'
 
     @pytest.mark.asyncio
     async def test_get_fee_is_None_asins(self):
         result = await MWS.get_fee_is_None_asins()
-        assert result == ['testprice']
+        assert result[0].asin == 'testprice'
+        assert result[0].filename == 'testfileprice'
 
     @pytest.mark.asyncio
     async def test_update_price(self):
@@ -70,4 +97,4 @@ class TestModels(object):
         result = await MWS.delete_rows('testfilename')
         assert result == True
         filenames = await MWS.get_filenames()
-        assert filenames == ['testfileprice']
+        assert filenames == []
