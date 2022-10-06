@@ -235,7 +235,7 @@ class RunAmzTask(object):
         def _mws_mapping_spapi_fees(mws_list: List[MWS], spapi_fees: List[SpapiFees]) -> List[MWS]:
             mws_objects = deepcopy(mws_list)
             chain_map_fees = collections.ChainMap(
-                                    *[{fee['asin']: fee} for fee in spapi_fees])
+                                    *[{fee.asin: fee} for fee in spapi_fees])
 
             for mws in mws_objects:
                 fee = chain_map_fees.get(mws.asin)
