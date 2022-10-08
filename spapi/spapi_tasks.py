@@ -1,4 +1,5 @@
 from copy import deepcopy
+import multiprocessing
 import time
 import json
 import itertools
@@ -8,6 +9,7 @@ from typing import ChainMap, List
 from typing import Callable
 from multiprocessing import Process, Queue
 from functools import reduce
+from functools import partial
 
 from spapi.spapi import SPAPI
 from spapi.spapi import SPAPIJsonParser
@@ -45,7 +47,7 @@ class UpdateChartDataRequestTask(object):
 
     async def _get_chart_data_request(self, sleep_sec: int=60,
                                            limit_count: int=20,
-                                           interval_sec: int=2):
+                                           interval_sec: float=1.3):
 
         while True:
             asins = KeepaProducts.get_products_not_modified()
@@ -77,22 +79,24 @@ class UpdateChartData(object):
                  SPAPIJsonParser.parse_get_competitive_pricing], messages))
             parsed_data = ChainMap(*[{data['asin']: data for data in itertools.chain.from_iterable(parsed_data)}])
             keepa_products = await KeepaProducts.get_keepa_products_by_asins(parsed_data.keys())
-            keepa_products = self._mapping_keepa_products_and_parsed_data(
-                                                            keepa_products, parsed_data)
+            with multiprocessing.Pool() as pool:
+                keepa_products = pool.map(
+                    partial(UpdateChartData._mapping_keepa_products_and_parsed_data,
+                    parsed_data=parsed_data), keepa_products)
             await KeepaProducts.insert_all_on_conflict_do_update_chart_data(keepa_products)
 
-    def _mapping_keepa_products_and_parsed_data(self, keepa_products: List[KeepaProducts], parsed_data: dict):
-        now = convert_unix_time_to_keepa_time(time.time())
-        for product in keepa_products:
-            value = parsed_data.get(product.asin)
-            if not value:
-                continue
-            product.price_data[now] = value['price']
-            product.rank_data[now] = value['ranking']
-            product.render_data[now] = convert_recharts_data(
-                                                {'rank_data': product.rank_data,
-                                                 'price_data': product.price_data})
-        return keepa_products
+    @staticmethod
+    def _mapping_keepa_products_and_parsed_data(product: KeepaProducts, parsed_data: dict):
+        now = convert_unix_time_to_keepa_time(time.time())    
+        value = parsed_data.get(product.asin)
+        if not value:
+            return
+        product.price_data[now] = value['price']
+        product.rank_data[now] = value['ranking']
+        product.render_data[now] = convert_recharts_data(
+                                            {'rank_data': product.rank_data,
+                                                'price_data': product.price_data})
+        return product
 
 class UpdatePriceAndRankTask(object):
 

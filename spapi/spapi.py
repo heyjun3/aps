@@ -39,7 +39,7 @@ async def request(method: str, url: str, params: dict=None, headers: dict=None, 
                 return response_json
             elif response.status == 429:
                 logger.error(response_json)
-                await asyncio.sleep(2)
+                await asyncio.sleep(0.1)
             else:
                 logger.error(response_json)
                 await asyncio.sleep(10)
