@@ -4,17 +4,18 @@ import json
 import itertools
 import asyncio
 import collections
-from typing import List
+from typing import ChainMap, List
 from typing import Callable
 from multiprocessing import Process, Queue
 from functools import reduce
-from functools import partial
 
 from spapi.spapi import SPAPI
 from spapi.spapi import SPAPIJsonParser
 from spapi.models import AsinsInfo, SpapiPrices
 from spapi.models import SpapiFees
 from keepa.models import KeepaProducts
+from keepa.models import convert_unix_time_to_keepa_time
+from keepa.models import convert_recharts_data
 from mws.models import MWS
 from mq import MQ
 from spapi.utils import Cache
@@ -32,6 +33,64 @@ def log_decorator(func: Callable) -> Callable:
         return result
     return _inner
 
+
+class UpdateChartDataRequestTask(object):
+
+    def __init__(self) ->  None:
+        self.mq = MQ('chart')
+        self.spapi_client = SPAPI()
+
+    async def main(self):
+        await self._get_chart_data_request()
+
+    async def _get_chart_data_request(self, sleep_sec: int=60,
+                                           limit_count: int=20,
+                                           interval_sec: int=2):
+
+        while True:
+            asins = KeepaProducts.get_products_not_modified()
+            if not asins:
+                await asyncio.sleep(sleep_sec)
+            
+            for i in range(0, len(asins), limit_count):
+                response = self.spapi_client.get_competitive_pricing(asins[i:i+limit_count])
+                self.mq.publish(json.dumps(response))
+                await asyncio.sleep(interval_sec)
+
+
+class UpdateChartData(object):
+
+    def __init__(self) -> None:
+        self.mq = MQ('chart')
+
+    async def main(self):
+        await self._update_chart_data_for_keepa_products()
+
+    async def _update_chart_data_for_keepa_products(self):
+
+        for messages in self.mq.receive(100):
+            parsed_data = list(reduce(lambda data, func: map(func, data),
+                [json.loads,
+                 SPAPIJsonParser.parse_get_competitive_pricing,
+                 lambda x: {x['asin']: x}], messages))
+            parsed_data = ChainMap(*parsed_data)
+            keepa_products = await KeepaProducts.get_keepa_products_by_asins(parsed_data.keys())
+            keepa_products = self._mapping_keepa_products_and_parsed_data(
+                                                            keepa_products, parsed_data)
+            await KeepaProducts.insert_all_on_conflict_do_update_chart_data(keepa_products)
+
+    def _mapping_keepa_products_and_parsed_data(self, keepa_products: List[KeepaProducts], parsed_data: dict):
+        now = convert_unix_time_to_keepa_time(time.time())
+        for product in keepa_products:
+            value = parsed_data.get(product.asin)
+            if not value:
+                continue
+            product.price_data[now] = value['price']
+            product.rank_data[now] = value['ranking']
+            product.render_data[now] = convert_recharts_data(
+                                                {'rank_data': product.rank_data,
+                                                 'price_data': product.price_data})
+        return keepa_products
 
 class UpdatePriceAndRankTask(object):
 
