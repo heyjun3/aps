@@ -53,7 +53,7 @@ class UpdateChartDataRequestTask(object):
                 await asyncio.sleep(sleep_sec)
             
             for i in range(0, len(asins), limit_count):
-                response = self.spapi_client.get_competitive_pricing(asins[i:i+limit_count])
+                response = await self.spapi_client.get_competitive_pricing(asins[i:i+limit_count])
                 self.mq.publish(json.dumps(response))
                 await asyncio.sleep(interval_sec)
 
@@ -66,14 +66,16 @@ class UpdateChartData(object):
     async def main(self):
         await self._update_chart_data_for_keepa_products()
 
-    async def _update_chart_data_for_keepa_products(self):
+    async def _update_chart_data_for_keepa_products(self, sleep_sec: int=60):
 
         for messages in self.mq.receive(100):
+            if messages is None:
+                await asyncio.sleep(sleep_sec)
+                continue
             parsed_data = list(reduce(lambda data, func: map(func, data),
                 [json.loads,
-                 SPAPIJsonParser.parse_get_competitive_pricing,
-                 lambda x: {x['asin']: x}], messages))
-            parsed_data = ChainMap(*parsed_data)
+                 SPAPIJsonParser.parse_get_competitive_pricing], messages))
+            parsed_data = ChainMap(*[{data['asin']: data for data in itertools.chain.from_iterable(parsed_data)}])
             keepa_products = await KeepaProducts.get_keepa_products_by_asins(parsed_data.keys())
             keepa_products = self._mapping_keepa_products_and_parsed_data(
                                                             keepa_products, parsed_data)

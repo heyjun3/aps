@@ -175,6 +175,7 @@ class KeepaProducts(Base, ModelsBase):
         stmt = insert(cls).values([{
             'asin': value.asin,
             'price_data': value.price_data,
+            'modified': datetime.date.today(),
             'rank_data': value.rank_data,
             'render_data': value.render_data,
         } for value in products])
@@ -182,6 +183,7 @@ class KeepaProducts(Base, ModelsBase):
             index_elements=['asin'],
             set_=dict(
                 price_data=stmt.excluded.price_data,
+                modified=stmt.excluded.modified,
                 rank_data=stmt.excluded.rank_data,
                 render_data=stmt.excluded.render_data,
             )
