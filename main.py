@@ -4,7 +4,7 @@ import asyncio
 
 from keepa import keepa
 from mws.models import MWS
-from spapi.spapi_tasks import UpdatePriceAndRankTask
+from spapi.spapi_tasks import UpdateChartDataRequestTask, UpdateChartData
 from spapi.spapi_tasks import RunAmzTask
 from crawler.buffalo import buffalo
 from crawler.pc4u import pc4u
@@ -65,8 +65,10 @@ if __name__ == '__main__':
             repeat.main()
         case ('monthly', None):
             monthly.main()
-        case ('spapi', None):
-            asyncio.run(UpdatePriceAndRankTask().main())
+        case ('spapi', 'db'):
+            asyncio.run(UpdateChartData().main())
+        case ('spapi', 'request'):
+            asyncio.run(UpdateChartDataRequestTask().main())
         case ('pcones', None):
             pcones.main()
         case ('mws', None):

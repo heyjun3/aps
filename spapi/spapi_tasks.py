@@ -86,6 +86,7 @@ class UpdateChartData(object):
             await KeepaProducts.insert_all_on_conflict_do_update_chart_data(keepa_products)
 
     @staticmethod
+    @log_decorator
     def _mapping_keepa_products_and_parsed_data(product: KeepaProducts, parsed_data: dict):
         now = convert_unix_time_to_keepa_time(time.time())    
         value = parsed_data.get(product.asin)
@@ -97,49 +98,6 @@ class UpdateChartData(object):
                                             {'rank_data': product.rank_data,
                                                 'price_data': product.price_data})
         return product
-
-class UpdatePriceAndRankTask(object):
-
-    def __init__(self) -> None:
-        self.queue = Queue()
-        self.spapi_client = SPAPI()
-
-    async def main(self, limit: int=20) -> None:
-        logger.info('action=main status=run')
-        update_data_process = Process(target=self.update_data, args=(self.queue, ))
-        update_data_process.start()
-
-        while True:
-            self.asins = KeepaProducts.get_products_not_modified()
-            if not self.asins:
-                time.sleep(60)
-                continue
-            self.asins = [self.asins[i:i+limit] for i in range(0, len(self.asins), limit)]
-            get_competitive_pricing_task = asyncio.create_task(self.get_competitive_pricing())
-            await get_competitive_pricing_task
-
-    def update_data(self, queue: Queue) -> None:
-        logger.info('action=update_data status=run')
-
-        while True:
-            product = queue.get()
-            now = time.time()
-            KeepaProducts.update_price_and_rank_data(product['asin'], now, product['price'], product['ranking'])
-
-    async def get_competitive_pricing(self, interval_sec: int=2) -> None:
-        logger.info('action=get_competitive_pricing status=run')
-
-        async def _get_competitive_pricing(asin_list):
-            response = await self.spapi_client.get_competitive_pricing(asin_list)
-            products = SPAPIJsonParser.parse_get_competitive_pricing(response)
-            [self.queue.put(product) for product in products]
-
-        for asin_list in self.asins:
-            task = asyncio.create_task(_get_competitive_pricing(asin_list))
-            sleep = asyncio.create_task(asyncio.sleep(interval_sec))
-            await asyncio.gather(task, sleep)
-        
-        logger.info('action=get_competitive_pricing status=done')
 
 
 class RunAmzTask(object):
