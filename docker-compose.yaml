@@ -165,7 +165,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
-    container_name: spapi-chart-server
+    container_name: spapi-chart-request-server
     entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi -i request
     environment:
       - TZ=Asia/Tokyo
@@ -177,7 +177,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
-    container_name: spapi-chart-server
+    container_name: spapi-chart-db-server
     entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi -i db
     environment:
       - TZ=Asia/Tokyo
