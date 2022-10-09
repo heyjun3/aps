@@ -161,12 +161,24 @@ services:
       - redis-server
       - rabbitmq
 
-  spapi-chart-server:
+  spapi-chart-request-server:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
     container_name: spapi-chart-server
-    entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi -i request
+    environment:
+      - TZ=Asia/Tokyo
+    depends_on:
+      - postgresql-server
+      - redis-server
+
+  spapi-chart-db-server:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: spapi-chart-server
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi -i db
     environment:
       - TZ=Asia/Tokyo
     depends_on:
