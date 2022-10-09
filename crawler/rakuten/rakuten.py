@@ -43,52 +43,60 @@ class RakutenAPIClient:
 
         logger.info('action=run_rakuten_search status=done')
 
-    def pool_rakuten_request_api(self, interval_sec: int = 2):
-        logger.info('action=main status=run')
+    def pool_rakuten_request_api(self, interval_sec: int=2) -> None:
+        logger.info('action=pool_rakuten_request_api status=run')
         
         while True:
             logger.info(self.params)
             response = utils.request(url=settings.REQUEST_URL, params=self.params)
             time.sleep(interval_sec)
 
-            rakuten_product_list = RakutenAPIJSON.get_rakuten_products(response.json())
-            for rakuten_product in rakuten_product_list: 
-                rakuten_product.shop_code = self.shop_code
+            rakuten_products = RakutenAPIJSON.parse_rakuten_api_json(response.json())
+            for rakuten_product in rakuten_products: 
+                rakuten_product['shop_code'] = self.shop_code
                 self.rakuten_product_queue.put(rakuten_product)
 
-            if len(rakuten_product_list) < 30:
+            if len(rakuten_products) < 30:
                 self.rakuten_product_queue.put(None)
                 break
 
             if self.params['page'] == 100:
                 self.params['page'] = 1
-                last_product_price = rakuten_product_list.pop().price
+                last_product_price = rakuten_products[-1]['price']
                 if self.params['maxPrice'] == last_product_price:
                     last_product_price -= 100
                 self.params['maxPrice'] = last_product_price
-            else:
-                self.params['page'] += 1
+                continue
+
+            self.params['page'] += 1
 
     def pool_rakuten_product_detail_page(self, interval_sec: int = 2):
         logger.info('action=pool_rakuten_product_detail_page status=run')
 
         while True:
-            rakuten_product = self.rakuten_product_queue.get()
-            if rakuten_product is None:
+            product = self.rakuten_product_queue.get()
+            if product is None:
                 break
             
-            if not rakuten_product.jan:
-                product = RakutenProduct.get_object_filter_productcode_and_shopcode(rakuten_product.product_code, rakuten_product.shop_code)
-                if product is None:
-                    response = utils.request(url=rakuten_product.url)
+            if not product.get('jan'):
+                rakuten_product = RakutenProduct.get_object_filter_productcode_and_shopcode(product['product_code'], product['shop_code'])
+                if rakuten_product is None:
+                    response = utils.request(url=product.get('url'))
                     time.sleep(interval_sec)
                     parsed_value = RakutenHTMLPage.scrape_product_detail_page(response.text)
-                    rakuten_product.jan = parsed_value.get('jan')
-                    rakuten_product.save()
+                    product['jan'] = parsed_value.get('jan')
+                    RakutenProduct(
+                        name=product['name'],
+                        jan=product['jan'],
+                        price=product['price'],
+                        shop_code=product['shop_code'],
+                        product_code=product['product_code'],
+                        url=product['url'],
+                    ).save()
                 else:
-                    rakuten_product.jan = product.jan
+                    product['jan'] = rakuten_product.jan
 
-            self.publish_queue(rakuten_product.jan, rakuten_product.price, rakuten_product.url)
+            self.publish_queue(product['jan'], product['price'], product['url'])
             
         logger.info('action=pool_rakuten_product_detail_page status=done')
 
@@ -119,7 +127,7 @@ class RakutenHTMLPage(object):
             jan = re.fullmatch('[0-9]{13}', soup.select_one('#ratRanCode').get('value')).group()
         except AttributeError as e:
             logger.error(f'{e}')
-            return None
+            return {}
 
         try:
             price = int(''.join(re.findall('[0-9]', soup.select_one('.price2').text)))
@@ -136,10 +144,10 @@ class RakutenHTMLPage(object):
 class RakutenAPIJSON(object):
 
     @staticmethod
-    def get_rakuten_products(response: dict) -> list[RakutenProduct]:
-        logger.info('action=get_rakuten_products status=run')
+    def parse_rakuten_api_json(response: dict) -> list[dict]:
+        logger.info('action=parse_rakuten_api_json status=run')
 
-        rakuten_product_list = []
+        rakuten_products = []
 
         for item in response['Items']:
             price = item['Item']['itemPrice']
@@ -151,11 +159,17 @@ class RakutenAPIJSON(object):
             product_code = item_code.pop()
             shop_code = item_code.pop()
             url = item['Item']['itemUrl']
-            rakuten_product = RakutenProduct(name=item_name, jan=jan, price=price, product_code=product_code, shop_code=shop_code, url=url)
-            rakuten_product_list.append(rakuten_product)
+            rakuten_products.append({
+                'name': item_name,
+                'jan': jan,
+                'price': price,
+                'product_code': product_code,
+                'shop_code': shop_code,
+                'url': url,
+            })
 
-        logger.info('action=get_rakuten_products status=done')
-        return rakuten_product_list
+        logger.info('action=parse_rakuten_api_json status=done')
+        return rakuten_products
 
     @staticmethod
     def get_jan_code(item: dict) -> str|None:
@@ -171,5 +185,4 @@ class RakutenAPIJSON(object):
         if jan:
             logger.info('action=get_jan_code status=done')
             return jan.group()
-        else:
-            return None
+        return
