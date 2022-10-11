@@ -68,7 +68,9 @@ class MWS(Base, ModelsBase):
         return True
 
     @classmethod
-    async def insert_all_on_conflict_do_nothing(cls, records: List[MWS]):
+    async def insert_all_on_conflict_do_nothing(cls, records: List[MWS]) -> True|None:
+        if not records:
+            return
         stmt = insert(cls).values([record.insert_values for record in records])\
                .on_conflict_do_nothing(index_elements=['asin', 'filename'])
         async with cls.session_scope() as session:
@@ -93,7 +95,9 @@ class MWS(Base, ModelsBase):
             return True
 
     @classmethod
-    async def insert_all_on_conflict_do_update_fee(cls, records: List[MWS]):
+    async def insert_all_on_conflict_do_update_fee(cls, records: List[MWS]) -> True|None:
+        if not records:
+            return 
         stmt = insert(cls).values([{
             'asin': record.asin,
             'filename': record.filename,
@@ -205,18 +209,14 @@ class MWS(Base, ModelsBase):
             return True
 
     @classmethod
-    async def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1, unit_count: int=10, drops: int=3) -> True:
+    async def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1, unit_count: int=10) -> True:
         async with cls.session_scope() as session:
-            stmt = select(cls.asin, cls.filename).join(KeepaProducts, KeepaProducts.asin == cls.asin, isouter=True).where(or_(
+            stmt = delete(cls).where(or_(
                 cls.profit < profit,
                 cls.profit_rate < profit_rate,
                 cls.unit > unit_count,
-                KeepaProducts.sales_drops_90 <= drops,
             ))
-            result = await session.execute(stmt)
-            for asin, filename in result.all():
-                stmt = delete(cls).where(cls.asin == asin, cls.filename == filename)
-                await session.execute(stmt)
+            await session.execute(stmt)
             return True
 
     @property

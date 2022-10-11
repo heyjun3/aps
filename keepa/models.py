@@ -1,6 +1,7 @@
+from __future__ import annotations
 import datetime
 import itertools
-import concurrent.futures
+from typing import List
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -13,12 +14,14 @@ from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine.default import DefaultExecutionContext
 from sqlalchemy.future import select
+from sqlalchemy.dialects.postgresql import insert
 from contextlib import contextmanager
 import pandas as pd
 import numpy as np
 
 import settings
 import log_settings
+from models_base import ModelsBase
 
 
 logger = log_settings.get_logger(__name__)
@@ -27,7 +30,6 @@ async_engine = create_async_engine(settings.DB_ASYNC_URL, pool_timeout=3000)
 Base = declarative_base()
 NetseaBase = declarative_base()
 Session = sessionmaker(bind=postgresql_engine, autoflush=True, expire_on_commit=False)
-async_session = sessionmaker(bind=async_engine, expire_on_commit=False, class_=AsyncSession)
 
 
 def convert_render_price_rank_data(context) -> dict|None:
@@ -97,7 +99,7 @@ def convert_recharts_data(context: dict|DefaultExecutionContext) -> dict|None:
     return {'data': data}
 
 
-class KeepaProducts(Base):
+class KeepaProducts(Base, ModelsBase):
     __tablename__ = 'keepa_products'
     asin = Column(String, primary_key=True)
     sales_drops_90 = Column(Integer)
@@ -109,7 +111,7 @@ class KeepaProducts(Base):
 
     @classmethod
     def object_get_db_asin(cls, asin, delay=30):
-        with session_scope() as session:
+        with _session_scope() as session:
             delay_date = datetime.date.today() - datetime.timedelta(days=delay)
             product = session.query(cls).filter(cls.asin == asin, cls.modified >= delay_date).first()
             if product is None:
@@ -117,8 +119,23 @@ class KeepaProducts(Base):
             return product
 
     @classmethod
+    async def get_keepa_products_by_asins(cls, asins: List[str]) -> List[KeepaProducts]|None:
+        if not asins:
+            return
+        stmt = select(cls).where(cls.asin.in_(asins))
+        async with cls.session_scope() as session:
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    async def save(self):
+        async with self.session_scope() as session:
+            session.add(self)
+            await session.commit()
+        return True
+
+    @classmethod
     def update_or_insert(cls, asin, drops, price_data, rank_data):
-        with session_scope() as session:
+        with _session_scope() as session:
             product = session.query(cls).filter(cls.asin == asin).first()
             if product is None:
                 keepa_product = cls(asin=asin, sales_drops_90=drops, price_data=price_data, rank_data=rank_data)
@@ -137,7 +154,7 @@ class KeepaProducts(Base):
     def update_price_and_rank_data(cls, asin:str, unix_time: float, price: int, rank: int) -> bool:
         logger.info('action=update_price_and_rank_data status=run')
         time = convert_unix_time_to_keepa_time(unix_time)
-        with session_scope() as session:
+        with _session_scope() as session:
             product = session.query(cls).filter(cls.asin == asin).first()
             if product is None:
                 return False
@@ -151,9 +168,34 @@ class KeepaProducts(Base):
         return True
 
     @classmethod
+    async def insert_all_on_conflict_do_update_chart_data(cls, products: List[KeepaProducts]) -> True|None:
+        if not products:
+            return
+
+        stmt = insert(cls).values([{
+            'asin': value.asin,
+            'price_data': value.price_data,
+            'modified': datetime.date.today(),
+            'rank_data': value.rank_data,
+            'render_data': value.render_data,
+        } for value in products])
+        update_do_stmt = stmt.on_conflict_do_update(
+            index_elements=['asin'],
+            set_=dict(
+                price_data=stmt.excluded.price_data,
+                modified=stmt.excluded.modified,
+                rank_data=stmt.excluded.rank_data,
+                render_data=stmt.excluded.render_data,
+            )
+        )
+        async with cls.session_scope() as session:
+            await session.execute(update_do_stmt)
+            return True
+
+    @classmethod
     def _update_price_and_rank_data(cls, asin:str, unix_time: float, price: int, rank: int) -> bool:
         time = convert_unix_time_to_keepa_time(unix_time)
-        with session_scope() as session:
+        with _session_scope() as session:
             product = session.query(cls).filter(cls.asin == asin).first()
             product.price_data[time] = price
             product.rank_data[time] = rank
@@ -162,7 +204,7 @@ class KeepaProducts(Base):
 
     @classmethod
     def get_keepa_product(cls, asin: str):
-        with session_scope() as session:
+        with _session_scope() as session:
             product = session.query(cls).filter(cls.asin == asin).first()
             if product:
                 return product
@@ -172,20 +214,20 @@ class KeepaProducts(Base):
     @classmethod
     def get_products_not_modified(cls, count: int=864000):
         today = datetime.date.today()
-        with session_scope() as session:
+        with _session_scope() as session:
             products = session.query(cls.asin).filter(cls.modified != today, cls.price_data != None, cls.rank_data != None).limit(count).all()
             return [product[0] for product in products]
     
     @classmethod
     def update_render_data(cls, asin: str):
-        with session_scope() as session:
+        with _session_scope() as session:
             product = session.query(cls).filter(cls.asin == asin).first()
             context = {'price_data': product.price_data, 'rank_data': product.rank_data}
             product.render_data = convert_recharts_data(context)
 
     @classmethod
     async def async_update_render_data(cls, asin: str):
-        async with async_session() as session:
+        async with cls.session_scope() as session:
             stmt = select(cls).where(cls.asin == asin)
             result = await session.execute(stmt)
             product = result.scalars().first()
@@ -195,7 +237,7 @@ class KeepaProducts(Base):
 
     @classmethod
     def set_render_data_all(cls):
-        with session_scope() as session:
+        with _session_scope() as session:
             asin_list = session.query(cls.asin).all()
             asin_list = list(itertools.chain.from_iterable(asin_list))
 
@@ -216,7 +258,7 @@ class KeepaProducts(Base):
 
 
 @contextmanager
-def session_scope():
+def _session_scope():
     session = Session()
     session.expire_on_commit = False
     try:

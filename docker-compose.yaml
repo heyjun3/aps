@@ -161,12 +161,24 @@ services:
       - redis-server
       - rabbitmq
 
-  spapi-chart-server:
+  spapi-chart-request-server:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
-    container_name: spapi-chart-server
-    entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi
+    container_name: spapi-chart-request-server
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi -i request
+    environment:
+      - TZ=Asia/Tokyo
+    depends_on:
+      - postgresql-server
+      - redis-server
+
+  spapi-chart-db-server:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: spapi-chart-db-server
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi -i db
     environment:
       - TZ=Asia/Tokyo
     depends_on:
@@ -179,6 +191,32 @@ services:
       dockerfile: ./docker/python/Dockerfile
     container_name: scheduler
     entrypoint: /usr/local/bin/python /usr/src/app/scheduler.py
+    environment:
+      - TZ=Asia/Tokyo
+    depends_on:
+      - postgresql-server
+      - redis-server
+      - rabbitmq
+
+  netsea-scheduler:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: netsea-scheduler
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py netsea -i scheduler
+    environment:
+      - TZ=Asia/Tokyo
+    depends_on:
+      - postgresql-server
+      - redis-server
+      - rabbitmq
+
+  rakuten-scheduler:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: rakuten-scheduler
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py rakuten -i scheduler
     environment:
       - TZ=Asia/Tokyo
     depends_on:

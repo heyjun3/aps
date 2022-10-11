@@ -58,7 +58,9 @@ class AsinsInfo(Base, ModelsBase):
         return True
 
     @classmethod
-    async def insert_all_on_conflict_do_update(cls, values: List[dict]) -> True:
+    async def insert_all_on_conflict_do_update(cls, values: List[dict]) -> True|None:
+        if not values:
+            return
         stmt = insert(cls).values(values)
         do_update_stmt = stmt.on_conflict_do_update(
             index_elements=['asin'],
@@ -193,7 +195,9 @@ class SpapiFees(Base, ModelsBase):
         return True
 
     @classmethod
-    async def insert_all_on_conflict_do_update_fee(cls, values: List[SpapiFees]) -> True:
+    async def insert_all_on_conflict_do_update_fee(cls, values: List[SpapiFees]) -> True|None:
+        if not values:
+            return
         stmt = insert(cls).values([{
             'asin': value.asin,
             'fee_rate': value.fee_rate,

@@ -4,13 +4,15 @@ import asyncio
 
 from keepa import keepa
 from mws.models import MWS
-from spapi.spapi_tasks import UpdatePriceAndRankTask
+from spapi.spapi_tasks import UpdateChartDataRequestTask, UpdateChartData
 from spapi.spapi_tasks import RunAmzTask
 from crawler.buffalo import buffalo
 from crawler.pc4u import pc4u
 from crawler.rakuten import rakuten_tasks
+from crawler.rakuten import rakuten_scheduler
 from crawler.super import super_tasks
 from crawler.netsea import netsea_tasks
+from crawler.netsea import netsea_scheduler
 from crawler.pcones import pcones
 from crawler.spread_sheet.spread_sheet import SpreadSheetCrawler
 from ims import repeat
@@ -45,6 +47,8 @@ if __name__ == '__main__':
             pc4u.main()
         case ('rakuten', 'all'):
             rakuten_tasks.run_rakuten_search_all()
+        case ('rakuten', 'scheduler'):
+            rakuten_scheduler.main()
         case ('rakuten', _):
             rakuten_tasks.run_rakuten_search_at_shop_code(shop_id)
         case ('super', 'all'):
@@ -59,14 +63,18 @@ if __name__ == '__main__':
             netsea_tasks.run_new_product_search()
         case ('netsea', 'discount'):
             netsea_tasks.run_get_discount_products()
+        case ('netsea', 'scheduler'):
+            netsea_scheduler.main()
         case ('netsea', _):
             netsea_tasks.run_netsea_at_shop_id(shop_id)
         case ('repeat', None):
             repeat.main()
         case ('monthly', None):
             monthly.main()
-        case ('spapi', None):
-            asyncio.run(UpdatePriceAndRankTask().main())
+        case ('spapi', 'db'):
+            asyncio.run(UpdateChartData().main())
+        case ('spapi', 'request'):
+            asyncio.run(UpdateChartDataRequestTask().main())
         case ('pcones', None):
             pcones.main()
         case ('mws', None):

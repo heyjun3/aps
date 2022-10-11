@@ -1,10 +1,11 @@
 from copy import deepcopy
+import multiprocessing
 import time
 import json
 import itertools
 import asyncio
 import collections
-from typing import List
+from typing import ChainMap, List
 from typing import Callable
 from multiprocessing import Process, Queue
 from functools import reduce
@@ -15,6 +16,8 @@ from spapi.spapi import SPAPIJsonParser
 from spapi.models import AsinsInfo, SpapiPrices
 from spapi.models import SpapiFees
 from keepa.models import KeepaProducts
+from keepa.models import convert_unix_time_to_keepa_time
+from keepa.models import convert_recharts_data
 from mws.models import MWS
 from mq import MQ
 from spapi.utils import Cache
@@ -33,48 +36,67 @@ def log_decorator(func: Callable) -> Callable:
     return _inner
 
 
-class UpdatePriceAndRankTask(object):
+class UpdateChartDataRequestTask(object):
 
-    def __init__(self) -> None:
-        self.queue = Queue()
+    def __init__(self) ->  None:
+        self.mq = MQ('chart')
         self.spapi_client = SPAPI()
 
-    async def main(self, limit: int=20) -> None:
-        logger.info('action=main status=run')
-        update_data_process = Process(target=self.update_data, args=(self.queue, ))
-        update_data_process.start()
+    async def main(self):
+        await self._get_chart_data_request()
+
+    async def _get_chart_data_request(self, sleep_sec: int=60,
+                                           limit_count: int=20,
+                                           interval_sec: float=1.3):
 
         while True:
-            self.asins = KeepaProducts.get_products_not_modified()
-            if not self.asins:
-                time.sleep(60)
+            asins = KeepaProducts.get_products_not_modified()
+            if not asins:
+                await asyncio.sleep(sleep_sec)
+            
+            for i in range(0, len(asins), limit_count):
+                response = await self.spapi_client.get_competitive_pricing(asins[i:i+limit_count])
+                self.mq.publish(json.dumps(response))
+                await asyncio.sleep(interval_sec)
+
+
+class UpdateChartData(object):
+
+    def __init__(self) -> None:
+        self.mq = MQ('chart')
+
+    async def main(self):
+        await self._update_chart_data_for_keepa_products()
+
+    async def _update_chart_data_for_keepa_products(self, sleep_sec: int=60):
+
+        for messages in self.mq.receive(100):
+            if messages is None:
+                await asyncio.sleep(sleep_sec)
                 continue
-            self.asins = [self.asins[i:i+limit] for i in range(0, len(self.asins), limit)]
-            get_competitive_pricing_task = asyncio.create_task(self.get_competitive_pricing())
-            await get_competitive_pricing_task
+            parsed_data = list(reduce(lambda data, func: map(func, data),
+                [json.loads,
+                 SPAPIJsonParser.parse_get_competitive_pricing], messages))
+            parsed_data = ChainMap(*[{data['asin']: data for data in itertools.chain.from_iterable(parsed_data)}])
+            keepa_products = await KeepaProducts.get_keepa_products_by_asins(parsed_data.keys())
+            with multiprocessing.Pool() as pool:
+                keepa_products = pool.map(
+                    partial(UpdateChartData._mapping_keepa_products_and_parsed_data,
+                    parsed_data=parsed_data), keepa_products)
+            await KeepaProducts.insert_all_on_conflict_do_update_chart_data(keepa_products)
 
-    def update_data(self, queue: Queue) -> None:
-        logger.info('action=update_data status=run')
-
-        while True:
-            product = queue.get()
-            now = time.time()
-            KeepaProducts.update_price_and_rank_data(product['asin'], now, product['price'], product['ranking'])
-
-    async def get_competitive_pricing(self, interval_sec: int=2) -> None:
-        logger.info('action=get_competitive_pricing status=run')
-
-        async def _get_competitive_pricing(asin_list):
-            response = await self.spapi_client.get_competitive_pricing(asin_list)
-            products = SPAPIJsonParser.parse_get_competitive_pricing(response)
-            [self.queue.put(product) for product in products]
-
-        for asin_list in self.asins:
-            task = asyncio.create_task(_get_competitive_pricing(asin_list))
-            sleep = asyncio.create_task(asyncio.sleep(interval_sec))
-            await asyncio.gather(task, sleep)
-        
-        logger.info('action=get_competitive_pricing status=done')
+    @staticmethod
+    def _mapping_keepa_products_and_parsed_data(product: KeepaProducts, parsed_data: dict):
+        now = convert_unix_time_to_keepa_time(time.time())    
+        value = parsed_data.get(product.asin)
+        if not value:
+            return
+        product.price_data[now] = value['price']
+        product.rank_data[now] = value['ranking']
+        product.render_data[now] = convert_recharts_data(
+                                            {'rank_data': product.rank_data,
+                                                'price_data': product.price_data})
+        return product
 
 
 class RunAmzTask(object):
@@ -221,8 +243,6 @@ class RunAmzTask(object):
 
         async def _get_my_fees_estimate(asin_list: List[str]) -> List[SpapiFees]:
             result = []
-            if not asin_list:
-                return
 
             for i in range(0, len(asin_list), 20):
                 response = await self.client.get_my_fees_estimates(asin_list[i:i+20])
@@ -235,7 +255,7 @@ class RunAmzTask(object):
         def _mws_mapping_spapi_fees(mws_list: List[MWS], spapi_fees: List[SpapiFees]) -> List[MWS]:
             mws_objects = deepcopy(mws_list)
             chain_map_fees = collections.ChainMap(
-                                    *[{fee['asin']: fee} for fee in spapi_fees])
+                                    *[{fee.asin: fee} for fee in spapi_fees])
 
             for mws in mws_objects:
                 fee = chain_map_fees.get(mws.asin)
@@ -246,7 +266,7 @@ class RunAmzTask(object):
             return mws_objects
 
         while True:
-            mws_objects = await MWS.get_fee_is_None_asins()
+            mws_objects = await MWS.get_fee_is_None_asins(1000)
             if not mws_objects:
                 await asyncio.sleep(30)
                 continue
