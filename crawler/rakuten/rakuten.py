@@ -140,6 +140,43 @@ class RakutenHTMLPage(object):
         logger.info('action=scrape_product_detail_page status=done')
         return {'jan': jan, 'price': price, 'is_stocked': bool(is_stocked)}
 
+    @staticmethod
+    def parse_product_list_page(response: str) -> dict:
+        logger.info({'action': 'parse_product_list_page', 'status': 'run'})
+
+        result = []
+
+        soup = BeautifulSoup(response, 'lxml')
+        products = soup.select('.searchresultitem')
+        for product in products:
+            name = product.select_one('.content.title a')
+            url = product.select_one('.image a')
+            price = product.select_one('.important')
+            if not all((name, url, price)):
+                logger.error({
+                    "message": 'parse value not Found Error',
+                    'action': 'parse_product_list_page',
+                    'parameters': {'name': name, 'url': url, 'price': price}})
+                continue
+
+            url = url.attrs.get('href')
+            price = int(''.join(re.findall('[0-9]', price.text)))
+            try:
+                product_code = url.split('/')[-2]
+            except IndexError as ex:
+                logger.error({'messages': ex, 'action': 'parse_product_list_page'})
+                continue
+
+            result.append({
+                'name': name.text,
+                'url': url,
+                'price': price,
+                'product_code': product_code,
+            })
+        
+        logger.info({'action': 'parse_product_list_page', 'status': 'done'})
+        return result
+
 
 class RakutenAPIJSON(object):
 
