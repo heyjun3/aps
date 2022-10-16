@@ -135,10 +135,17 @@ class RakutenHTMLPage(object):
             logger.info(f'price is None message {ex}')
             price = None
 
+        point = soup.select_one('.bdg-point-display-summary span')
+        if point:
+            point = int(''.join(re.findall('[0-9]', point.text)))
+
         is_stocked = soup.select_one('.cart-button-container')
         
         logger.info('action=scrape_product_detail_page status=done')
-        return {'jan': jan, 'price': price, 'is_stocked': bool(is_stocked)}
+        return {'jan': jan,
+                'price': price,
+                'is_stocked': bool(is_stocked),
+                'point': point}
 
     @staticmethod
     def parse_product_list_page(response: str) -> dict:
