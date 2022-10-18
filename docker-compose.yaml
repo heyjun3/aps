@@ -196,13 +196,13 @@ services:
       - postgresql-server
       - redis-server
 
-  scheduler:
+  crawler:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
-    container_name: scheduler
+    container_name: crawler
     restart: always
-    entrypoint: /usr/local/bin/python /usr/src/app/scheduler.py
+    entrypoint: tail -f /dev/null
     environment:
       - TZ=Asia/Tokyo
     depends_on:
@@ -210,33 +210,33 @@ services:
       - redis-server
       - rabbitmq
 
-  netsea-scheduler:
-    build:
-      context: .
-      dockerfile: ./docker/python/Dockerfile
-    container_name: netsea-scheduler
-    restart: always
-    entrypoint: /usr/local/bin/python /usr/src/app/main.py netsea -i scheduler
-    environment:
-      - TZ=Asia/Tokyo
-    depends_on:
-      - postgresql-server
-      - redis-server
-      - rabbitmq
+  # netsea-scheduler:
+  #   build:
+  #     context: .
+  #     dockerfile: ./docker/python/Dockerfile
+  #   container_name: netsea-scheduler
+  #   restart: always
+  #   entrypoint: /usr/local/bin/python /usr/src/app/main.py netsea -i scheduler
+  #   environment:
+  #     - TZ=Asia/Tokyo
+  #   depends_on:
+  #     - postgresql-server
+  #     - redis-server
+  #     - rabbitmq
 
-  rakuten-scheduler:
-    build:
-      context: .
-      dockerfile: ./docker/python/Dockerfile
-    container_name: rakuten-scheduler
-    restart: always
-    entrypoint: /usr/local/bin/python /usr/src/app/main.py rakuten -i scheduler
-    environment:
-      - TZ=Asia/Tokyo
-    depends_on:
-      - postgresql-server
-      - redis-server
-      - rabbitmq
+  # rakuten-scheduler:
+  #   build:
+  #     context: .
+  #     dockerfile: ./docker/python/Dockerfile
+  #   container_name: rakuten-scheduler
+  #   restart: always
+  #   entrypoint: /usr/local/bin/python /usr/src/app/main.py rakuten -i scheduler
+  #   environment:
+  #     - TZ=Asia/Tokyo
+  #   depends_on:
+  #     - postgresql-server
+  #     - redis-server
+  #     - rabbitmq
 
   keepa-server:
     build:
