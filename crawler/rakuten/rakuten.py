@@ -12,6 +12,7 @@ from copy import deepcopy
 from collections import ChainMap
 from functools import reduce
 
+import requests
 from bs4 import BeautifulSoup
 
 from crawler.rakuten.models import RakutenProduct
@@ -140,18 +141,12 @@ class RakutenCrawler(object):
         }
 
     def main(self):
-
-        max_count = self.get_max_page_count()
-        querys = self.create_querys(max_count)
+        
+        response = utils.request(self.base_url, params=self.query)
+        max_count = self._get_max_page_count(response)
+        querys = self._create_querys(max_count)
         for query in querys:
             self.search_sequence(query)
-
-    def _sequence(self, value: dict, funcs: List[Callable]) -> dict|None:
-        if value is None:
-            return
-        if not funcs:
-            return value
-        return self._sequence(funcs[0](value), funcs[1:])
 
     def search_sequence(self, query: dict, interval_sec: int=1):
         logger.info({'action': 'search_sequence', 'status': 'run'})
@@ -159,43 +154,41 @@ class RakutenCrawler(object):
         response = utils.request(url=self.base_url, params=query)
         time.sleep(interval_sec)
         parsed_value = RakutenHTMLPage.parse_product_list_page(response.text)
-        publish_product, search_products = self.mapping_rakuten_products(parsed_value)
+        publish_product, search_products = self._mapping_rakuten_products(parsed_value)
         searched_products = reduce(lambda d, f: map(f, d), [
-            self.search_detail_page,
-            self.validate_searched_products], search_products)
+            self._search_detail_page,
+            self._validate_searched_products], search_products)
         searched_products = list(filter(None, search_products))
         RakutenProduct.insert_all_on_conflict_do_nothing(searched_products)
 
         list(reduce(lambda d, f: map(f, d), [
-            self.calc_real_price,
-            self.generate_enqueue_str,
+            self._calc_real_price,
+            self._generate_enqueue_str,
             self.api_client.mq.publish,
         ], publish_product + searched_products))
 
         logger.info({'action': 'search_sequence', 'status': 'done'})
 
-    def get_max_page_count(self) -> int:
+    def _get_max_page_count(self, response: requests.Response) -> int:
         logger.info({'action': 'get_max_page_count', 'status': 'run'})
 
-        response = utils.request(self.base_url, params=self.query)
         max_products_count = RakutenHTMLPage.parse_max_products_count(response.text)
         max_page_count = math.ceil(max_products_count / self.PER_PAGE_COUNT)
 
         logger.info({'action': 'get_max_page_count', 'status': 'done'})
         return max_page_count
 
-    def create_querys(self, max_count: int) -> List[dict]:
+    def _create_querys(self, max_count: int) -> List[dict]:
         logger.info({'action': 'create_querys', 'status': 'run'})
-        query = deepcopy(self.query)
-        querys = []
-        for i in range(1, max_count+1):
-            query['p'] = i
-            querys.append(query)
 
+        querys = [deepcopy(self.query) for _ in range(max_count)]
+        for i, query in enumerate(querys):
+            query['p'] += i
+            
         logger.info({'action': 'create_querys', 'status': 'done'})
         return querys
 
-    def mapping_rakuten_products(self, values: List[dict]) -> tuple[List[str], List[str]]:
+    def _mapping_rakuten_products(self, values: List[dict]) -> tuple[List[str], List[str]]:
         logger.info({'action': 'mapping_rakuten_products', 'status': 'run'})
 
         product_codes = [value.get('product_code') for value in values]
@@ -215,7 +208,7 @@ class RakutenCrawler(object):
 
         return product_codes, search_products
 
-    def search_detail_page(self, value: dict, interval_sec: int=1) -> dict:
+    def _search_detail_page(self, value: dict, interval_sec: int=1) -> dict:
         logger.info({'action': 'search_detail_page', 'status': 'run'})
 
         result = deepcopy(value)
@@ -228,7 +221,7 @@ class RakutenCrawler(object):
         logger.info({'action': 'search_detail_page', 'status': 'run'})
         return result
 
-    def validate_searched_products(self, value: dict) -> dict|None:
+    def _validate_searched_products(self, value: dict) -> dict|None:
         required = ('name', 'jan', 'price', 'shop_code', 'product_code', 'url')
 
         if not all([key in value for key in required]):
@@ -237,7 +230,7 @@ class RakutenCrawler(object):
 
         return value
 
-    def calc_real_price(self, value: dict, discount_rate: float=0.9) -> dict|None:
+    def _calc_real_price(self, value: dict, discount_rate: float=0.9) -> dict|None:
         real_value = deepcopy(value)
         price = real_value.get('price')
         point = real_value.get('point')
@@ -249,7 +242,7 @@ class RakutenCrawler(object):
 
         return real_value
 
-    def generate_enqueue_str(self, value: dict) -> str|None:
+    def _generate_enqueue_str(self, value: dict) -> str|None:
 
         jan = value.get('jan')
         price = value.get('price')
