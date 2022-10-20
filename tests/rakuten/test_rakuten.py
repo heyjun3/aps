@@ -1,8 +1,12 @@
-import unittest
 import os
+import unittest
+from unittest.mock import MagicMock
+
+import pytest
 
 from crawler.rakuten.rakuten import RakutenHTMLPage
 from crawler.rakuten.rakuten import RakutenCrawler
+from crawler.rakuten.rakuten import MaxProductsCountNotFoundException
 
 
 dirname = os.path.join(os.path.dirname(__file__), 'test_html')
@@ -25,6 +29,16 @@ class TestRakutenCrawler(object):
         assert querys[-1]['sid'] == 'test'
 
         assert len(querys) == count
+
+    def test_get_max_page_count(self):
+        client = RakutenCrawler('test', 'test')
+        path = os.path.join(dirname, 'product_list_page.html')
+        response = MagicMock()
+        with open(path, 'r') as f:
+            response.text = f.read()
+
+        count = client._get_max_page_count(response)
+        assert count == 16
 
 
 class ScrapeDetailProductPage(unittest.TestCase):
@@ -58,3 +72,15 @@ class ScrapeDetailProductPage(unittest.TestCase):
         assert parsed_value[-1]['price'] == 16000
         assert parsed_value[-1]['product_code'] == '10052sp-4d151191004'
         
+    def test_parse_max_products_count(self):
+        path = os.path.join(dirname, 'product_list_page.html')
+        with open(path, 'r') as f:
+            response = f.read()
+        count = RakutenHTMLPage.parse_max_products_count(response)
+        assert count == 691
+
+    def test_parse_max_products_count_fail(self):
+        with pytest.raises(MaxProductsCountNotFoundException) as e:
+            count = RakutenHTMLPage.parse_max_products_count('')
+
+        assert str(e.value) == ''

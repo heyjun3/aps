@@ -181,9 +181,7 @@ class RakutenCrawler(object):
     def _create_querys(self, max_count: int) -> List[dict]:
         logger.info({'action': 'create_querys', 'status': 'run'})
 
-        querys = [deepcopy(self.query) for _ in range(max_count)]
-        for i, query in enumerate(querys):
-            query['p'] += i
+        querys = [self.query | {'p': i+1} for i in range(max_count)]
             
         logger.info({'action': 'create_querys', 'status': 'done'})
         return querys
@@ -340,6 +338,7 @@ class RakutenHTMLPage(object):
         soup = BeautifulSoup(response, 'lxml')
         products_count = soup.select_one('._medium')
         if not products_count:
+            logger.error({'action': 'parse_max_products_count', 'message': 'html page has not products count'})
             raise MaxProductsCountNotFoundException
         
         counts = re.findall('[0-9]+', products_count.text.replace(',', ''))
