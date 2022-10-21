@@ -25,6 +25,15 @@ from crawler import utils
 logger = log_settings.get_logger(__name__)
 
 
+def logging(func):
+    def _inner(*args, **kwargs):
+        logger.info({'action': func.__name__, 'status': 'run'})
+        result = func(*args, **kwargs)
+        logger.info({'action': func.__name__, 'status': 'done'})
+        return result
+    return _inner
+
+
 class RakutenAPIClient:
     """Rakuten api Class"""
     def __init__(self, shop_code: str, queue_name: str = 'mws'):
@@ -143,8 +152,7 @@ class RakutenCrawler(object):
     def main(self):
         
         response = utils.request(self.base_url, params=self.query)
-        max_count = self._get_max_page_count(response)
-        querys = self._create_querys(max_count)
+        querys = self._generate_querys(response)
         for query in querys:
             self.search_sequence(query)
 
@@ -169,25 +177,17 @@ class RakutenCrawler(object):
 
         logger.info({'action': 'search_sequence', 'status': 'done'})
 
-    def _get_max_page_count(self, response: requests.Response) -> int:
-        logger.info({'action': 'get_max_page_count', 'status': 'run'})
+    @logging
+    def _generate_querys(self, response: requests.Response) -> dict:
 
         max_products_count = RakutenHTMLPage.parse_max_products_count(response.text)
         max_page_count = math.ceil(max_products_count / self.PER_PAGE_COUNT)
+        querys = [self.query | {'p': i+1} for i in range(max_page_count)]
 
-        logger.info({'action': 'get_max_page_count', 'status': 'done'})
-        return max_page_count
-
-    def _create_querys(self, max_count: int) -> List[dict]:
-        logger.info({'action': 'create_querys', 'status': 'run'})
-
-        querys = [self.query | {'p': i+1} for i in range(max_count)]
-            
-        logger.info({'action': 'create_querys', 'status': 'done'})
         return querys
 
+    @logging
     def _mapping_rakuten_products(self, values: List[dict]) -> tuple[List[str], List[str]]:
-        logger.info({'action': 'mapping_rakuten_products', 'status': 'run'})
 
         product_codes = [value.get('product_code') for value in values]
         rakuten_products = RakutenProduct.get_products_by_shop_code_and_product_codes(product_codes, self.shop_code)

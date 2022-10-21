@@ -14,22 +14,6 @@ dirname = os.path.join(os.path.dirname(__file__), 'test_html')
 
 class TestRakutenCrawler(object):
 
-    def test_create_querys_success(self):
-        client = RakutenCrawler('test', 'test')
-        count = 9
-        querys = client._create_querys(9)
-        assert querys[0]['p'] == 1
-        assert querys[0]["s"] == 3
-        assert querys[0]['used'] == 0
-        assert querys[0]['sid'] == 'test'
-
-        assert querys[-1]['p'] == 9
-        assert querys[-1]["s"] == 3
-        assert querys[-1]['used'] == 0
-        assert querys[-1]['sid'] == 'test'
-
-        assert len(querys) == count
-
     def test_get_max_page_count(self):
         client = RakutenCrawler('test', 'test')
         path = os.path.join(dirname, 'product_list_page.html')
@@ -37,8 +21,18 @@ class TestRakutenCrawler(object):
         with open(path, 'r') as f:
             response.text = f.read()
 
-        count = client._get_max_page_count(response)
-        assert count == 16
+        querys = client._generate_querys(response)
+        assert querys[0]['p'] == 1
+        assert querys[0]["s"] == 3
+        assert querys[0]['used'] == 0
+        assert querys[0]['sid'] == 'test'
+
+        assert querys[-1]['p'] == 16
+        assert querys[-1]["s"] == 3
+        assert querys[-1]['used'] == 0
+        assert querys[-1]['sid'] == 'test'
+
+        assert len(querys) == 16
 
 
 class ScrapeDetailProductPage(unittest.TestCase):
