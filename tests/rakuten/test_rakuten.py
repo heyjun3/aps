@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import MagicMock
 
 import pytest
+from crawler.rakuten.models import RakutenProduct
 
 from crawler.rakuten.rakuten import RakutenHTMLPage
 from crawler.rakuten.rakuten import RakutenCrawler
@@ -14,7 +15,7 @@ dirname = os.path.join(os.path.dirname(__file__), 'test_html')
 
 class TestRakutenCrawler(object):
 
-    def test_get_max_page_count(self):
+    def test_generate_querys(self):
         client = RakutenCrawler('test', 'test')
         path = os.path.join(dirname, 'product_list_page.html')
         response = MagicMock()
@@ -33,6 +34,21 @@ class TestRakutenCrawler(object):
         assert querys[-1]['sid'] == 'test'
 
         assert len(querys) == 16
+
+    def test_mapping_rakuten_products(self):
+        values = [{'product_code': 'aaa', 'price': 111},
+                  {'product_code': 'bbb', 'price': 222},]
+        rakuten_products = [RakutenProduct(product_code='aaa', jan='9999'),
+                            RakutenProduct(product_code='ccc', jan='0000')]
+        client = RakutenCrawler('test', 'test')
+        products = client._mapping_rakuten_products(values, rakuten_products)
+        assert len(products) == len(values)
+        assert products[0]['product_code'] == 'aaa'
+        assert products[0]['price'] == 111
+        assert products[0]['jan'] == '9999'
+        assert products[-1]['product_code'] == 'bbb'
+        assert products[-1]['price'] == 222
+        assert 'jan' not in products[-1]
 
 
 class ScrapeDetailProductPage(unittest.TestCase):

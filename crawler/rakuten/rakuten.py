@@ -14,6 +14,7 @@ from functools import reduce
 
 import requests
 from bs4 import BeautifulSoup
+from first import first
 
 from crawler.rakuten.models import RakutenProduct
 import settings
@@ -162,18 +163,21 @@ class RakutenCrawler(object):
         response = utils.request(url=self.base_url, params=query)
         time.sleep(interval_sec)
         parsed_value = RakutenHTMLPage.parse_product_list_page(response.text)
-        publish_product, search_products = self._mapping_rakuten_products(parsed_value)
+        rakuten_products = RakutenProduct.get_products_by_shop_code_and_product_codes(
+            [value.get('product_code') for value in parsed_value], self.shop_code)
+        products = self._mapping_rakuten_products(parsed_value, rakuten_products)
         searched_products = reduce(lambda d, f: map(f, d), [
             self._search_detail_page,
-            self._validate_searched_products], search_products)
-        searched_products = list(filter(None, search_products))
+            self._validate_searched_products],
+            [product for product in products if product.get('jan') is None])
+        searched_products = list(filter(None, searched_products))
         RakutenProduct.insert_all_on_conflict_do_nothing(searched_products)
 
         list(reduce(lambda d, f: map(f, d), [
             self._calc_real_price,
             self._generate_enqueue_str,
             self.api_client.mq.publish,
-        ], publish_product + searched_products))
+        ], searched_products + [product for product in products if product.get('jan')]))
 
         logger.info({'action': 'search_sequence', 'status': 'done'})
 
@@ -187,24 +191,14 @@ class RakutenCrawler(object):
         return querys
 
     @logging
-    def _mapping_rakuten_products(self, values: List[dict]) -> tuple[List[str], List[str]]:
+    def _mapping_rakuten_products(self, parsed_products: List[dict], 
+                                        rakuten_products: List[RakutenProduct]) -> List[dict]:
+        
+        products = [product | {'jan': rakuten_product.jan} 
+            if (rakuten_product := first(rakuten_products, key=lambda x: x.product_code == product['product_code']))
+            else (product) for product in parsed_products]
 
-        product_codes = [value.get('product_code') for value in values]
-        rakuten_products = RakutenProduct.get_products_by_shop_code_and_product_codes(product_codes, self.shop_code)
-        rakuten_products = [{product.product_code: product} for product in rakuten_products]
-        rakuten_products = ChainMap(*rakuten_products)
-
-        search_products = []
-        for product_code in product_codes:
-            rakuten_product = rakuten_products.get(product_code['product_code'])
-            product_code.setdefault('shop_code', self.shop_code)
-            if rakuten_product:
-                product_code['jan'] = rakuten_product.jan
-            else:
-                search_products.append(product_code)
-        product_codes = list(filter(lambda x: x.get('jan') is not None, product_codes))
-
-        return product_codes, search_products
+        return products
 
     def _search_detail_page(self, value: dict, interval_sec: int=1) -> dict:
         logger.info({'action': 'search_detail_page', 'status': 'run'})
