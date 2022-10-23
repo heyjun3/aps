@@ -151,7 +151,7 @@ class RakutenCrawler(object):
     def main(self):
         
         shop_id = list(reduce(lambda d, f : map(f, d), [
-            utils.request,
+            partial(utils.request, time_sleep=1),
             RakutenHTMLPage.parse_shop_id
             ], [urljoin(self.rakuten_url, self.shop_code)]))[0]
 
@@ -161,7 +161,7 @@ class RakutenCrawler(object):
             's': 3,
             'p': 1,
         }
-        response = utils.request(self.base_url, params=query)
+        response = utils.request(self.base_url, params=query, time_sleep=1)
         querys = self._generate_querys(response, query)
         for query in querys:
             self.search_sequence(query)
