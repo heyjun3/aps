@@ -50,20 +50,66 @@ class TestRakutenCrawler(object):
         assert products[-1]['price'] == 222
         assert 'jan' not in products[-1]
 
+    def test_mapping_search_value(self):
+        values = [{'product_code': 'aaa', 'price': 111},
+                  {'product_code': 'bbb', 'price': 222},]
+        value = {'product_code': 'aaa', 'jan': '0000'}
+        client = RakutenCrawler('test', 'test')
+        product = client._mapping_search_value(value, values)
+        assert product.get('product_code') == 'aaa'
+        assert product.get('jan') == '0000'
+        assert product.get('price') == 111
+
+    def test_mapping_search_value_None(self):
+        values = [{'product_code': 'aaa', 'price': 111},
+                  {'product_code': 'bbb', 'price': 222},]
+        value = {'product_code': 'ccc', 'jan': '0000'}
+        client = RakutenCrawler('test', 'test')
+        product = client._mapping_search_value(value, values)
+        assert product == None
+
+    def test_calc_real_price(self):
+        value = {'product_code': 'aaa', 'price': 10000, 'point': 1000}
+        client = RakutenCrawler('test', 'test')
+        result = client._calc_real_price(value)
+        assert result.get('price') == 8000
+        assert result.get('product_code') == 'aaa'
+
+    def test_calc_real_price_return_None(self):
+        not_in_price = {'product_code': 'aaa', 'point': 1000}
+        not_in_point = {'product_code': 'aaa', 'price': 1000}
+        client = RakutenCrawler('test', 'test')
+        result = client._calc_real_price(not_in_price)
+        assert result == None
+        result = client._calc_real_price(not_in_point)
+        assert result == None
+
 
 class ScrapeDetailProductPage(unittest.TestCase):
 
-    def test_scrape_jan_code(self):
+    def test_scrape_jan_code_success(self):
         
         html_path = os.path.join(dirname, 'scrape_jan_code.html')
+        response = MagicMock()
         with open(html_path, 'r') as f:
-            response = f.read()
+            response.text = f.read()
+        response.url = 'https://item.rakuten.co.jp/superdeal/10052sp-4d151191004/'
 
         parsed_value = RakutenHTMLPage.scrape_product_detail_page(response)
         self.assertEqual(parsed_value.get('jan'), '4589919807796')
         self.assertEqual(parsed_value.get('price'),16000) 
         self.assertEqual(parsed_value.get('is_stocked'), True)
-        # self.assertEqual(parsed_value.get('point'), 2555)
+        self.assertEqual(parsed_value.get('product_code'), '10052sp-4d151191004')
+
+    def test_scrape_product_detail_page_fail(self):
+        response = MagicMock()
+        response.text = ''
+        response.url = ''
+        parsed_value = RakutenHTMLPage.scrape_product_detail_page(response)
+        assert parsed_value.get('jan') == None
+        assert parsed_value.get('price') == None
+        assert parsed_value.get('is_stocked') == False
+        assert parsed_value.get('product_code') == None
         
     def test_parse_product_list_page(self):
 

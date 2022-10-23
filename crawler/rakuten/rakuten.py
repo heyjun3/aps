@@ -4,13 +4,14 @@ import math
 import datetime
 import json
 from queue import Queue
-from urllib.parse import urljoin
+from urllib.parse import urlparse
 import threading
 from typing import List
 from typing import Callable
 from copy import deepcopy
 from collections import ChainMap
 from functools import reduce
+from functools import partial
 
 import requests
 from bs4 import BeautifulSoup
@@ -138,8 +139,7 @@ class RakutenCrawler(object):
     base_url = 'https://search.rakuten.co.jp/search/mall/'
     PER_PAGE_COUNT = 45
 
-    def __init__(self, shop_id: str, shop_code: str) -> None:
-        self.shop_id = shop_id
+    def __init__(self, shop_id: int, shop_code: str) -> None:
         self.shop_code = shop_code
         self.timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         self.api_client = RakutenAPIClient(shop_code)
@@ -157,20 +157,25 @@ class RakutenCrawler(object):
         for query in querys:
             self.search_sequence(query)
 
+    @logging
     def search_sequence(self, query: dict, interval_sec: int=1):
-        logger.info({'action': 'search_sequence', 'status': 'run'})
 
         response = utils.request(url=self.base_url, params=query)
         time.sleep(interval_sec)
         parsed_value = RakutenHTMLPage.parse_product_list_page(response.text)
+        parsed_value = [value | {'shop_code': self.shop_code} for value in parsed_value]
         rakuten_products = RakutenProduct.get_products_by_shop_code_and_product_codes(
             [value.get('product_code') for value in parsed_value], self.shop_code)
         products = self._mapping_rakuten_products(parsed_value, rakuten_products)
-        searched_products = reduce(lambda d, f: map(f, d), [
-            self._search_detail_page,
-            self._validate_searched_products],
-            [product for product in products if product.get('jan') is None])
-        searched_products = list(filter(None, searched_products))
+
+        search_products = [product for product in products if product.get('jan') is None]
+        responses = [utils.request(product.get('url'), time_sleep=1)
+                                                    for product in search_products]
+        searched_products = list(filter(None, reduce(lambda d, f: map(f, d), [
+            RakutenHTMLPage.scrape_product_detail_page,
+            partial(self._mapping_search_value, products=search_products),
+        ], responses)))
+
         RakutenProduct.insert_all_on_conflict_do_nothing(searched_products)
 
         list(reduce(lambda d, f: map(f, d), [
@@ -179,7 +184,6 @@ class RakutenCrawler(object):
             self.api_client.mq.publish,
         ], searched_products + [product for product in products if product.get('jan')]))
 
-        logger.info({'action': 'search_sequence', 'status': 'done'})
 
     @logging
     def _generate_querys(self, response: requests.Response) -> dict:
@@ -200,28 +204,13 @@ class RakutenCrawler(object):
 
         return products
 
-    def _search_detail_page(self, value: dict, interval_sec: int=1) -> dict:
-        logger.info({'action': 'search_detail_page', 'status': 'run'})
+    @logging
+    def _mapping_search_value(self, search_value: dict, products: List[dict]) -> dict:
 
-        result = deepcopy(value)
+        product = first(products, key=lambda x: x['product_code'] == search_value['product_code'])
+        return product | {'jan': search_value.get('jan')} if product else None
 
-        response = utils.request(value.get('url'))
-        time.sleep(interval_sec)
-        parsed_value = RakutenHTMLPage.scrape_product_detail_page(response.text)
-        result['jan'] = parsed_value.get('jan')
-
-        logger.info({'action': 'search_detail_page', 'status': 'run'})
-        return result
-
-    def _validate_searched_products(self, value: dict) -> dict|None:
-        required = ('name', 'jan', 'price', 'shop_code', 'product_code', 'url')
-
-        if not all([key in value for key in required]):
-            logger.error({'message': 'validation fail Badparameter', 'value': value})
-            return
-
-        return value
-
+    @logging
     def _calc_real_price(self, value: dict, discount_rate: float=0.9) -> dict|None:
         real_value = deepcopy(value)
         price = real_value.get('price')
@@ -229,11 +218,12 @@ class RakutenCrawler(object):
         if not all((price, point)):
             logger.error({'message': 'Bad Parameter', 'value': value})
             return
-        real_price = int((price * discount_rate) - point)
-        real_value['price'] = real_price
+
+        real_value['price'] = int((price * discount_rate) - point)
 
         return real_value
 
+    @logging
     def _generate_enqueue_str(self, value: dict) -> str|None:
 
         jan = value.get('jan')
@@ -254,28 +244,26 @@ class RakutenCrawler(object):
 class RakutenHTMLPage(object):
 
     @staticmethod
-    def scrape_product_detail_page(response: str) -> dict:
+    def scrape_product_detail_page(response: requests.Response) -> dict:
         logger.info('action=scrape_product_detail_page status=run')
+        PRODUCT_CODE_INDEX = -1
 
-        soup = BeautifulSoup(response, 'lxml')
-        try:
-            jan = re.fullmatch('[0-9]{13}', soup.select_one('#ratRanCode').get('value')).group()
-        except AttributeError as e:
-            logger.error(f'{e}')
-            return {}
+        soup = BeautifulSoup(response.text, 'lxml')
+        jan = ((jan.group() if (jan := re.fullmatch('[0-9]{13}', code.get('value'))) 
+                            else None) if (code := soup.select_one('#ratRanCode')) else None)
 
-        try:
-            price = int(''.join(re.findall('[0-9]', soup.select_one('.price2').text)))
-        except (AttributeError, TypeError) as ex:
-            logger.info(f'price is None message {ex}')
-            price = None
+        price = int(''.join(re.findall('[0-9]', price.text))) \
+                                        if (price := soup.select_one('.price2')) else None
 
-        is_stocked = soup.select_one('.cart-button-container')
+        product_code = (list(filter(None, urlparse(url).path.split('/')))[PRODUCT_CODE_INDEX] 
+                                                        if (url := response.url) else None)
+        is_stocked = bool(soup.select_one('.cart-button-container'))
         
         logger.info('action=scrape_product_detail_page status=done')
         return {'jan': jan,
                 'price': price,
-                'is_stocked': bool(is_stocked)}
+                'product_code': product_code,
+                'is_stocked': is_stocked}
 
     @staticmethod
     def parse_product_list_page(response: str) -> dict:

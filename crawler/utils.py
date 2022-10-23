@@ -16,11 +16,12 @@ class RequestException(Exception):
     pass
 
 
-def request(url: str, method: str = 'GET', session: Session = requests.Session(), data: dict = None, params: dict = None) -> Response:
+def request(url: str, method: str = 'GET', session: Session = requests.Session(), data: dict = None, params: dict = None, time_sleep: int=0) -> Response:
     for _ in range(60):
         try:
             response = session.request(method=method, url=url, timeout=60.0, headers=HEADERS, data=data, params=params)
             if response.status_code == 200 or response.status_code == 404:
+                time.sleep(time_sleep)
                 return response
             else:
                 logger.error(response.status_code)
