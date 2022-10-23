@@ -210,7 +210,7 @@ class RakutenCrawler(object):
         
         products = [product | {'jan': rakuten_product.jan} 
             if (rakuten_product := first(rakuten_products, key=lambda x: x.product_code == product['product_code']))
-            else product | {'jan': jan} 
+            else (product | {'jan': jan.group()}) 
             if (jan := re.fullmatch('[0-9]{13}', product['product_code'])) 
             else product for product in parsed_products]
 
@@ -238,10 +238,14 @@ class RakutenCrawler(object):
     @logging
     def _generate_enqueue_str(self, value: dict) -> str|None:
 
+        if value is None:
+            logger.error({'message': 'publish queue bad parameter', 'value': value})
+            return 
+
         jan = value.get('jan')
         price = value.get('price')
         url = value.get('url')
-        if not all((jan, price, url)) or value is None:
+        if not all((jan, price, url)):
             logger.error({'message': 'publish queue bad parameter', 'value': value})
             return
 
