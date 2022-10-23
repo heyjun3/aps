@@ -16,13 +16,19 @@ dirname = os.path.join(os.path.dirname(__file__), 'test_html')
 class TestRakutenCrawler(object):
 
     def test_generate_querys(self):
-        client = RakutenCrawler('test', 'test')
+        client = RakutenCrawler('test')
+        query = {
+            'sid': 'test',
+            'used': 0,
+            's': 3,
+            'p': 1,
+        }
         path = os.path.join(dirname, 'product_list_page.html')
         response = MagicMock()
         with open(path, 'r') as f:
             response.text = f.read()
 
-        querys = client._generate_querys(response)
+        querys = client._generate_querys(response, query)
         assert querys[0]['p'] == 1
         assert querys[0]["s"] == 3
         assert querys[0]['used'] == 0
@@ -40,7 +46,7 @@ class TestRakutenCrawler(object):
                   {'product_code': 'bbb', 'price': 222},]
         rakuten_products = [RakutenProduct(product_code='aaa', jan='9999'),
                             RakutenProduct(product_code='ccc', jan='0000')]
-        client = RakutenCrawler('test', 'test')
+        client = RakutenCrawler('test')
         products = client._mapping_rakuten_products(values, rakuten_products)
         assert len(products) == len(values)
         assert products[0]['product_code'] == 'aaa'
@@ -50,11 +56,19 @@ class TestRakutenCrawler(object):
         assert products[-1]['price'] == 222
         assert 'jan' not in products[-1]
 
+    def test_mapping_rakuten_products_2(self):
+        values = [{'product_code': '4000000000000', 'price': 1000}]
+        rakuten_products = [RakutenProduct(product_code='aaa', jan='1111')]
+        client = RakutenCrawler('test')
+        products = client._mapping_rakuten_products(values, rakuten_products)
+        assert products[0]['product_code'] == '4000000000000'
+        assert products[0]['price'] == 1000
+
     def test_mapping_search_value(self):
         values = [{'product_code': 'aaa', 'price': 111},
                   {'product_code': 'bbb', 'price': 222},]
         value = {'product_code': 'aaa', 'jan': '0000'}
-        client = RakutenCrawler('test', 'test')
+        client = RakutenCrawler('test')
         product = client._mapping_search_value(value, values)
         assert product.get('product_code') == 'aaa'
         assert product.get('jan') == '0000'
@@ -64,13 +78,13 @@ class TestRakutenCrawler(object):
         values = [{'product_code': 'aaa', 'price': 111},
                   {'product_code': 'bbb', 'price': 222},]
         value = {'product_code': 'ccc', 'jan': '0000'}
-        client = RakutenCrawler('test', 'test')
+        client = RakutenCrawler('test')
         product = client._mapping_search_value(value, values)
         assert product == None
 
     def test_calc_real_price(self):
         value = {'product_code': 'aaa', 'price': 10000, 'point': 1000}
-        client = RakutenCrawler('test', 'test')
+        client = RakutenCrawler('test')
         result = client._calc_real_price(value)
         assert result.get('price') == 8000
         assert result.get('product_code') == 'aaa'
@@ -78,7 +92,7 @@ class TestRakutenCrawler(object):
     def test_calc_real_price_return_None(self):
         not_in_price = {'product_code': 'aaa', 'point': 1000}
         not_in_point = {'product_code': 'aaa', 'price': 1000}
-        client = RakutenCrawler('test', 'test')
+        client = RakutenCrawler('test')
         result = client._calc_real_price(not_in_price)
         assert result == None
         result = client._calc_real_price(not_in_point)
@@ -140,3 +154,21 @@ class ScrapeDetailProductPage(unittest.TestCase):
             count = RakutenHTMLPage.parse_max_products_count('')
 
         assert str(e.value) == ''
+
+    def test_parse_shop_id(self):
+        path = os.path.join(dirname, 'parse_shop_id.html')
+        response = MagicMock()
+        with open(path, 'r') as f:
+            response.text = f.read()
+
+        shop_id = RakutenHTMLPage.parse_shop_id(response)
+        assert shop_id == 384756
+
+    def test_parse_shop_id_2(self):
+        path = os.path.join(dirname, 'parse_shop_id2.html')
+        response = MagicMock()
+        with open(path, 'r') as f:
+            response.text = f.read()
+
+        shop_id = RakutenHTMLPage.parse_shop_id(response)
+        assert shop_id == 197844

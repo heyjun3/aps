@@ -19,7 +19,7 @@ class RequestException(Exception):
 def request(url: str, method: str = 'GET', session: Session = requests.Session(), data: dict = None, params: dict = None, time_sleep: int=0) -> Response:
     for _ in range(60):
         try:
-            response = session.request(method=method, url=url, timeout=60.0, headers=HEADERS, data=data, params=params)
+            response = session.request(method=method, url=url, timeout=60.0, headers=HEADERS, data=data, params=params, allow_redirects=True)
             if response.status_code == 200 or response.status_code == 404:
                 time.sleep(time_sleep)
                 return response

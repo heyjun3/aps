@@ -5,6 +5,7 @@ import datetime
 import json
 from queue import Queue
 from urllib.parse import urlparse
+from urllib.parse import urljoin
 import threading
 from typing import List
 from typing import Callable
@@ -12,6 +13,7 @@ from copy import deepcopy
 from collections import ChainMap
 from functools import reduce
 from functools import partial
+from operator import itemgetter
 
 import requests
 from bs4 import BeautifulSoup
@@ -137,23 +139,30 @@ class RakutenAPIClient:
 class RakutenCrawler(object):
 
     base_url = 'https://search.rakuten.co.jp/search/mall/'
+    rakuten_url = 'https://www.rakuten.co.jp/'
     PER_PAGE_COUNT = 45
 
-    def __init__(self, shop_id: int, shop_code: str) -> None:
+    def __init__(self, shop_code: str) -> None:
         self.shop_code = shop_code
         self.timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         self.api_client = RakutenAPIClient(shop_code)
-        self.query = {
+
+
+    def main(self):
+        
+        shop_id = list(reduce(lambda d, f : map(f, d), [
+            utils.request,
+            RakutenHTMLPage.parse_shop_id
+            ], [urljoin(self.rakuten_url, self.shop_code)]))[0]
+
+        query = {
             'sid': shop_id,
             'used': 0,
             's': 3,
             'p': 1,
         }
-
-    def main(self):
-        
-        response = utils.request(self.base_url, params=self.query)
-        querys = self._generate_querys(response)
+        response = utils.request(self.base_url, params=query)
+        querys = self._generate_querys(response, query)
         for query in querys:
             self.search_sequence(query)
 
@@ -178,19 +187,20 @@ class RakutenCrawler(object):
 
         RakutenProduct.insert_all_on_conflict_do_nothing(searched_products)
 
-        list(reduce(lambda d, f: map(f, d), [
-            self._calc_real_price,
-            self._generate_enqueue_str,
-            self.api_client.mq.publish,
-        ], searched_products + [product for product in products if product.get('jan')]))
+        [self.api_client.mq.publish(value) for value in 
+            reduce(lambda d, f: map(f, d), [
+                self._calc_real_price,
+                self._generate_enqueue_str,
+            ], searched_products + [product for product in products if product.get('jan')]) 
+            if value]
 
 
     @logging
-    def _generate_querys(self, response: requests.Response) -> dict:
+    def _generate_querys(self, response: requests.Response, query: dict) -> dict:
 
         max_products_count = RakutenHTMLPage.parse_max_products_count(response.text)
         max_page_count = math.ceil(max_products_count / self.PER_PAGE_COUNT)
-        querys = [self.query | {'p': i+1} for i in range(max_page_count)]
+        querys = [query | {'p': i+1} for i in range(max_page_count)]
 
         return querys
 
@@ -200,7 +210,9 @@ class RakutenCrawler(object):
         
         products = [product | {'jan': rakuten_product.jan} 
             if (rakuten_product := first(rakuten_products, key=lambda x: x.product_code == product['product_code']))
-            else (product) for product in parsed_products]
+            else product | {'jan': jan} 
+            if (jan := re.fullmatch('[0-9]{13}', product['product_code'])) 
+            else product for product in parsed_products]
 
         return products
 
@@ -329,6 +341,20 @@ class RakutenHTMLPage(object):
         logger.info({'action': 'parse_max_products_count', 'status': 'done'})
         return max_count
 
+    @staticmethod
+    def parse_shop_id(response: requests.Response) -> int:
+        soup = BeautifulSoup(response.text, 'lxml')
+        sid = (sid.get('value') if (sid := first(sids, key=lambda x: x.get('name') == 'sid')) else None) \
+                                if (sids := soup.select('input')) else None
+        if sids is None:
+            logger.error({'message': 'sid is None'})
+            raise Exception
+
+        if not re.fullmatch('[0-9]+', sid):
+            logger.error({'message': 'sid validation is failed', 'value': sid})
+            raise Exception
+
+        return int(sid)
 
 class RakutenAPIJSON(object):
 
