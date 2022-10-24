@@ -15,8 +15,8 @@ SHOP_CODES = [
 def run_rakuten_search_at_shop_code(shop_code: str) -> None:
     logger.info('action=run_rakuten_search_at_shop_code status=run')
 
-    rakuten = RakutenAPIClient(shop_code=shop_code)
-    rakuten.run_rakuten_search()
+    rakuten = RakutenCrawler(shop_code=shop_code)
+    rakuten.main()
     
     logger.info('action=run_rakuten_search_at_shop_code status=run')
 
