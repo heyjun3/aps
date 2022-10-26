@@ -152,7 +152,7 @@ class RakutenCrawler(object):
     def main(self):
         session = HTMLSession()
         res = session.get(urljoin(self.rakuten_url, self.shop_code), headers=utils.HEADERS)
-        res.html.render()
+        res.html.render(timeout=60)
         shop_id = RakutenHTMLPage.parse_shop_id(res.html.html)       
         query = {
             'sid': shop_id,
