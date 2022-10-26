@@ -1,5 +1,6 @@
 from __future__ import annotations
 import threading
+from typing import List
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -7,6 +8,7 @@ from sqlalchemy import Column, Integer, String, Float, BigInteger
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import and_
+from sqlalchemy.dialects.postgresql import insert
 from contextlib import contextmanager
 
 import settings
@@ -100,6 +102,16 @@ class Product:
             if product is None:
                 return None
             return product
+    
+    @classmethod
+    def get_products_by_shop_code_and_product_codes(cls, product_codes: List['str'], shop_code: str) -> Product:
+        logger.info('action=get_products_by_shop_code_and_product_codes status=run')
+        with session_scope() as session:
+            products = session.query(cls).filter(
+                cls.shop_code == shop_code, cls.product_code.in_(product_codes)).all()
+            
+            logger.info('action=get_products_by_shop_code_and_product_codes status=done')
+            return products
 
     @classmethod
     def price_update(cls, select_col, select_value, new_value):
@@ -127,6 +139,23 @@ class Product:
             return False
 
     @classmethod
+    def insert_all_on_conflict_do_nothing(cls, records: List[dict]) -> True|None:
+        if not records:
+            return
+        stmt = insert(cls).values([{
+            'jan': record.get('jan'),
+            'name': record.get('name'),
+            'price': record.get('price'),
+            'product_code': record.get('product_code'),
+            'shop_code': record.get('shop_code'),
+            'url': record.get('url')
+            } for record in records]).on_conflict_do_nothing(
+                                        index_elements=['product_code', 'shop_code'])
+        with session_scope() as session:
+            session.execute(stmt)
+            return True
+
+    @classmethod
     def get_product_code(cls, product_code):
         with session_scope() as session:
             products = session.query(cls).filter(cls.product_code == product_code).first()
@@ -142,6 +171,7 @@ class Product:
             'price': self.price,
             'shop_code': self.shop_code,
             'product_code': self.product_code,
+            'url': self.url,
         }
 
 

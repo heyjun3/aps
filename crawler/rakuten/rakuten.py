@@ -1,12 +1,24 @@
 import re
 import time
+import math
 import datetime
 import json
 from queue import Queue
+from urllib.parse import urlparse
 from urllib.parse import urljoin
 import threading
+from typing import List
+from typing import Callable
+from copy import deepcopy
+from collections import ChainMap
+from functools import reduce
+from functools import partial
+from operator import itemgetter
 
+import requests
 from bs4 import BeautifulSoup
+from first import first
+from requests_html import HTMLSession
 
 from crawler.rakuten.models import RakutenProduct
 import settings
@@ -16,6 +28,15 @@ from crawler import utils
 
 
 logger = log_settings.get_logger(__name__)
+
+
+def logging(func):
+    def _inner(*args, **kwargs):
+        logger.info({'action': func.__name__, 'status': 'run'})
+        result = func(*args, **kwargs)
+        logger.info({'action': func.__name__, 'status': 'done'})
+        return result
+    return _inner
 
 
 class RakutenAPIClient:
@@ -116,36 +137,148 @@ class RakutenAPIClient:
         logger.info('action=publish_queue status=done')
 
 
+class RakutenCrawler(object):
+
+    base_url = 'https://search.rakuten.co.jp/search/mall/'
+    rakuten_url = 'https://www.rakuten.co.jp/'
+    PER_PAGE_COUNT = 45
+
+    def __init__(self, shop_code: str) -> None:
+        self.shop_code = shop_code
+        self.timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        self.api_client = RakutenAPIClient(shop_code)
+
+
+    def main(self):
+        session = HTMLSession()
+        res = session.get(urljoin(self.rakuten_url, self.shop_code), headers=utils.HEADERS)
+        res.html.render(timeout=60)
+        shop_id = RakutenHTMLPage.parse_shop_id(res.html.html)       
+        query = {
+            'sid': shop_id,
+            'used': 0,
+            's': 3,
+            'p': 1,
+        }
+        response = utils.request(self.base_url, params=query, time_sleep=1)
+        querys = self._generate_querys(response, query)
+        for query in querys:
+            self.search_sequence(query)
+
+    @logging
+    def search_sequence(self, query: dict, interval_sec: int=1):
+
+        response = utils.request(url=self.base_url, params=query)
+        time.sleep(interval_sec)
+        parsed_value = RakutenHTMLPage.parse_product_list_page(response.text)
+        parsed_value = [value | {'shop_code': self.shop_code} for value in parsed_value]
+        rakuten_products = RakutenProduct.get_products_by_shop_code_and_product_codes(
+            [value.get('product_code') for value in parsed_value], self.shop_code)
+        products = self._mapping_rakuten_products(parsed_value, rakuten_products)
+
+        search_products = [product for product in products if product.get('jan') is None]
+        responses = [utils.request(product.get('url'), time_sleep=1)
+                                                    for product in search_products]
+        searched_products = list(filter(None, reduce(lambda d, f: map(f, d), [
+            RakutenHTMLPage.scrape_product_detail_page,
+            partial(self._mapping_search_value, products=search_products),
+        ], responses)))
+
+        RakutenProduct.insert_all_on_conflict_do_nothing(searched_products)
+
+        [self.api_client.mq.publish(value) for value in 
+            reduce(lambda d, f: map(f, d), [
+                self._calc_real_price,
+                self._generate_enqueue_str,
+            ], searched_products + [product for product in products if product.get('jan')]) 
+            if value]
+
+
+    @logging
+    def _generate_querys(self, response: requests.Response, query: dict) -> dict:
+
+        max_products_count = RakutenHTMLPage.parse_max_products_count(response.text)
+        max_page_count = math.ceil(max_products_count / self.PER_PAGE_COUNT)
+        querys = [query | {'p': i+1} for i in range(max_page_count)]
+
+        return querys
+
+    @logging
+    def _mapping_rakuten_products(self, parsed_products: List[dict], 
+                                        rakuten_products: List[RakutenProduct]) -> List[dict]:
+        
+        products = [product | {'jan': rakuten_product.jan} 
+            if (rakuten_product := first(rakuten_products, key=lambda x: x.product_code == product['product_code']))
+            else (product | {'jan': jan.group()}) 
+            if (jan := re.fullmatch('[0-9]{13}', product['product_code'])) 
+            else product for product in parsed_products]
+
+        return products
+
+    @logging
+    def _mapping_search_value(self, search_value: dict, products: List[dict]) -> dict:
+
+        product = first(products, key=lambda x: x['product_code'] == search_value['product_code'])
+        return product | {'jan': search_value.get('jan')} if product else None
+
+    @logging
+    def _calc_real_price(self, value: dict, discount_rate: float=0.9) -> dict|None:
+        real_value = deepcopy(value)
+        price = real_value.get('price')
+        point = real_value.get('point')
+        if not all((price, point)):
+            logger.error({'message': 'Bad Parameter', 'value': value})
+            return
+
+        real_value['price'] = int((price * discount_rate) - point)
+
+        return real_value
+
+    @logging
+    def _generate_enqueue_str(self, value: dict) -> str|None:
+
+        if value is None:
+            logger.error({'message': 'publish queue bad parameter', 'value': value})
+            return 
+
+        jan = value.get('jan')
+        price = value.get('price')
+        url = value.get('url')
+        if not all((jan, price, url)):
+            logger.error({'message': 'publish queue bad parameter', 'value': value})
+            return
+
+        return json.dumps({
+            'cost': price,
+            'filename': f'rakuten_{self.timestamp}',
+            'jan': jan,
+            'url': url,
+        })
+
+
 class RakutenHTMLPage(object):
 
     @staticmethod
-    def scrape_product_detail_page(response: str) -> dict:
+    def scrape_product_detail_page(response: requests.Response) -> dict:
         logger.info('action=scrape_product_detail_page status=run')
+        PRODUCT_CODE_INDEX = -1
 
-        soup = BeautifulSoup(response, 'lxml')
-        try:
-            jan = re.fullmatch('[0-9]{13}', soup.select_one('#ratRanCode').get('value')).group()
-        except AttributeError as e:
-            logger.error(f'{e}')
-            return {}
+        soup = BeautifulSoup(response.text, 'lxml')
+        jan = ((jan.group() if (jan := re.fullmatch('[0-9]{13}', code.get('value'))) 
+                            else None) if (code := soup.select_one('#ratRanCode')) else None)
 
-        try:
-            price = int(''.join(re.findall('[0-9]', soup.select_one('.price2').text)))
-        except (AttributeError, TypeError) as ex:
-            logger.info(f'price is None message {ex}')
-            price = None
+        price = int(''.join(re.findall('[0-9]', price.text))) \
+                                        if (price := soup.select_one('.price2')) else None
 
-        point = soup.select_one('.bdg-point-display-summary span')
-        if point:
-            point = int(''.join(re.findall('[0-9]', point.text)))
-
-        is_stocked = soup.select_one('.cart-button-container')
+        product_code = (list(filter(None, urlparse(url).path.split('/')))[PRODUCT_CODE_INDEX] 
+                                                        if (url := response.url) else None)
+        is_stocked = bool(soup.select_one('.cart-button-container'))
         
         logger.info('action=scrape_product_detail_page status=done')
         return {'jan': jan,
                 'price': price,
-                'is_stocked': bool(is_stocked),
-                'point': point}
+                'product_code': product_code,
+                'is_stocked': is_stocked}
 
     @staticmethod
     def parse_product_list_page(response: str) -> dict:
@@ -159,15 +292,25 @@ class RakutenHTMLPage(object):
             name = product.select_one('.content.title a')
             url = product.select_one('.image a')
             price = product.select_one('.important')
-            if not all((name, url, price)):
+            point = product.select_one('.content.points span')
+            if not all((name, url, price, point)):
                 logger.error({
                     "message": 'parse value not Found Error',
                     'action': 'parse_product_list_page',
-                    'parameters': {'name': name, 'url': url, 'price': price}})
+                    'parameters': {'name': name, 'url': url, 'price': price, 'point': point}})
                 continue
 
             url = url.attrs.get('href')
             price = int(''.join(re.findall('[0-9]', price.text)))
+
+            try:
+                point = int(re.match('[0-9]+', point.text.replace(',', '')).group())
+            except (ValueError, TypeError) as ex:
+                logger.error({
+                    'messages': f'point is Bad value error={ex}',
+                    'point': point})
+                continue               
+
             try:
                 product_code = url.split('/')[-2]
             except IndexError as ex:
@@ -176,14 +319,45 @@ class RakutenHTMLPage(object):
 
             result.append({
                 'name': name.text,
-                'url': url,
                 'price': price,
                 'product_code': product_code,
+                'point': point,
+                'url': url,
             })
         
         logger.info({'action': 'parse_product_list_page', 'status': 'done'})
         return result
 
+    @staticmethod
+    def parse_max_products_count(response: str) -> int:
+        logger.info({'action': 'parse_max_products_count', 'status': 'run'})
+
+        soup = BeautifulSoup(response, 'lxml')
+        products_count = soup.select_one('._medium')
+        if not products_count:
+            logger.error({'action': 'parse_max_products_count', 'message': 'html page has not products count'})
+            raise MaxProductsCountNotFoundException
+        
+        counts = re.findall('[0-9]+', products_count.text.replace(',', ''))
+        max_count = max(map(int, counts))
+
+        logger.info({'action': 'parse_max_products_count', 'status': 'done'})
+        return max_count
+
+    @staticmethod
+    def parse_shop_id(response: str) -> int:
+        soup = BeautifulSoup(response, 'lxml')
+        sid = (sid.get('value') if (sid := first(sids, key=lambda x: x.get('name') == 'sid')) else None) \
+                                if (sids := soup.select('input')) else None
+        if sid is None:
+            logger.error({'message': 'sid is None'})
+            raise Exception
+
+        if not re.fullmatch('[0-9]+', str(sid)):
+            logger.error({'message': 'sid validation is failed', 'value': sid})
+            raise Exception
+
+        return int(sid)
 
 class RakutenAPIJSON(object):
 
@@ -230,3 +404,7 @@ class RakutenAPIJSON(object):
             logger.info('action=get_jan_code status=done')
             return jan.group()
         return
+
+
+class MaxProductsCountNotFoundException(Exception):
+    pass
