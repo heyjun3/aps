@@ -157,18 +157,16 @@ class ScrapeDetailProductPage(unittest.TestCase):
 
     def test_parse_shop_id(self):
         path = os.path.join(dirname, 'parse_shop_id.html')
-        response = MagicMock()
         with open(path, 'r') as f:
-            response.text = f.read()
+            response = f.read()
 
         shop_id = RakutenHTMLPage.parse_shop_id(response)
         assert shop_id == 384756
 
     def test_parse_shop_id_2(self):
         path = os.path.join(dirname, 'parse_shop_id2.html')
-        response = MagicMock()
         with open(path, 'r') as f:
-            response.text = f.read()
+            response = f.read()
 
         shop_id = RakutenHTMLPage.parse_shop_id(response)
         assert shop_id == 197844

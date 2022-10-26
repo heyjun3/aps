@@ -18,6 +18,7 @@ from operator import itemgetter
 import requests
 from bs4 import BeautifulSoup
 from first import first
+from requests_html import HTMLSession
 
 from crawler.rakuten.models import RakutenProduct
 import settings
@@ -149,12 +150,10 @@ class RakutenCrawler(object):
 
 
     def main(self):
-        
-        shop_id = list(reduce(lambda d, f : map(f, d), [
-            partial(utils.request, time_sleep=1),
-            RakutenHTMLPage.parse_shop_id
-            ], [urljoin(self.rakuten_url, self.shop_code)]))[0]
-
+        session = HTMLSession()
+        res = session.get(urljoin(self.rakuten_url, self.shop_code), headers=utils.HEADERS)
+        res.html.render()
+        shop_id = RakutenHTMLPage.parse_shop_id(res.html.html)       
         query = {
             'sid': shop_id,
             'used': 0,
@@ -346,15 +345,15 @@ class RakutenHTMLPage(object):
         return max_count
 
     @staticmethod
-    def parse_shop_id(response: requests.Response) -> int:
-        soup = BeautifulSoup(response.text, 'lxml')
+    def parse_shop_id(response: str) -> int:
+        soup = BeautifulSoup(response, 'lxml')
         sid = (sid.get('value') if (sid := first(sids, key=lambda x: x.get('name') == 'sid')) else None) \
                                 if (sids := soup.select('input')) else None
-        if sids is None:
+        if sid is None:
             logger.error({'message': 'sid is None'})
             raise Exception
 
-        if not re.fullmatch('[0-9]+', sid):
+        if not re.fullmatch('[0-9]+', str(sid)):
             logger.error({'message': 'sid validation is failed', 'value': sid})
             raise Exception
 
