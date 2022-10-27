@@ -150,8 +150,8 @@ class RakutenCrawler(object):
 
 
     def main(self):
-        session = HTMLSession()
-        res = session.get(urljoin(self.rakuten_url, self.shop_code), headers=utils.HEADERS)
+
+        res = utils.request(urljoin(self.rakuten_url, self.shop_code), time_sleep=1)
         res.html.render(timeout=60)
         shop_id = RakutenHTMLPage.parse_shop_id(res.html.html)       
         query = {
@@ -259,11 +259,12 @@ class RakutenCrawler(object):
 class RakutenHTMLPage(object):
 
     @staticmethod
-    def scrape_product_detail_page(response: requests.Response) -> dict:
+    def scrape_product_detail_page(response: requests.Response|str) -> dict:
         logger.info('action=scrape_product_detail_page status=run')
         PRODUCT_CODE_INDEX = -1
 
-        soup = BeautifulSoup(response.text, 'lxml')
+        text = response if isinstance(response, str) else response.text
+        soup = BeautifulSoup(text, 'lxml')
         jan = ((jan.group() if (jan := re.fullmatch('[0-9]{13}', code.get('value'))) 
                             else None) if (code := soup.select_one('#ratRanCode')) else None)
 
