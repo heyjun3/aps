@@ -270,9 +270,9 @@ class RakutenHTMLPage(object):
 
         price = int(''.join(re.findall('[0-9]', price.text))) \
                                         if (price := soup.select_one('.price2')) else None
-
-        product_code = (list(filter(None, urlparse(url).path.split('/')))[PRODUCT_CODE_INDEX] 
-                                                        if (url := response.url) else None)
+        tag = first(tags, key=lambda x: x.get('property') == 'og:url') if (tags := soup.select('meta')) else None
+        product_code = list(filter(None, urlparse(tag.get('content')).path.split('/')))[PRODUCT_CODE_INDEX] \
+                                                                if tag else None
         is_stocked = bool(soup.select_one('.cart-button-container'))
         
         logger.info('action=scrape_product_detail_page status=done')
