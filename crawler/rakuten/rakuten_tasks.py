@@ -26,6 +26,9 @@ def run_rakuten_search_all() -> None:
     logger.info('action=run_rakuten_search_all status=run')
 
     for shop_code in SHOP_CODES:
-        RakutenCrawler(shop_code).main()
+        try:
+            RakutenCrawler(shop_code).main()
+        except Exception as ex:
+            logger.error({'message': ex})
 
     logger.info('action=run_rakuten_search_all status=done')

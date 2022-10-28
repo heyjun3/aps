@@ -169,6 +169,7 @@ class RakutenCrawler(object):
     def search_sequence(self, query: dict, interval_sec: int=1):
 
         response = utils.request(url=self.base_url, params=query)
+        logger.info({'request_url': response.url})
         time.sleep(interval_sec)
         parsed_value = RakutenHTMLPage.parse_product_list_page(response.text)
         parsed_value = [value | {'shop_code': self.shop_code} for value in parsed_value]
@@ -270,9 +271,12 @@ class RakutenHTMLPage(object):
 
         price = int(''.join(re.findall('[0-9]', price.text))) \
                                         if (price := soup.select_one('.price2')) else None
-        tag = first(tags, key=lambda x: x.get('property') == 'og:url') if (tags := soup.select('meta')) else None
-        product_code = list(filter(None, urlparse(tag.get('content')).path.split('/')))[PRODUCT_CODE_INDEX] \
-                                                                if tag else None
+        url = (first(tags, key=lambda x: x.get('property') == 'og:url').get('content') 
+              if (tags := soup.select('meta')) else 
+              first(tags, key=lambda x: x.get('rel') == 'canonical').get('href') 
+              if (tags := soup.select('link')) else None)
+        product_code = list(filter(None, urlparse(url).path.split('/')))[PRODUCT_CODE_INDEX] \
+                                                                if url else None
         is_stocked = bool(soup.select_one('.cart-button-container'))
         
         logger.info('action=scrape_product_detail_page status=done')
