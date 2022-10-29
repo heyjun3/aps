@@ -190,7 +190,7 @@ class RakutenCrawler(object):
             ], searched_products + [product for product in products if product.get('jan')]) 
             if value]
 
-        next_query = self._generate_next_page_query(response, parsed_value[-1])
+        next_query = self._generate_next_page_query(response, parsed_value[-1], len(parsed_value))
         logger.info({'next page query': next_query})
         return next_query
 
@@ -224,7 +224,12 @@ class RakutenCrawler(object):
         if not current_query.get('p') == '150':
             return
 
-        return current_query | {'p': '1', 'max': last_product.get('price')}
+        price = last_product.get('price')
+        if not price:
+            logger.error({'message': "product hasn't price Exception"})
+            raise Exception
+
+        return current_query | {'p': '1', 'max': price}
 
     @logging
     def _mapping_rakuten_products(self, parsed_products: List[dict], 
