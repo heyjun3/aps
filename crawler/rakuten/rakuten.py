@@ -6,6 +6,7 @@ import json
 from queue import Queue
 from urllib.parse import urlparse
 from urllib.parse import urljoin
+from urllib.parse import parse_qsl
 import threading
 from typing import List
 from typing import Callable
@@ -14,6 +15,7 @@ from collections import ChainMap
 from functools import reduce
 from functools import partial
 from operator import itemgetter
+from operator import attrgetter
 
 import requests
 from bs4 import BeautifulSoup
@@ -143,42 +145,36 @@ class RakutenCrawler(object):
     rakuten_url = 'https://www.rakuten.co.jp/'
     PER_PAGE_COUNT = 45
 
-    def __init__(self, shop_code: str) -> None:
-        self.shop_code = shop_code
+    def __init__(self) -> None:
         self.timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    def crawle_by_shop(self, shop_code: str):
         self.api_client = RakutenAPIClient(shop_code)
-
-
-    def main(self):
-
-        res = utils.request(urljoin(self.rakuten_url, self.shop_code), time_sleep=1)
-        res.html.render(timeout=60)
-        shop_id = RakutenHTMLPage.parse_shop_id(res.html.html)       
+        self.shop_code = shop_code
+        shop_id = self._get_shop_id(shop_code)
         query = {
             'sid': shop_id,
             'used': 0,
             's': 3,
             'p': 1,
+            'max': 100000,
         }
-        response = utils.request(self.base_url, params=query, time_sleep=1)
-        querys = self._generate_querys(response, query)
-        for query in querys:
-            self.search_sequence(query)
+        while query:
+            query = self._search_sequence(query)
 
     @logging
-    def search_sequence(self, query: dict, interval_sec: int=1):
+    def _search_sequence(self, query: dict, interval_sec: int=1) -> dict|None:
 
-        response = utils.request(url=self.base_url, params=query)
+        response = utils.request(url=self.base_url, params=query, time_sleep=interval_sec)
         logger.info({'request_url': response.url})
-        time.sleep(interval_sec)
         parsed_value = RakutenHTMLPage.parse_product_list_page(response.text)
         parsed_value = [value | {'shop_code': self.shop_code} for value in parsed_value]
         rakuten_products = RakutenProduct.get_products_by_shop_code_and_product_codes(
             [value.get('product_code') for value in parsed_value], self.shop_code)
         products = self._mapping_rakuten_products(parsed_value, rakuten_products)
 
-        search_products = [product for product in products if product.get('jan') is None]
-        responses = [utils.request(product.get('url'), time_sleep=1)
+        search_products = [product for product in products if not 'jan' in product]
+        responses = [utils.request(product.get('url'), time_sleep=interval_sec)
                                                     for product in search_products]
         searched_products = list(filter(None, reduce(lambda d, f: map(f, d), [
             RakutenHTMLPage.scrape_product_detail_page,
@@ -194,15 +190,41 @@ class RakutenCrawler(object):
             ], searched_products + [product for product in products if product.get('jan')]) 
             if value]
 
+        next_query = self._generate_next_page_query(response, parsed_value[-1])
+        logger.info({'next page query': next_query})
+        return next_query
 
     @logging
-    def _generate_querys(self, response: requests.Response, query: dict) -> dict:
+    def _get_shop_id(self, shop_code: str) -> int:
+        res = utils.request(urljoin(self.rakuten_url, shop_code), time_sleep=1)
+        res.html.render(timeout=60)
+        shop_id = RakutenHTMLPage.parse_shop_id(res.html.html)       
+        return shop_id
 
-        max_products_count = RakutenHTMLPage.parse_max_products_count(response.text)
-        max_page_count = math.ceil(max_products_count / self.PER_PAGE_COUNT)
-        querys = [query | {'p': i+1} for i in range(max_page_count)]
+    @logging
+    def _generate_next_page_query(self, response: requests.Response, last_product: dict) -> dict:
+        next_query = reduce(lambda d, f: f(d), [
+                    RakutenHTMLPage.parse_next_page_url,
+                    itemgetter('url'),
+                    urlparse,
+                    attrgetter('query'),
+                    parse_qsl,
+                    dict
+                    ],response)
+        if next_query:
+            return next_query
+        
+        current_query = reduce(lambda d, f: f(d), [
+            urlparse,
+            attrgetter('query'),
+            parse_qsl,
+            dict,
+        ], response.url)
 
-        return querys
+        if not current_query.get('p') == '150':
+            return
+
+        return current_query | {'p': '1', 'max': last_product.get('price')}
 
     @logging
     def _mapping_rakuten_products(self, parsed_products: List[dict], 
@@ -286,7 +308,7 @@ class RakutenHTMLPage(object):
                 'is_stocked': is_stocked}
 
     @staticmethod
-    def parse_product_list_page(response: str) -> dict:
+    def parse_product_list_page(response: str) -> List[dict]:
         logger.info({'action': 'parse_product_list_page', 'status': 'run'})
 
         result = []
@@ -363,6 +385,15 @@ class RakutenHTMLPage(object):
             raise Exception
 
         return int(sid)
+
+    @staticmethod
+    def parse_next_page_url(response: requests.Response|str) -> dict:
+
+        text = response if isinstance(response, str) else response.text
+        soup = BeautifulSoup(text, 'lxml')
+        url = tag.get('href') if (tag := soup.select_one('.nextPage')) else None
+        return {'url': url}
+
 
 class RakutenAPIJSON(object):
 

@@ -3,8 +3,8 @@ import unittest
 from unittest.mock import MagicMock
 
 import pytest
-from crawler.rakuten.models import RakutenProduct
 
+from crawler.rakuten.models import RakutenProduct
 from crawler.rakuten.rakuten import RakutenHTMLPage
 from crawler.rakuten.rakuten import RakutenCrawler
 from crawler.rakuten.rakuten import MaxProductsCountNotFoundException
@@ -15,38 +15,12 @@ dirname = os.path.join(os.path.dirname(__file__), 'test_html')
 
 class TestRakutenCrawler(object):
 
-    def test_generate_querys(self):
-        client = RakutenCrawler('test')
-        query = {
-            'sid': 'test',
-            'used': 0,
-            's': 3,
-            'p': 1,
-        }
-        path = os.path.join(dirname, 'product_list_page.html')
-        response = MagicMock()
-        with open(path, 'r') as f:
-            response.text = f.read()
-
-        querys = client._generate_querys(response, query)
-        assert querys[0]['p'] == 1
-        assert querys[0]["s"] == 3
-        assert querys[0]['used'] == 0
-        assert querys[0]['sid'] == 'test'
-
-        assert querys[-1]['p'] == 16
-        assert querys[-1]["s"] == 3
-        assert querys[-1]['used'] == 0
-        assert querys[-1]['sid'] == 'test'
-
-        assert len(querys) == 16
-
     def test_mapping_rakuten_products(self):
         values = [{'product_code': 'aaa', 'price': 111},
                   {'product_code': 'bbb', 'price': 222},]
         rakuten_products = [RakutenProduct(product_code='aaa', jan='9999'),
                             RakutenProduct(product_code='ccc', jan='0000')]
-        client = RakutenCrawler('test')
+        client = RakutenCrawler()
         products = client._mapping_rakuten_products(values, rakuten_products)
         assert len(products) == len(values)
         assert products[0]['product_code'] == 'aaa'
@@ -59,7 +33,7 @@ class TestRakutenCrawler(object):
     def test_mapping_rakuten_products_2(self):
         values = [{'product_code': '4000000000000', 'price': 1000}]
         rakuten_products = [RakutenProduct(product_code='aaa', jan='1111')]
-        client = RakutenCrawler('test')
+        client = RakutenCrawler()
         products = client._mapping_rakuten_products(values, rakuten_products)
         assert products[0]['product_code'] == '4000000000000'
         assert products[0]['price'] == 1000
@@ -68,7 +42,7 @@ class TestRakutenCrawler(object):
         values = [{'product_code': 'aaa', 'price': 111},
                   {'product_code': 'bbb', 'price': 222},]
         value = {'product_code': 'aaa', 'jan': '0000'}
-        client = RakutenCrawler('test')
+        client = RakutenCrawler()
         product = client._mapping_search_value(value, values)
         assert product.get('product_code') == 'aaa'
         assert product.get('jan') == '0000'
@@ -78,13 +52,13 @@ class TestRakutenCrawler(object):
         values = [{'product_code': 'aaa', 'price': 111},
                   {'product_code': 'bbb', 'price': 222},]
         value = {'product_code': 'ccc', 'jan': '0000'}
-        client = RakutenCrawler('test')
+        client = RakutenCrawler()
         product = client._mapping_search_value(value, values)
         assert product == None
 
     def test_calc_real_price(self):
         value = {'product_code': 'aaa', 'price': 10000, 'point': 1000}
-        client = RakutenCrawler('test')
+        client = RakutenCrawler()
         result = client._calc_real_price(value)
         assert result.get('price') == 8000
         assert result.get('product_code') == 'aaa'
@@ -92,10 +66,35 @@ class TestRakutenCrawler(object):
     def test_calc_real_price_return_None(self):
         not_in_price = {'product_code': 'aaa', 'point': 1000}
         not_in_point = {'product_code': 'aaa', 'price': 1000}
-        client = RakutenCrawler('test')
+        client = RakutenCrawler()
         result = client._calc_real_price(not_in_price)
         assert result == None
         result = client._calc_real_price(not_in_point)
+        assert result == None
+
+    def test_generate_next_page_query(self):
+        path = os.path.join(dirname, 'product_list_page.html')
+        with open(path, 'r') as f:
+            response = f.read()
+        client = RakutenCrawler()
+        result = client._generate_next_page_query(response, {})
+        assert result == {'p': '2', 'sid': '363461'}
+
+    def test_generate_next_page_query_max_price(self):
+        client = RakutenCrawler()
+        response = MagicMock()
+        response.url = 'https://google.com/?p=150&used=0&max=1&sid=888'
+        response.text = ''
+        last_product = {'price': 100}
+        result = client._generate_next_page_query(response, last_product)
+        assert result == {'p': '1', 'max': 100, 'sid': '888', 'used': '0'}
+
+    def test_generate_next_page_query_faild(self):
+        client = RakutenCrawler()
+        response = MagicMock()
+        response.url = 'https://google.com/?p=1'
+        response.text = ''
+        result = client._generate_next_page_query(response, {})
         assert result == None
 
 
@@ -170,3 +169,15 @@ class ScrapeDetailProductPage(unittest.TestCase):
 
         shop_id = RakutenHTMLPage.parse_shop_id(response)
         assert shop_id == 197844
+
+    def test_parse_next_page_url(self):
+        path = os.path.join(dirname, 'product_list_page.html')
+        with open(path, 'r') as f:
+            response = f.read()
+        result = RakutenHTMLPage.parse_next_page_url(response)
+        assert result['url'] == "https://search.rakuten.co.jp/search/mall/?p=2&sid=363461"
+
+    def test_parse_next_page_url_fail(self):
+        result = RakutenHTMLPage.parse_next_page_url('')
+        assert result['url'] == None
+        
