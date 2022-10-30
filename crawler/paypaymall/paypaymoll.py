@@ -1,12 +1,37 @@
 import re
+from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
+from requests_html import HTMLResponse
 
 import log_settings
+from crawler import utils
 
 
 logger = log_settings.get_logger(__name__)
 
+
+class YahooShoppingApiClient(object):
+
+    def __init__(self):
+        pass
+
+    def item_search_v3(self, query: dict, interval_sec=1) -> HTMLResponse:
+        endpoint = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch'
+        res = utils.request(endpoint, params=query, time_sleep=interval_sec)
+        return res
+
+
+class YahooShoppingCrawler(object):
+    def __init__(self):
+        pass
+
+
+@dataclass
+class ParsedPayPayMollDetailPage:
+    jan: str
+    price: int
+    is_stocked: bool
 
 class PayPayMollHTMLParser(object):
 
