@@ -5,6 +5,7 @@ import json
 import itertools
 import asyncio
 import collections
+import re
 from typing import ChainMap, List
 from typing import Callable
 from multiprocessing import Process, Queue
@@ -79,6 +80,8 @@ class UpdateChartData(object):
                  SPAPIJsonParser.parse_get_competitive_pricing], messages))
             parsed_data = ChainMap(*[{data['asin']: data for data in itertools.chain.from_iterable(parsed_data)}])
             keepa_products = await KeepaProducts.get_keepa_products_by_asins(parsed_data.keys())
+            if keepa_products is None:
+                continue
             with multiprocessing.Pool() as pool:
                 keepa_products = pool.map(
                     partial(UpdateChartData._mapping_keepa_products_and_parsed_data,
@@ -94,7 +97,7 @@ class UpdateChartData(object):
 
         price = value.get('price')
         rank = value.get('ranking')
-        if not all((price, rank)):
+        if not all((re.fullmatch('[0-9]+', price), re.fullmatch('[0-9]+', rank))):
             return product
 
         product.price_data[now] = price
