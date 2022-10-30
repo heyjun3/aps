@@ -90,9 +90,15 @@ class UpdateChartData(object):
         now = convert_unix_time_to_keepa_time(time.time())    
         value = parsed_data.get(product.asin)
         if not value:
-            return
-        product.price_data[now] = value['price']
-        product.rank_data[now] = value['ranking']
+            return product
+
+        price = value.get('price')
+        rank = value.get('ranking')
+        if not all((price, rank)):
+            return product
+
+        product.price_data[now] = price
+        product.rank_data[now] = rank
         product.render_data[now] = convert_recharts_data(
                                             {'rank_data': product.rank_data,
                                                 'price_data': product.price_data})
