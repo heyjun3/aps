@@ -148,6 +148,7 @@ class RakutenCrawler(object):
     def __init__(self) -> None:
         self.timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
+    @logging
     def crawle_by_shop(self, shop_code: str):
         self.api_client = RakutenAPIClient(shop_code)
         self.shop_code = shop_code
