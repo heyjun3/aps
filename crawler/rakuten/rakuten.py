@@ -298,10 +298,11 @@ class RakutenHTMLPage(object):
 
         price = int(''.join(re.findall('[0-9]', price.text))) \
                                         if (price := soup.select_one('.price2')) else None
-        url = (first(tags, key=lambda x: x.get('property') == 'og:url').get('content') 
-              if (tags := soup.select('meta')) else 
-              first(tags, key=lambda x: x.get('rel') == 'canonical').get('href') 
-              if (tags := soup.select('link')) else None)
+        url = (tag.get('content') 
+              if (tag := soup.select_one('meta[property="og:url"]')) else 
+              tag.get('href') 
+              if (tag := soup.select_one('link[rel="canonical"]')) else 
+              None)
         product_code = list(filter(None, urlparse(url).path.split('/')))[PRODUCT_CODE_INDEX] \
                                                                 if url else None
         is_stocked = bool(soup.select_one('.cart-button-container'))
