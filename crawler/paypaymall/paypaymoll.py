@@ -1,5 +1,7 @@
+from __future__ import annotations
 import re
 from dataclasses import dataclass
+from dataclasses import asdict
 
 from bs4 import BeautifulSoup
 from requests_html import HTMLResponse
@@ -13,14 +15,21 @@ logger = log_settings.get_logger(__name__)
 
 class YahooShoppingApiClient(object):
 
-    def __init__(self):
-        pass
-
-    def item_search_v3(self, query: dict, interval_sec=1) -> HTMLResponse:
+    @staticmethod
+    def item_search_v3(request: YahooShoppingApiItemSearchRequest, interval_sec=1) -> HTMLResponse:
         endpoint = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch'
-        res = utils.request(endpoint, params=query, time_sleep=interval_sec)
+        res = utils.request(endpoint, params=asdict(request), time_sleep=interval_sec)
         return res
 
+@dataclass
+class YahooShoppingApiItemSearchRequest:
+    appid: str
+    seller_id: str
+    condition: str = 'new'
+    in_stock: str = 'true'
+    results: int = 100
+    sort: str = '-price'
+    start: int = 1
 
 class YahooShoppingCrawler(object):
     def __init__(self):
