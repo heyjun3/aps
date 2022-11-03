@@ -230,7 +230,7 @@ class RakutenCrawler(object):
             logger.error({'message': "product hasn't price Exception"})
             raise Exception
 
-        return current_query | {'p': '1', 'max': price}
+        return current_query | {'p': '1', 'max': int(float(price)-1)}
 
     @logging
     def _mapping_rakuten_products(self, parsed_products: List[dict], 
