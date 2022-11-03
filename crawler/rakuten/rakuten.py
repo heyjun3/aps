@@ -199,7 +199,15 @@ class RakutenCrawler(object):
     def _get_shop_id(self, shop_code: str) -> int:
         res = utils.request(urljoin(self.rakuten_url, shop_code), time_sleep=1)
         res.html.render(timeout=60)
-        shop_id = RakutenHTMLPage.parse_shop_id(res.html.html)       
+        shop_id = (shop_id if (shop_id := RakutenHTMLPage.parse_shop_id(res.html.html))
+                    else shop_id if (shop_id := reduce(lambda d, f: f(d), [
+                        RakutenHTMLPage.parse_header_html_src,
+                        itemgetter('src'),
+                        partial(urljoin, res.url),
+                        partial(utils.request, time_sleep=1),
+                        attrgetter('text'),
+                        RakutenHTMLPage.parse_shop_id,
+                        ], res.html.html)) else None)
         return shop_id
 
     @logging
@@ -381,15 +389,15 @@ class RakutenHTMLPage(object):
     @staticmethod
     def parse_shop_id(response: str) -> int:
         soup = BeautifulSoup(response, 'lxml')
-        sid = (sid.get('value') if (sid := first(sids, key=lambda x: x.get('name') == 'sid')) else None) \
-                                if (sids := soup.select('input')) else None
+
+        sid = (sid.get('value') if (sid := soup.select_one('input[name=sid]')) else None)
         if sid is None:
-            logger.error({'message': 'sid is None'})
-            raise Exception
+            logger.error({"action": "parse_shop_id", 'message': 'sid is None'})
+            return
 
         if not re.fullmatch('[0-9]+', str(sid)):
             logger.error({'message': 'sid validation is failed', 'value': sid})
-            raise Exception
+            return
 
         return int(sid)
 
@@ -400,6 +408,17 @@ class RakutenHTMLPage(object):
         soup = BeautifulSoup(text, 'lxml')
         url = tag.get('href') if (tag := soup.select_one('.nextPage')) else None
         return {'url': url}
+
+    @staticmethod
+    def parse_header_html_src(response: requests.Response|str) -> dict:
+        text = response if isinstance(response, str) else response.text
+        soup = BeautifulSoup(text, 'lxml')
+        header_src = elem.get('src') if (elem := soup.select_one('.header-out')) else None
+        if header_src is None:
+            logger.error({"action": "parse_header_html_src",
+                          "message": 'header html src is None'})
+            raise Exception
+        return {'src': header_src}
 
 
 class RakutenAPIJSON(object):

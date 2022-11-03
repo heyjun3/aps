@@ -87,7 +87,7 @@ class TestRakutenCrawler(object):
         response.text = ''
         last_product = {'price': 100}
         result = client._generate_next_page_query(response, last_product)
-        assert result == {'p': '1', 'max': 100, 'sid': '888', 'used': '0'}
+        assert result == {'p': '1', 'max': 99, 'sid': '888', 'used': '0'}
 
     def test_generate_next_page_query_faild(self):
         client = RakutenCrawler()
@@ -169,6 +169,19 @@ class ScrapeDetailProductPage(unittest.TestCase):
 
         shop_id = RakutenHTMLPage.parse_shop_id(response)
         assert shop_id == 197844
+
+    def test_parse_header_html_src(self):
+        path = os.path.join(dirname, 'parse_shop_id3.html')
+        with open(path, 'r') as f:
+            res = f.read()
+        src = RakutenHTMLPage.parse_header_html_src(res)
+        assert src == {"src": "common/inc/header.html"}
+
+    def test_parse_header_html_src_failed(self):
+        with pytest.raises(Exception) as ex:
+            src = RakutenHTMLPage.parse_header_html_src('aaa')
+
+        assert str(ex.value) == ''
 
     def test_parse_next_page_url(self):
         path = os.path.join(dirname, 'product_list_page.html')
