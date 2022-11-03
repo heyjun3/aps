@@ -60,7 +60,6 @@ class SpreadSheetCrawler(object):
         self.start_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         self.mq = MQ(queue_name)
 
-    @log_decorator
     def start_crawler(self) -> None:
         sheet_values = self._get_crawl_urls_from_spread_sheet()
         funcs = (
@@ -80,13 +79,11 @@ class SpreadSheetCrawler(object):
 
         return self._request_sequence(funcs[0](value), funcs[1:])
 
-    @log_decorator
     def _get_crawl_urls_from_spread_sheet(self) -> List[SpreadSheetValue]:
         sheet = self.client.open(self.sheet_title).worksheet(self.sheet_name)
         records = list(map(lambda x: SpreadSheetValue(x.get('URL'), x.get('JAN')), sheet.get_all_records()))
         return records
 
-    @log_decorator
     def _validation_sheet_value(self, value: SpreadSheetValue) -> SpreadSheetValue|None:
         if value.url is None:
             logger.error({'message': 'sheet value is URL None'})
@@ -94,7 +91,6 @@ class SpreadSheetCrawler(object):
 
         return value
 
-    @log_decorator
     def _send_request(self, sheet_value: SpreadSheetValue, interval_sec: int=4) -> SpreadSheetValue|None:
         value = deepcopy(sheet_value)
         logger.info(value.url)
@@ -110,7 +106,6 @@ class SpreadSheetCrawler(object):
             return
         logger.error(response.status_code, response.url)
 
-    @log_decorator
     def _parse_response(self, sheet_value: SpreadSheetValue) -> SpreadSheetValue|None:
         value = deepcopy(sheet_value)
         parser = self._get_html_parser(value.response.url)
@@ -120,7 +115,6 @@ class SpreadSheetCrawler(object):
         value.parsed_value = parser(value.response.text)
         return value
 
-    @log_decorator
     def _generate_string_for_enqueue(self, sheet_value: SpreadSheetValue) -> str:
         jan = sheet_value.parsed_value.get('jan') or sheet_value.jan
         price = sheet_value.parsed_value.get('price')
@@ -136,7 +130,6 @@ class SpreadSheetCrawler(object):
             'url': sheet_value.url,
         })
 
-    @log_decorator
     def _get_html_parser(self, url: str) -> Callable:
         netloc = urllib.parse.urlparse(url).netloc
         # todo add parser
