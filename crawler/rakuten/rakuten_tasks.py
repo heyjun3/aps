@@ -16,8 +16,8 @@ SHOP_CODES = [
 def run_rakuten_search_at_shop_code(shop_code: str) -> None:
     logger.info('action=run_rakuten_search_at_shop_code status=run')
 
-    rakuten = RakutenCrawler(shop_code=shop_code)
-    rakuten.main()
+    rakuten = RakutenCrawler()
+    rakuten.crawle_by_shop(shop_code)
     
     logger.info('action=run_rakuten_search_at_shop_code status=run')
 
@@ -26,6 +26,9 @@ def run_rakuten_search_all() -> None:
     logger.info('action=run_rakuten_search_all status=run')
 
     for shop_code in SHOP_CODES:
-        RakutenCrawler(shop_code).main()
+        try:
+            run_rakuten_search_at_shop_code(shop_code)
+        except Exception as ex:
+            logger.error({'message': ex})
 
     logger.info('action=run_rakuten_search_all status=done')
