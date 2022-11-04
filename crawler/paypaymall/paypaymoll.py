@@ -2,6 +2,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from dataclasses import asdict
+from typing import List
 
 from bs4 import BeautifulSoup
 from requests_html import HTMLResponse
@@ -30,6 +31,34 @@ class YahooShoppingApiItemSearchRequest:
     results: int = 100
     sort: str = '-price'
     start: int = 1
+
+class YahooShoppingApiParser(object):
+
+    @staticmethod
+    def parse_item_search_v3(response: dict) -> List[YahooShoppingSearchItem]:
+        result = []
+        for item in response.get('hits'):
+            result.append(YahooShoppingSearchItem(
+                product_id=item.get('code'),
+                price=item.get('price'),
+                jan=item.get('janCode'),
+                name=item.get('name'),
+                point=point.get('premiumAmount') if (point := item.get('point')) else None,
+                shop_id=sid.get('sellerId') if (sid := item.get('serller')) else None,
+                url=item.get('url'),
+            ))
+        return result
+
+@dataclass
+class YahooShoppingSearchItem:
+    product_id: str
+    price: int
+    jan: str = None
+    name: str = None
+    point: int = None
+    shop_id: str = None
+    url: str = None
+
 
 class YahooShoppingCrawler(object):
     def __init__(self):
