@@ -1,22 +1,22 @@
 from __future__ import annotations
-import time
 import urllib.parse
 import re
 import datetime
 import json
 from pathlib import Path
 from functools import partial
-from copy import deepcopy
 from typing import List
 from typing import Callable
+from dataclasses import dataclass
+from functools import reduce
 
 import gspread
-import requests
+import requests_html
 from oauth2client.service_account import ServiceAccountCredentials
 
 import log_settings
 from mq import MQ
-from crawler.utils import HEADERS
+from crawler import utils
 from crawler.buffalo.buffalo import BuffaloHTMLPage
 from crawler.pc4u.pc4u import Pc4uHTMLPage
 from crawler.pcones.pcones import PconesHTMLPage
@@ -34,16 +34,31 @@ def log_decorator(func: Callable) -> Callable:
         return result
     return _inner
 
-
-class SpreadSheetValue(object):
+@dataclass
+class SpreadSheetValue:
     jan: str
     url: str
-    response: requests.Response
-    parsed_value: dict
 
-    def __init__(self, url: str, jan: str) -> None:
-        self.url = url
-        self.jan = jan
+
+@dataclass
+class RequestResult:
+    jan: str
+    url: str
+    response: requests_html.HTMLResponse
+
+
+@dataclass
+class ParsedValue:
+    jan: str
+    price: int
+    is_stocked: bool
+
+
+@dataclass
+class ParseResult:
+    jan: str
+    url: str
+    parse_result: ParsedValue
 
 
 class SpreadSheetCrawler(object):
@@ -62,63 +77,75 @@ class SpreadSheetCrawler(object):
 
     def start_crawler(self) -> None:
         sheet_values = self._get_crawl_urls_from_spread_sheet()
-        funcs = (
+        # funcs = (
+        #     self._validation_sheet_value,
+        #     self._send_request,
+        #     self._parse_response,
+        #     self._generate_string_for_enqueue,
+        #     self.mq.publish,
+        # )
+        # list(map(partial(self._request_sequence, funcs=funcs), sheet_values))
+        publish_messages = filter(None, reduce(lambda d, f: map(f, d), [
             self._validation_sheet_value,
             self._send_request,
             self._parse_response,
             self._generate_string_for_enqueue,
-            self.mq.publish,
-        )
-        list(map(partial(self._request_sequence, funcs=funcs), sheet_values))
+        ], sheet_values))
+        [self.mq.publish(message) for message in publish_messages]
 
-    def _request_sequence(self, value: dict, funcs: tuple[Callable]) -> dict|None:
-        if value is None:
-            return
-        if not funcs:
-            return value
+    # def _request_sequence(self, value: dict, funcs: tuple[Callable]) -> dict|None:
+    #     if value is None:
+    #         return
+    #     if not funcs:
+    #         return value
 
-        return self._request_sequence(funcs[0](value), funcs[1:])
+    #     return self._request_sequence(funcs[0](value), funcs[1:])
 
     def _get_crawl_urls_from_spread_sheet(self) -> List[SpreadSheetValue]:
         sheet = self.client.open(self.sheet_title).worksheet(self.sheet_name)
-        records = list(map(lambda x: SpreadSheetValue(x.get('URL'), x.get('JAN')), sheet.get_all_records()))
+        records = list(map(lambda x: SpreadSheetValue(x.get('JAN'), x.get('URL')), sheet.get_all_records()))
         return records
 
     def _validation_sheet_value(self, value: SpreadSheetValue) -> SpreadSheetValue|None:
+        if value is None: return
         if value.url is None:
             logger.error({'message': 'sheet value is URL None'})
             return
 
         return value
 
-    def _send_request(self, sheet_value: SpreadSheetValue, interval_sec: int=4) -> SpreadSheetValue|None:
-        value = deepcopy(sheet_value)
-        logger.info(value.url)
+    def _send_request(self, sheet_value: SpreadSheetValue, interval_sec: int=4) -> RequestResult|None:
+        if sheet_value is None: return
+        logger.info(sheet_value.url)
+        response = utils.request(sheet_value.url, time_sleep=interval_sec)
 
-        response = requests.get(value.url, headers=HEADERS)
-        time.sleep(interval_sec)
-
-        if response.status_code == 200:
-            value.response = response
-            return value
-        if response.status_code == 404:
-            logger.error({'status_code': response.status_code, 'message': 'page not Found'})
+        if response is None:
             return
-        logger.error(response.status_code, response.url)
 
-    def _parse_response(self, sheet_value: SpreadSheetValue) -> SpreadSheetValue|None:
-        value = deepcopy(sheet_value)
-        parser = self._get_html_parser(value.response.url)
+        return RequestResult(sheet_value.jan, sheet_value.url, response)
+        # if response.status_code == 200:
+            # return RequestResult(sheet_value.jan, sheet_value.url, response)
+        # if response.status_code == 404:
+        #     logger.error({'status_code': response.status_code, 'message': 'page not Found'})
+        #     return
+        # logger.error(response.status_code, response.url)
+
+    def _parse_response(self, res: RequestResult) -> ParseResult|None:
+        if res is None: return
+        parser = self._get_html_parser(res.response.url)
 
         if parser is None:
             return
-        value.parsed_value = parser(value.response.text)
-        return value
+        value = parser(res.response.text)
+        parsed_value = ParsedValue(value.get('jan'), value.get('price'), value.get('is_stocked'))
+        return ParseResult(res.jan, res.url, parsed_value)
 
-    def _generate_string_for_enqueue(self, sheet_value: SpreadSheetValue) -> str:
-        jan = sheet_value.parsed_value.get('jan') or sheet_value.jan
-        price = sheet_value.parsed_value.get('price')
-        is_stocked = sheet_value.parsed_value.get('is_stocked')
+    def _generate_string_for_enqueue(self, result: ParseResult) -> str|None:
+        if result is None: return
+
+        jan = jan if (jan := result.parse_result.jan) else result.jan
+        price = result.parse_result.price
+        is_stocked = result.parse_result.is_stocked
         if not all((jan, price, is_stocked)):
             logger.error({'message': 'publish queue bad parameter', 'values': (jan, price, is_stocked)})
             return
@@ -127,7 +154,7 @@ class SpreadSheetCrawler(object):
             'filename': f'repeat_{self.start_time}',
             'jan': jan,
             'cost': price,
-            'url': sheet_value.url,
+            'url': result.url,
         })
 
     def _get_html_parser(self, url: str) -> Callable:
