@@ -4,7 +4,6 @@ import re
 import datetime
 import json
 from pathlib import Path
-from functools import partial
 from typing import List
 from typing import Callable
 from dataclasses import dataclass
@@ -75,16 +74,9 @@ class SpreadSheetCrawler(object):
         self.start_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         self.mq = MQ(queue_name)
 
+    @log_decorator
     def start_crawler(self) -> None:
         sheet_values = self._get_crawl_urls_from_spread_sheet()
-        # funcs = (
-        #     self._validation_sheet_value,
-        #     self._send_request,
-        #     self._parse_response,
-        #     self._generate_string_for_enqueue,
-        #     self.mq.publish,
-        # )
-        # list(map(partial(self._request_sequence, funcs=funcs), sheet_values))
         publish_messages = filter(None, reduce(lambda d, f: map(f, d), [
             self._validation_sheet_value,
             self._send_request,
@@ -93,19 +85,13 @@ class SpreadSheetCrawler(object):
         ], sheet_values))
         [self.mq.publish(message) for message in publish_messages]
 
-    # def _request_sequence(self, value: dict, funcs: tuple[Callable]) -> dict|None:
-    #     if value is None:
-    #         return
-    #     if not funcs:
-    #         return value
-
-    #     return self._request_sequence(funcs[0](value), funcs[1:])
-
+    @log_decorator
     def _get_crawl_urls_from_spread_sheet(self) -> List[SpreadSheetValue]:
         sheet = self.client.open(self.sheet_title).worksheet(self.sheet_name)
         records = list(map(lambda x: SpreadSheetValue(x.get('JAN'), x.get('URL')), sheet.get_all_records()))
         return records
 
+    @log_decorator
     def _validation_sheet_value(self, value: SpreadSheetValue) -> SpreadSheetValue|None:
         if value is None: return
         if value.url is None:
@@ -114,6 +100,7 @@ class SpreadSheetCrawler(object):
 
         return value
 
+    @log_decorator
     def _send_request(self, sheet_value: SpreadSheetValue, interval_sec: int=4) -> RequestResult|None:
         if sheet_value is None: return
         logger.info(sheet_value.url)
@@ -123,13 +110,8 @@ class SpreadSheetCrawler(object):
             return
 
         return RequestResult(sheet_value.jan, sheet_value.url, response)
-        # if response.status_code == 200:
-            # return RequestResult(sheet_value.jan, sheet_value.url, response)
-        # if response.status_code == 404:
-        #     logger.error({'status_code': response.status_code, 'message': 'page not Found'})
-        #     return
-        # logger.error(response.status_code, response.url)
 
+    @log_decorator
     def _parse_response(self, res: RequestResult) -> ParseResult|None:
         if res is None: return
         parser = self._get_html_parser(res.response.url)
@@ -140,6 +122,7 @@ class SpreadSheetCrawler(object):
         parsed_value = ParsedValue(value.get('jan'), value.get('price'), value.get('is_stocked'))
         return ParseResult(res.jan, res.url, parsed_value)
 
+    @log_decorator
     def _generate_string_for_enqueue(self, result: ParseResult) -> str|None:
         if result is None: return
 
@@ -157,6 +140,7 @@ class SpreadSheetCrawler(object):
             'url': result.url,
         })
 
+    @log_decorator
     def _get_html_parser(self, url: str) -> Callable:
         netloc = urllib.parse.urlparse(url).netloc
         # todo add parser
