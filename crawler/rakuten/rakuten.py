@@ -191,6 +191,9 @@ class RakutenCrawler(object):
             ], searched_products + [product for product in products if product.get('jan')]) 
             if value]
 
+        if not parsed_value:
+            return
+
         next_query = self._generate_next_page_query(response, parsed_value[-1])
         logger.info({'next page query': next_query})
         return next_query
