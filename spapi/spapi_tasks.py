@@ -102,9 +102,9 @@ class UpdateChartData(object):
 
         product.price_data[now] = price
         product.rank_data[now] = rank
-        product.render_data[now] = convert_recharts_data(
-                                            {'rank_data': product.rank_data,
-                                                'price_data': product.price_data})
+        product.render_data = convert_recharts_data({
+                                                'rank_data': product.rank_data,
+                                                'price_data': product.price_data,})
         return product
 
 
