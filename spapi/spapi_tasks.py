@@ -97,7 +97,7 @@ class UpdateChartData(object):
 
         price = value.get('price')
         rank = value.get('ranking')
-        if not all((re.fullmatch('[0-9]+', str(price)), re.fullmatch('[0-9]+', str(rank)))):
+        if not all((re.fullmatch('-?[0-9]+', str(price)), re.fullmatch('-?[0-9]+', str(rank)))):
             logger.error({'messagee': 'parameter is valid', "value": value})
             return product
 
