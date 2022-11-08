@@ -285,5 +285,6 @@ class RunAmzTask(object):
             fees = await SpapiFees.get_asins_fee(list(asins))
             result = await _get_my_fees_estimate(list(asins - {fee.asin for fee in fees}))
             mws_objects = _mws_mapping_spapi_fees(mws_objects, fees + result)
+
             asyncio.ensure_future(SpapiFees.insert_all_on_conflict_do_update_fee(result))
-            asyncio.ensure_future(MWS.insert_all_on_conflict_do_update_fee(mws_objects))
+            await MWS.insert_all_on_conflict_do_update_fee(mws_objects)
