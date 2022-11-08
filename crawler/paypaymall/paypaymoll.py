@@ -14,43 +14,44 @@ from crawler import utils
 logger = log_settings.get_logger(__name__)
 
 
-class YahooShoppingApiClient(object):
+class YahooShopApi(object):
 
     @staticmethod
-    def item_search_v3(request: YahooShoppingApiItemSearchRequest, interval_sec=1) -> HTMLResponse:
+    def item_search_v3(request: ItemSearchRequest, interval_sec=1) -> HTMLResponse:
         endpoint = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch'
         res = utils.request(endpoint, params=asdict(request), time_sleep=interval_sec)
         return res
 
 @dataclass
-class YahooShoppingApiItemSearchRequest:
+class ItemSearchRequest:
     appid: str
     seller_id: str
     condition: str = 'new'
     in_stock: str = 'true'
+    price_to: int = 100000
     results: int = 100
     sort: str = '-price'
     start: int = 1
 
-class YahooShoppingApiParser(object):
+class YahooShopApiParser(object):
 
     @staticmethod
-    def parse_item_search_v3(response: dict) -> List[YahooShoppingSearchItem]:
+    def parse_item_search_v3(response: dict) -> List[ItemSearchResult]:
         result = []
         for item in response.get('hits'):
-            result.append(YahooShoppingSearchItem(
+            result.append(ItemSearchResult(
                 product_id=item.get('code'),
-                price=item.get('price'),
+                price=int(price) if (price := item.get('price')) else None,
                 jan=item.get('janCode'),
                 name=item.get('name'),
-                point=point.get('premiumAmount') if (point := item.get('point')) else None,
-                shop_id=sid.get('sellerId') if (sid := item.get('serller')) else None,
+                point=int(point) if (point := item['point']['premiumBonusAmount']) else None,
+                shop_id=sid.get('sellerId') if (sid := item.get('seller')) else None,
                 url=item.get('url'),
             ))
         return result
 
 @dataclass
-class YahooShoppingSearchItem:
+class ItemSearchResult:
     product_id: str
     price: int
     jan: str = None
@@ -60,9 +61,13 @@ class YahooShoppingSearchItem:
     url: str = None
 
 
-class YahooShoppingCrawler(object):
+class YahooShopCrawler(object):
     def __init__(self):
         pass
+
+    def search_by_shop_id(self, app_id: str, seller_id: str) -> None:
+        query = ItemSearchRequest(app_id, seller_id)
+        res = YahooShopApi.item_search_v3(query)
 
 
 @dataclass
