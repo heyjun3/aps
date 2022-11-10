@@ -39,15 +39,15 @@ class YahooShopApiParser(object):
     def parse_item_search_v3(response: dict) -> List[ItemSearchResult]:
         result = []
         for item in response.get('hits'):
-            result.append(ItemSearchResult(
-                product_id=item.get('code'),
-                price=int(price) if (price := item.get('price')) else None,
-                jan=item.get('janCode'),
-                name=item.get('name'),
-                point=int(point) if (point := item['point']['premiumBonusAmount']) else None,
-                shop_id=sid.get('sellerId') if (sid := item.get('seller')) else None,
-                url=item.get('url'),
-            ))
+            match item:
+                case {
+                    'code': code, 'price': price, 'janCode': jan, 'name': name,
+                    'point': {'premiumBonusAmount': point},
+                    'seller': {'sellerId': sellerId},
+                    'url': url, }:
+                    result.append(ItemSearchResult(code, price, jan, name, point, sellerId, url))
+                case _:
+                    pass
         return result
 
 @dataclass
