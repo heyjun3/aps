@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from dataclasses import asdict
 from typing import List
 from copy import deepcopy
+from datetime import datetime
 
 from bs4 import BeautifulSoup
 from requests_html import HTMLResponse
@@ -76,17 +77,19 @@ class YahooShopCrawler(object):
     def _calc_real_price(self, item: ItemSearchResult) -> ItemSearchResult|None:
         result = deepcopy(item)
         match result:
-            case ItemSearchResult(price=price, point=point):
+            case ItemSearchResult(price=price, point=point) if all((price, point)):
                 result.price = price - point
                 return result
             case _ :
                 return
 
-    def _generage_publish_message(self, item: ItemSearchResult) -> str|None:
-        match item:
-            # case {'jan': jan, 'price': price, 'url': url} if all((jan, price, url)):
-            case ItemSearchResult(jan=jan, price=price, url=url) if all((jan, price, url)):
-                return json.dumps({'jan': jan, 'cost': price, 'url': url})
+    def _generate_publish_message(self, item: ItemSearchResult,
+                            timestamp: datetime, prefix: str='paypay') -> str|None:
+        match item, timestamp:
+            case ItemSearchResult(jan=jan, price=price, url=url), datetime() if all((jan, price, url)):
+                return json.dumps({
+                    'jan': jan, 'cost': price, 'url': url,
+                    "filename": f'{prefix}_{timestamp.strftime("%Y%m%d_%H%M%S")}'})
             case _ :
                 return
 

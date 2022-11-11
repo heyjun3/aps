@@ -1,5 +1,6 @@
 import os
 import json
+import datetime
 
 import pytest
 
@@ -29,6 +30,36 @@ class TestYahooShopCrawler(object):
         client = paypaymoll.YahooShopCrawler()
         value = client._calc_real_price(result)
         assert value == paypaymoll.ItemSearchResult('test', 900, '4444', 'test', 100, 'id', 'url')
+
+    def test_calc_real_price_fail(self):
+        result = paypaymoll.ItemSearchResult(None, None)
+        client = paypaymoll.YahooShopCrawler()
+        value = client._calc_real_price(result)
+        assert value == None
+
+        value = client._calc_real_price(None)
+        assert value == None
+
+    def test_generate_publish_message(self):
+        result = paypaymoll.ItemSearchResult('test', 1000, '4444', 'test', 100, 'id', 'url')
+        client = paypaymoll.YahooShopCrawler()
+        timestamp = datetime.datetime(2022, 11, 11, 0, 49, 1)
+        value = client._generate_publish_message(result, timestamp)
+        assert value == '{"jan": "4444", "cost": 1000, "url": "url", "filename": "paypay_20221111_004901"}'
+
+    def test_generate_publish_message(self):
+        client = paypaymoll.YahooShopCrawler()
+        value_1 = paypaymoll.ItemSearchResult('test', None, '4444', 'test', 100, 'id', 'url')
+        value_2 = paypaymoll.ItemSearchResult('test', 1000, None, 'test', 100, 'id', 'url')
+        value_3 = paypaymoll.ItemSearchResult('test', 1000, '4444', 'test', 100, 'id', None)
+        result_1 = client._generate_publish_message(value_1, datetime.datetime.now())
+        result_2 = client._generate_publish_message(value_2, datetime.datetime.now())
+        result_3 = client._generate_publish_message(value_3, datetime.datetime.now())
+        result_4 = client._generate_publish_message(None, datetime.datetime.now())
+        assert result_1 == None
+        assert result_2 == None
+        assert result_3 == None
+        assert result_4 == None
 
 
 class TestYahooShopApiParser(object):
