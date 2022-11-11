@@ -5,6 +5,7 @@ import pytest
 
 from crawler.paypaymall.paypaymoll import PayPayMollHTMLParser
 from crawler.paypaymall.paypaymoll import YahooShopApiParser
+from crawler.paypaymall import paypaymoll
 
 dirname = os.path.join(os.path.dirname(__file__), 'test_html')
 
@@ -20,6 +21,14 @@ class TestPayPayMoll(object):
         assert parsed_value.get('jan') == '4957054501273'
         assert parsed_value.get('price') == 38500
         assert parsed_value.get('is_stocked') == False
+
+class TestYahooShopCrawler(object):
+
+    def test_calc_real_price(self):
+        result = paypaymoll.ItemSearchResult('test', 1000, '4444', 'test', 100, 'id', 'url')
+        client = paypaymoll.YahooShopCrawler()
+        value = client._calc_real_price(result)
+        assert value == paypaymoll.ItemSearchResult('test', 900, '4444', 'test', 100, 'id', 'url')
 
 
 class TestYahooShopApiParser(object):

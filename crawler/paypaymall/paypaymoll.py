@@ -1,8 +1,10 @@
 from __future__ import annotations
 import re
+import json
 from dataclasses import dataclass
 from dataclasses import asdict
 from typing import List
+from copy import deepcopy
 
 from bs4 import BeautifulSoup
 from requests_html import HTMLResponse
@@ -46,8 +48,7 @@ class YahooShopApiParser(object):
                     'seller': {'sellerId': sellerId},
                     'url': url, }:
                     result.append(ItemSearchResult(code, price, jan, name, point, sellerId, url))
-                case _:
-                    pass
+
         return result
 
 @dataclass
@@ -68,6 +69,26 @@ class YahooShopCrawler(object):
     def search_by_shop_id(self, app_id: str, seller_id: str) -> None:
         query = ItemSearchRequest(app_id, seller_id)
         res = YahooShopApi.item_search_v3(query)
+        results = YahooShopApiParser.parse_item_search_v3(res.json())
+        values = [self._calc_real_price(result) for result in results]
+
+
+    def _calc_real_price(self, item: ItemSearchResult) -> ItemSearchResult|None:
+        result = deepcopy(item)
+        match result:
+            case ItemSearchResult(price=price, point=point):
+                result.price = price - point
+                return result
+            case _ :
+                return
+
+    def _generage_publish_message(self, item: ItemSearchResult) -> str|None:
+        match item:
+            # case {'jan': jan, 'price': price, 'url': url} if all((jan, price, url)):
+            case ItemSearchResult(jan=jan, price=price, url=url) if all((jan, price, url)):
+                return json.dumps({'jan': jan, 'cost': price, 'url': url})
+            case _ :
+                return
 
 
 @dataclass
