@@ -25,6 +25,23 @@ class TestPayPayMoll(object):
 
 class TestYahooShopCrawler(object):
 
+    def test_search_sequnce(self):
+        client = paypaymoll.YahooShopCrawler()
+        timestamp = datetime.datetime.now()
+        path = os.path.join(dirname, 'item_search_v3.json')
+        with open(path, 'r') as f:
+            res = f.read()
+        result = client._search_sequence(json.loads(res), timestamp)
+        assert len(list(result)) == 100
+
+    def test_search_sequnce_failed(self):
+        client = paypaymoll.YahooShopCrawler()
+        timestamp = datetime.datetime.now()
+        with pytest.raises(TypeError) as ex:
+            result = client._search_sequence({}, timestamp)
+
+        assert isinstance(ex.value, TypeError)
+
     def test_calc_real_price(self):
         result = paypaymoll.ItemSearchResult('test', 1000, '4444', 'test', 100, 'id', 'url')
         client = paypaymoll.YahooShopCrawler()
@@ -47,7 +64,7 @@ class TestYahooShopCrawler(object):
         value = client._generate_publish_message(result, timestamp)
         assert value == '{"jan": "4444", "cost": 1000, "url": "url", "filename": "paypay_20221111_004901"}'
 
-    def test_generate_publish_message(self):
+    def test_generate_publish_message_failed(self):
         client = paypaymoll.YahooShopCrawler()
         value_1 = paypaymoll.ItemSearchResult('test', None, '4444', 'test', 100, 'id', 'url')
         value_2 = paypaymoll.ItemSearchResult('test', 1000, None, 'test', 100, 'id', 'url')

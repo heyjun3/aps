@@ -21,11 +21,6 @@ def get_logger(name: str, level=logging.INFO) -> logging.getLogger:
     fluent_handler.setFormatter(handler.FluentRecordFormatter(fluent_format))
     fluent_handler.setLevel(level)
 
-    # docker 移行時に削除する。
-    # filehander = logging.FileHandler(os.path.join(settings.BASE_PATH, 'logs', f'{name}.log'))
-    # filehander.setFormatter(formatter)
-    # filehander.setLevel(level)
-
     streamhandler = logging.StreamHandler()
     streamhandler.setFormatter(formatter)
     streamhandler.setLevel(level)
@@ -34,4 +29,14 @@ def get_logger(name: str, level=logging.INFO) -> logging.getLogger:
     logger.addHandler(fluent_handler)
 
     return logger
+
+def decorator_logging(logger: logging.Logger):
+    def _wrapper(func):
+        def _inner_wrapper(*args, **kwargs):
+            logger.info({'action': func.__name__, 'status': 'run'})
+            result = func(*args, **kwargs)
+            logger.info({'action': func.__name__, 'status': 'done'})
+            return result
+        return _inner_wrapper
+    return _wrapper
     

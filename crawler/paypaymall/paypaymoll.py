@@ -1,6 +1,8 @@
 from __future__ import annotations
 import re
 import json
+import functools
+from functools import partial
 from dataclasses import dataclass
 from dataclasses import asdict
 from typing import List
@@ -11,10 +13,12 @@ from bs4 import BeautifulSoup
 from requests_html import HTMLResponse
 
 import log_settings
+import mq
 from crawler import utils
 
 
 logger = log_settings.get_logger(__name__)
+logging = log_settings.decorator_logging(logger)
 
 
 class YahooShopApi(object):
@@ -66,13 +70,23 @@ class ItemSearchResult:
 class YahooShopCrawler(object):
     def __init__(self):
         pass
-
-    def search_by_shop_id(self, app_id: str, seller_id: str) -> None:
+    
+    @logging
+    def search_by_shop_id(self, app_id: str, seller_id: str, mq: mq.MQ=mq.MQ('mws')) -> None:
+        timestamp = datetime.now()
         query = ItemSearchRequest(app_id, seller_id)
         res = YahooShopApi.item_search_v3(query)
-        results = YahooShopApiParser.parse_item_search_v3(res.json())
-        values = [self._calc_real_price(result) for result in results]
+        messages = self._search_sequence(res.json(), timestamp)
+        [mq.publish(message) for message in messages if message]
 
+    @logging
+    def _search_sequence(self, res: dict, timestamp: datetime) -> map:
+        results = functools.reduce(lambda d, f: f(d), [
+            YahooShopApiParser.parse_item_search_v3,
+            partial(map, self._calc_real_price),
+            partial(map, partial(self._generate_publish_message, timestamp=timestamp)),
+        ], res)
+        return results
 
     def _calc_real_price(self, item: ItemSearchResult) -> ItemSearchResult|None:
         result = deepcopy(item)
@@ -81,6 +95,10 @@ class YahooShopCrawler(object):
                 result.price = price - point
                 return result
             case _ :
+                logger.error({
+                    "message": "invalid value",
+                    "action": "_calc_real_price",
+                    "value": result})
                 return
 
     def _generate_publish_message(self, item: ItemSearchResult,
@@ -91,6 +109,10 @@ class YahooShopCrawler(object):
                     'jan': jan, 'cost': price, 'url': url,
                     "filename": f'{prefix}_{timestamp.strftime("%Y%m%d_%H%M%S")}'})
             case _ :
+                logger.error({
+                    "message": "invalid value",
+                    "action": "_generate_publish_message",
+                    "value": item})
                 return
 
 
