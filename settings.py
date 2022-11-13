@@ -99,3 +99,5 @@ PC4U_ENDPOINT = 'https://www.pc4u.co.jp/'
 CREDENTIAL_FILE_NAME = 'gsheet-355401-5fbc168f98c2.json'
 SHEET_TITLE = 'bussiness'
 SHEET_NAME = 'repeat_list'
+
+YAHOO_APP_ID = config['YAHOO']['APP_ID']

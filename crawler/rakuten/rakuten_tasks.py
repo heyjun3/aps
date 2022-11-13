@@ -6,7 +6,7 @@ logger = log_settings.get_logger(__name__)
 
 
 SHOP_CODES = [
-    # 'superdeal', 'ksdenki', 'dj', 'e-zoa', 'reckb', 
+    'superdeal', 'ksdenki', 'dj', 'e-zoa', 'reckb', 
     'ioplaza', 'ikebe',
     'shoptsukumo', 'premiumgt', 'acer-direct', 'wakeari', 'jism', 'sakurayama',
     'ikeshibu', 'aikyoku-bargain-center', 'aikyoku', 'ikebe-rockhouse', 'ishibashi',

@@ -30,4 +30,4 @@ def request(url: str,
             raise RecursionError
         except Exception as ex:
             logger.error({'messages': ex, 'request url': url})
-            time.sleep(t if (t := 2 * i + 1) < 30 else 30)
+            time.sleep(t if (t := 2 * i + 1) < 10 else 10)

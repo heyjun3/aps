@@ -1,56 +1,63 @@
 from __future__ import annotations
 import re
+import json
+import functools
+from functools import partial
 from dataclasses import dataclass
 from dataclasses import asdict
 from typing import List
+from copy import deepcopy
+from datetime import datetime
 
 from bs4 import BeautifulSoup
 from requests_html import HTMLResponse
 
 import log_settings
+import mq
 from crawler import utils
 
 
 logger = log_settings.get_logger(__name__)
+logging = log_settings.decorator_logging(logger)
 
 
-class YahooShoppingApiClient(object):
+class YahooShopApi(object):
 
     @staticmethod
-    def item_search_v3(request: YahooShoppingApiItemSearchRequest, interval_sec=1) -> HTMLResponse:
+    def item_search_v3(request: ItemSearchRequest, interval_sec=1) -> HTMLResponse:
         endpoint = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch'
         res = utils.request(endpoint, params=asdict(request), time_sleep=interval_sec)
         return res
 
 @dataclass
-class YahooShoppingApiItemSearchRequest:
+class ItemSearchRequest:
     appid: str
     seller_id: str
     condition: str = 'new'
     in_stock: str = 'true'
+    price_to: int = 100000
     results: int = 100
     sort: str = '-price'
     start: int = 1
 
-class YahooShoppingApiParser(object):
+class YahooShopApiParser(object):
 
     @staticmethod
-    def parse_item_search_v3(response: dict) -> List[YahooShoppingSearchItem]:
+    def parse_item_search_v3(response: dict) -> List[ItemSearchResult]:
         result = []
         for item in response.get('hits'):
-            result.append(YahooShoppingSearchItem(
-                product_id=item.get('code'),
-                price=item.get('price'),
-                jan=item.get('janCode'),
-                name=item.get('name'),
-                point=point.get('premiumAmount') if (point := item.get('point')) else None,
-                shop_id=sid.get('sellerId') if (sid := item.get('serller')) else None,
-                url=item.get('url'),
-            ))
+            match item:
+                case {
+                    'code': code, 'price': price, 'janCode': jan, 'name': name,
+                    'point': {'premiumBonusAmount': point},
+                    'seller': {'sellerId': sellerId},
+                    'url': url, }:
+                    result.append(ItemSearchResult(code, price, jan, name, point, sellerId, url))
+
         return result
 
 @dataclass
-class YahooShoppingSearchItem:
+class ItemSearchResult:
     product_id: str
     price: int
     jan: str = None
@@ -60,9 +67,68 @@ class YahooShoppingSearchItem:
     url: str = None
 
 
-class YahooShoppingCrawler(object):
+class YahooShopCrawler(object):
     def __init__(self):
         pass
+    
+    @logging
+    def search_by_shop_id(self, app_id: str, seller_id: str, mq: mq.MQ=mq.MQ('mws')) -> None:
+        timestamp = datetime.now()
+        query = ItemSearchRequest(app_id, seller_id)
+        while query:
+            logger.info(query)
+            res = YahooShopApi.item_search_v3(query)
+            messages = self._search_sequence(res.json(), timestamp)
+            [mq.publish(message) for message in messages if message]
+            query = self._generate_next_query(res.json(), app_id, seller_id)
+
+    @logging
+    def _search_sequence(self, res: dict, timestamp: datetime) -> map:
+        results = functools.reduce(lambda d, f: f(d), [
+            YahooShopApiParser.parse_item_search_v3,
+            partial(map, self._calc_real_price),
+            partial(map, partial(self._generate_publish_message, timestamp=timestamp)),
+        ], res)
+        return results
+
+    def _calc_real_price(self, item: ItemSearchResult) -> ItemSearchResult|None:
+        result = deepcopy(item)
+        match result:
+            case ItemSearchResult(price=price, point=point) if price and point is not None:
+                result.price = price - point
+                return result
+            case _ :
+                logger.error({
+                    "message": "invalid value",
+                    "action": "_calc_real_price",
+                    "value": result})
+                return
+
+    def _generate_publish_message(self, item: ItemSearchResult,
+                            timestamp: datetime, prefix: str='paypay') -> str|None:
+        match item, timestamp:
+            case ItemSearchResult(jan=jan, price=price, url=url), datetime() if all((jan, price, url)):
+                return json.dumps({
+                    'jan': jan, 'cost': price, 'url': url,
+                    "filename": f'{prefix}_{timestamp.strftime("%Y%m%d_%H%M%S")}'})
+            case _ :
+                logger.error({
+                    "message": "invalid value",
+                    "action": "_generate_publish_message",
+                    "value": item})
+                return
+
+    def _generate_next_query(self, res: dict, app_id: str, seller_id: str) -> ItemSearchRequest:
+        match res:
+            case {"firstResultsPosition": 900, "totalResultsReturned": 100,
+                  "hits": [*_, {"price": last_item_price}]}:
+                return ItemSearchRequest(app_id, seller_id, price_to=last_item_price-1, start=1)
+            case {"firstResultsPosition": 1, "totalResultsReturned": 100}:
+                return ItemSearchRequest(app_id, seller_id, start=100)
+            case {"firstResultsPosition": position, "totalResultsReturned": 100} if position <= 900:
+                return ItemSearchRequest(app_id, seller_id, start=position+100)
+            case _:
+                return
 
 
 @dataclass

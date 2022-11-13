@@ -4,6 +4,8 @@ from crawler.pc4u.pc4u import Pc4uHTMLPage
 from crawler.pcones.pcones import PconesHTMLPage
 from crawler.spread_sheet.spread_sheet import SpreadSheetCrawler
 from crawler.spread_sheet.spread_sheet import SpreadSheetValue
+from crawler.spread_sheet.spread_sheet import ParseResult
+from crawler.spread_sheet.spread_sheet import ParsedValue
 from crawler.rakuten.rakuten import RakutenHTMLPage
 import settings
 
@@ -16,36 +18,36 @@ class TestSpreadSheet(object):
 
     def test_validation_sheet_value_faild(self):
         crawler = SpreadSheetCrawler(settings.CREDENTIAL_FILE_NAME, 'test', 'test')
-        value = SpreadSheetValue(None, 'jan')
+        value = SpreadSheetValue('jan', None)
         assert crawler._validation_sheet_value(value) == None
 
     def test_generate_string_for_enqueue_success(self):
         crawler = SpreadSheetCrawler(settings.CREDENTIAL_FILE_NAME, 'test', 'test')
         crawler.start_time ="20220923_155822"
-        value = SpreadSheetValue('URL', 'jan')
-        value.parsed_value = {'jan': 'jan', 'price': 'price', 'is_stocked': True}
-        assert crawler._generate_string_for_enqueue(value) == '{"filename": "repeat_20220923_155822", "jan": "jan", "cost": "price", "url": "URL"}'
+        value = ParsedValue('jan', 1111, True)
+        result = ParseResult('jan', 'URL', value)
+        assert crawler._generate_string_for_enqueue(result) == '{"filename": "repeat_20220923_155822", "jan": "jan", "cost": 1111, "url": "URL"}'
 
     def test_generate_string_for_enqueue_fail_jan_is_None(self):
         crawler = SpreadSheetCrawler(settings.CREDENTIAL_FILE_NAME, 'test', 'test')
         crawler.start_time ="20220923_155822"
-        value = SpreadSheetValue('URL', None)
-        value.parsed_value = {'price': 'price', 'is_stocked': True}
-        assert crawler._generate_string_for_enqueue(value) == None
+        value = ParsedValue(None, 1111, True)
+        result = ParseResult(None, 'URL', value)
+        assert crawler._generate_string_for_enqueue(result) == None
 
     def test_generate_string_for_enqueue_fail_price_is_None(self):
         crawler = SpreadSheetCrawler(settings.CREDENTIAL_FILE_NAME, 'test', 'test')
         crawler.start_time ="20220923_155822"
-        value = SpreadSheetValue('URL', 'JAN')
-        value.parsed_value = {'jan': 'jan', 'is_stocked': True}
-        assert crawler._generate_string_for_enqueue(value) == None
+        value = ParsedValue('jan', None, True)
+        result = ParseResult('jan', 'URL', value)
+        assert crawler._generate_string_for_enqueue(result) == None
 
     def test_generate_string_for_enqueue_fail_is_stocked_false(self):
         crawler = SpreadSheetCrawler(settings.CREDENTIAL_FILE_NAME, 'test', 'test')
         crawler.start_time ="20220923_155822"
-        value = SpreadSheetValue('URL', 'JAN')
-        value.parsed_value = {'jan': 'jan', 'is_stocked': False, 'price': 'price'}
-        assert crawler._generate_string_for_enqueue(value) == None
+        value = ParsedValue('jan', 1111, False)
+        result = ParseResult('jan', 'URL', value)
+        assert crawler._generate_string_for_enqueue(result) == None
 
     def test_get_html_parser_success(self):
         crawler = SpreadSheetCrawler(settings.CREDENTIAL_FILE_NAME, 'test', 'test')
