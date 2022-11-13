@@ -75,9 +75,12 @@ class YahooShopCrawler(object):
     def search_by_shop_id(self, app_id: str, seller_id: str, mq: mq.MQ=mq.MQ('mws')) -> None:
         timestamp = datetime.now()
         query = ItemSearchRequest(app_id, seller_id)
-        res = YahooShopApi.item_search_v3(query)
-        messages = self._search_sequence(res.json(), timestamp)
-        [mq.publish(message) for message in messages if message]
+        while query:
+            logger.info(query)
+            res = YahooShopApi.item_search_v3(query)
+            messages = self._search_sequence(res.json(), timestamp)
+            [mq.publish(message) for message in messages if message]
+            query = self._generate_next_query(res.json(), app_id, seller_id)
 
     @logging
     def _search_sequence(self, res: dict, timestamp: datetime) -> map:
@@ -91,7 +94,7 @@ class YahooShopCrawler(object):
     def _calc_real_price(self, item: ItemSearchResult) -> ItemSearchResult|None:
         result = deepcopy(item)
         match result:
-            case ItemSearchResult(price=price, point=point) if all((price, point)):
+            case ItemSearchResult(price=price, point=point) if price and point is not None:
                 result.price = price - point
                 return result
             case _ :
@@ -113,6 +116,18 @@ class YahooShopCrawler(object):
                     "message": "invalid value",
                     "action": "_generate_publish_message",
                     "value": item})
+                return
+
+    def _generate_next_query(self, res: dict, app_id: str, seller_id: str) -> ItemSearchRequest:
+        match res:
+            case {"firstResultsPosition": 900, "totalResultsReturned": 100,
+                  "hits": [*_, {"price": last_item_price}]}:
+                return ItemSearchRequest(app_id, seller_id, price_to=last_item_price-1, start=1)
+            case {"firstResultsPosition": 1, "totalResultsReturned": 100}:
+                return ItemSearchRequest(app_id, seller_id, start=100)
+            case {"firstResultsPosition": position, "totalResultsReturned": 100} if position <= 900:
+                return ItemSearchRequest(app_id, seller_id, start=position+100)
+            case _:
                 return
 
 

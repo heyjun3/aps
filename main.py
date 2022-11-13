@@ -15,6 +15,7 @@ from crawler.netsea import netsea_tasks
 from crawler.netsea import netsea_scheduler
 from crawler.pcones import pcones
 from crawler.spread_sheet.spread_sheet import SpreadSheetCrawler
+from crawler.paypaymall.paypaymoll import YahooShopCrawler
 from ims import repeat
 from ims import monthly
 import settings
@@ -77,6 +78,8 @@ if __name__ == '__main__':
             asyncio.run(UpdateChartDataRequestTask().main())
         case ('pcones', None):
             pcones.main()
+        case ('yahoo', shop_id):
+            YahooShopCrawler().search_by_shop_id(settings.YAHOO_APP_ID, shop_id)
         case ('mws', None):
             asyncio.run(MWS.delete_rows_lower_price())
         case ('spread_sheet', None):
