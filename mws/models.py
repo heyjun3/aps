@@ -209,14 +209,24 @@ class MWS(Base, ModelsBase):
             return True
 
     @classmethod
-    async def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1, unit_count: int=10) -> True:
+    async def delete_rows_lower_price(
+        cls,
+        profit: int=200,
+        profit_rate: float=0.1,
+        unit_count: int=2,
+        max_count: int=32000) -> True:
         async with cls.session_scope() as session:
-            stmt = delete(cls).where(or_(
-                cls.profit < profit,
-                cls.profit_rate < profit_rate,
-                cls.unit > unit_count,
-            ))
-            await session.execute(stmt)
+            stmt = select(cls.asin).join(KeepaProducts, cls.asin == KeepaProducts.asin) \
+                .where(or_(
+                    cls.profit < profit,
+                    cls.profit_rate < profit_rate,
+                    cls.unit > unit_count,
+                    KeepaProducts.sales_drops_90 < 4,
+                )).limit(max_count)
+            asins = await session.execute(stmt)
+            delete_stmt = delete(cls).where(cls.asin.in_(asins.scalars().all()))
+            result = await session.execute(delete_stmt)
+            logger.info({"delete rows": result.rowcount})
             return True
 
     @property
