@@ -75,6 +75,20 @@ class SuperCrawler(object):
         
         logger.info('action=pool_product_list_page status=done')
 
+    def scrape_super_by_shop_id(self, shop_id: str, interval_sec: int=1):
+        import functools
+        import itertools
+        resps = []
+        url = urllib.parase.urljoin(settings.SUPER_DOMAIN_URL, f"p/do/dpsl/{shop_id}/all/1")
+        while url:
+            logger.info({"request url": url})
+            resp = utils.request(url, time_sleep=interval_sec)
+            resps.append(resp)
+            url = SuperHTMLPage.scrape_next_page_url(resp.text)
+
+        products = functools.reduce(lambda d, f: f(d), [
+            SuperHTMLPage.scrape_product_list_page, itertools.chain.from_iterable])
+
 
     def pool_product_detail_page(self, interval_sec: int = 2):
         logger.info('action=get_product_detail_page status=run')
