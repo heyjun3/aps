@@ -1,6 +1,7 @@
 import re
 import time
 import urllib
+from typing import List
 from datetime import datetime
 from datetime import timezone
 from datetime import timedelta
@@ -87,7 +88,8 @@ class SuperCrawler(object):
             url = SuperHTMLPage.scrape_next_page_url(resp.text)
 
         products = functools.reduce(lambda d, f: f(d), [
-            SuperHTMLPage.scrape_product_list_page, itertools.chain.from_iterable])
+            SuperHTMLPage.scrape_product_list_page, itertools.chain.from_iterable], resps)
+        
 
 
     def pool_product_detail_page(self, interval_sec: int = 2):
@@ -182,14 +184,34 @@ class SuperHTMLPage(object):
         return super_product_list
 
     @staticmethod
-    def scrape_product_detail_page(response: str, consume_tax_rate: float = 1.1) -> list[SuperProductDetails]:
+    def scrape_product_detail_page(response: str, consume_tax_rate: float = 1.1) \
+                        -> List[SuperProductDetails]|List:
         logger.info('action=scrape_product_detail_page status=run')
         super_detail_product_list = []
 
         soup = BeautifulSoup(response, 'lxml')
         table = soup.select('.ts-tr02')
-        product_code = re.search('[\d]+', soup.select_one('.co-fs12.co-clf.reduce-tax .co-pc-only').text).group()
-        shop_code = re.search('[\d]+', urllib.parse.urlparse(soup.select_one('.dl-name-txt').get('href')).path).group()
+        product_code = (re.search("[0-9]+", code.text) 
+                        if (code := soup.select_one('.co-fs12.co-clf.reduce-tax .co-pc-only'))
+                        else None)
+        product_code = product_code.group() if product_code else None
+
+        shop_href = (elem.get("href")
+                    if (elem := soup.select_one(".dl-name-txt"))
+                    else None)
+        match shop_href:
+            case str() if (code := re.search("[0-9]+", shop_href)):
+                shop_code = code.group()
+            case _:
+                shop_code = None
+
+        if not all((table, product_code, shop_code)):
+            logger.error({
+                "message": "scrape bad parameter", 
+                "values": {
+                    "product_code": product_code,
+                    "shop_code": shop_code,}})
+            return super_detail_product_list
 
         for row in table:
             try:
@@ -197,9 +219,14 @@ class SuperHTMLPage(object):
             except AttributeError as e:
                 logger.error(f"product hasn't jan code error={e}")
                 jan = None
-            price = int(int(''.join(re.findall('[\d]+', row.select_one('.td-price02').text))) * consume_tax_rate)
-            set_number = int(re.search('[\d]+', row.select_one('.co-align-center.co-pc-only.border-rt.border-b').text.strip()).group())
-            super_product = SuperProductDetails(jan=jan, price=price, set_number=set_number, shop_code=shop_code, product_code=product_code)
+            price = int(int(''.join(re.findall('[0-9]+', row.select_one('.td-price02').text))) * consume_tax_rate)
+            set_number = int(re.search('[0-9]+', row.select_one('.co-align-center.co-pc-only.border-rt.border-b').text.strip()).group())
+            super_product = SuperProductDetails(
+                                            jan=jan,
+                                            price=price,
+                                            set_number=set_number,
+                                            shop_code=shop_code,
+                                            product_code=product_code)
             super_detail_product_list.append(super_product)
 
         logger.info('action=scrape_product_detail_page status=done')
@@ -215,7 +242,7 @@ class SuperHTMLPage(object):
         for shop in shop_list:
             try:
                 shop_name = shop.select_one('.info-dealername a').text
-                shop_id = re.search('[\d]+', urllib.parse.urlparse(shop.select_one('.info-dealername a').get('href')).path).group()
+                shop_id = re.search('[0-9]+', urllib.parse.urlparse(shop.select_one('.info-dealername a').get('href')).path).group()
                 super_shop = SuperShop(name=shop_name, shop_id=shop_id)
                 super_shop_list.append(super_shop)
             except AttributeError as e:
