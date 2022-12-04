@@ -225,26 +225,19 @@ class RunAmzTask(object):
             asyncio.ensure_future(MWS.insert_all_on_conflict_do_nothing(mws_objects))
             await asyncio.sleep(interval_sec)
 
-    async def get_item_offers_batch(self, interval_sec: int=2):
+    async def get_item_offers_batch(self, interval_sec: int=2, count: int=20):
         logger.info({'action': 'get_item_offers_batch', 'status': 'run'})
                        
         while True:
-            mws_objects = await MWS.get_object_by_price_is_None()
-            if not mws_objects:
+            asins = await MWS.get_asins_by_price_is_None()
+            if not asins:
                 await asyncio.sleep(10)
                 continue
-
-            mws_objects = [mws_objects[i:i+20] for i in range(0, len(mws_objects), 20)]
-            for mws_list in mws_objects:
-                asins = [mws.asin for mws in mws_list]
-                response = await self.client.get_item_offers_batch(asins)
-                products = SPAPIJsonParser.parse_get_item_offers_batch(response)
-                chain_products = collections.ChainMap(
-                            *[{product['asin']: product['price']} for product in products])
-                for mws in mws_list:
-                    mws.price = chain_products.get(mws.asin, default=0)
-
-                asyncio.ensure_future(MWS.insert_all_on_conflict_do_update_price(mws_list))
+            
+            for i in range(0, len(asins), count):
+                resp = await self.client.get_item_offers_batch(asins[i:i+count])
+                products = SPAPIJsonParser.parse_get_item_offers_batch(resp)
+                asyncio.ensure_future(MWS.bulk_update_prices(products))
                 asyncio.ensure_future(SpapiPrices.insert_all_on_conflict_do_update_price(products))
                 await asyncio.sleep(interval_sec)
 

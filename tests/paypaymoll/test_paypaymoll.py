@@ -80,19 +80,20 @@ class TestYahooShopCrawler(object):
 
     def test_generate_next_query(self):
         client = paypaymoll.YahooShopCrawler()
+        query = paypaymoll.ItemSearchRequest("test", "test", price_to=50000)
         value_1 = {"firstResultsPosition": 900, "totalResultsReturned": 100,
         "hits": [1, 2, 3, {"price": 100}]}
         value_2 = {"firstResultsPosition": 1, "totalResultsReturned": 100}
         value_3 = {"firstResultsPosition": 200, "totalResultsReturned": 100}
         value_4 = {"firstResultsPosition": 901, "totalResultsReturned": 100}
-        result_1 = client._generate_next_query(value_1, "test", "test")
-        result_2 = client._generate_next_query(value_2, "test", "test")
-        result_3 = client._generate_next_query(value_3, "test", "test")
-        result_4 = client._generate_next_query(value_4, "test", "test")
+        result_1 = client._generate_next_query(value_1, query)
+        result_2 = client._generate_next_query(value_2, query)
+        result_3 = client._generate_next_query(value_3, query)
+        result_4 = client._generate_next_query(value_4, query)
 
         assert result_1 == paypaymoll.ItemSearchRequest("test", "test", price_to=99, start=1)
-        assert result_2 == paypaymoll.ItemSearchRequest("test", "test", start=100)
-        assert result_3 == paypaymoll.ItemSearchRequest("test", "test", start=300)
+        assert result_2 == paypaymoll.ItemSearchRequest("test", "test", start=100, price_to=50000)
+        assert result_3 == paypaymoll.ItemSearchRequest("test", "test", start=300, price_to=50000)
         assert result_4 == None
 
 

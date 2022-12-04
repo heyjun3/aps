@@ -61,6 +61,24 @@ class TestModels(object):
         assert mws.shipping_fee == 1000
 
     @pytest.mark.asyncio
+    async def test_bulk_update_prices(self):
+        records = [
+            {"asin": "TEST", "price": 9999},
+            {"asin": "testprice", "price": 2222},
+        ]
+        result = await MWS.bulk_update_prices(records)
+        assert result == True
+        mws = await MWS.get('TEST')
+        assert mws.price == 9999
+        mws = await MWS.get('testprice')
+        assert mws.price == 2222
+
+    @pytest.mark.asyncio
+    async def test_bulk_update_prices_failed(self):
+        result = await MWS.bulk_update_prices([])
+        assert result == None
+
+    @pytest.mark.asyncio
     async def test_get_filenames(self):
         result = await MWS.get_filenames()
         assert result == ['testfilename']
@@ -70,6 +88,12 @@ class TestModels(object):
         result = await MWS.get_object_by_price_is_None()
         assert result[0].asin == 'testprice'
         assert result[0].filename == 'testfileprice'
+
+    @pytest.mark.asyncio
+    async def test_get_asins_by_price_is_None(self):
+        result = await MWS.get_asins_by_price_is_None()
+        assert len(result) == 1
+        assert result == ["testprice"]
 
     @pytest.mark.asyncio
     async def test_get_fee_is_None_asins(self):

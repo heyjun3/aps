@@ -24,7 +24,7 @@ logging = log_settings.decorator_logging(logger)
 class YahooShopApi(object):
 
     @staticmethod
-    def item_search_v3(request: ItemSearchRequest, interval_sec=1) -> HTMLResponse:
+    def item_search_v3(request: ItemSearchRequest, interval_sec=2) -> HTMLResponse:
         endpoint = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch'
         res = utils.request(endpoint, params=asdict(request), time_sleep=interval_sec)
         return res
@@ -80,7 +80,7 @@ class YahooShopCrawler(object):
             res = YahooShopApi.item_search_v3(query)
             messages = self._search_sequence(res.json(), timestamp)
             [mq.publish(message) for message in messages if message]
-            query = self._generate_next_query(res.json(), app_id, seller_id)
+            query = self._generate_next_query(res.json(), query)
 
     @logging
     def _search_sequence(self, res: dict, timestamp: datetime) -> map:
@@ -118,15 +118,20 @@ class YahooShopCrawler(object):
                     "value": item})
                 return
 
-    def _generate_next_query(self, res: dict, app_id: str, seller_id: str) -> ItemSearchRequest:
+    def _generate_next_query(self, res: dict, query: ItemSearchRequest) -> ItemSearchRequest:
+        request = deepcopy(query)
         match res:
             case {"firstResultsPosition": 900, "totalResultsReturned": 100,
                   "hits": [*_, {"price": last_item_price}]}:
-                return ItemSearchRequest(app_id, seller_id, price_to=last_item_price-1, start=1)
+                request.price_to = last_item_price - 1
+                request.start = 1
+                return request
             case {"firstResultsPosition": 1, "totalResultsReturned": 100}:
-                return ItemSearchRequest(app_id, seller_id, start=100)
+                request.start = 100
+                return request
             case {"firstResultsPosition": position, "totalResultsReturned": 100} if position <= 900:
-                return ItemSearchRequest(app_id, seller_id, start=position+100)
+                request.start = position + 100
+                return request
             case _:
                 return
 

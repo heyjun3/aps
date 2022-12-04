@@ -16,6 +16,7 @@ from sqlalchemy import Computed
 from sqlalchemy import func
 from sqlalchemy import update
 from sqlalchemy import delete
+from sqlalchemy import bindparam
 from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -92,6 +93,7 @@ class MWS(Base, ModelsBase):
         )
         async with cls.session_scope() as session:
             await session.execute(update_do_stmt)
+            logger.info(update_do_stmt)
             return True
 
     @classmethod
@@ -113,6 +115,19 @@ class MWS(Base, ModelsBase):
         )
         async with cls.session_scope() as session:
             await session.execute(update_do_stmt)
+            return True
+
+    @classmethod
+    async def bulk_update_prices(cls, records: List[dict]) -> True|None:
+        if not records:
+            return
+        convert_records = [d | {"b_asin": d.get("asin")} for d in records]
+        stmt = update(cls) \
+               .where(cls.asin == bindparam("b_asin"))\
+               .values(price=bindparam("price"))
+
+        async with cls.session_scope() as session:
+            await session.execute(stmt, convert_records)
             return True
 
     @classmethod
@@ -177,6 +192,13 @@ class MWS(Base, ModelsBase):
             return result.scalars().all()
 
     @classmethod
+    async def get_asins_by_price_is_None(cls) -> List[str]:
+        async with cls.session_scope() as session:
+            stmt = select(cls.asin).where(cls.price == None)
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    @classmethod
     async def get_fee_is_None_asins(cls, limit_count=10000) -> List[MWS]:
         async with cls.session_scope() as session:
             stmt = select(cls).where(or_(cls.fee_rate == None, cls.shipping_fee == None))\
@@ -209,14 +231,24 @@ class MWS(Base, ModelsBase):
             return True
 
     @classmethod
-    async def delete_rows_lower_price(cls, profit: int=200, profit_rate: float=0.1, unit_count: int=10) -> True:
+    async def delete_rows_lower_price(
+        cls,
+        profit: int=200,
+        profit_rate: float=0.1,
+        unit_count: int=2,
+        max_count: int=32000) -> True:
         async with cls.session_scope() as session:
-            stmt = delete(cls).where(or_(
-                cls.profit < profit,
-                cls.profit_rate < profit_rate,
-                cls.unit > unit_count,
-            ))
-            await session.execute(stmt)
+            stmt = select(cls.asin).join(KeepaProducts, cls.asin == KeepaProducts.asin) \
+                .where(or_(
+                    cls.profit < profit,
+                    cls.profit_rate < profit_rate,
+                    cls.unit > unit_count,
+                    KeepaProducts.sales_drops_90 < 4,
+                )).limit(max_count)
+            asins = await session.execute(stmt)
+            delete_stmt = delete(cls).where(cls.asin.in_(asins.scalars().all()))
+            result = await session.execute(delete_stmt)
+            logger.info({"delete rows": result.rowcount})
             return True
 
     @property
