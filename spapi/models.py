@@ -248,7 +248,7 @@ class SpapiFees(Base, ModelsBase):
             stmt = select(cls.asin)
             result = await session.execute(stmt)
             asins = result.scalars().all()
-        return asins
+            return asins
 
     @property
     def values(self):

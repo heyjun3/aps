@@ -92,6 +92,7 @@ class MWS(Base, ModelsBase):
         )
         async with cls.session_scope() as session:
             await session.execute(update_do_stmt)
+            logger.info(update_do_stmt)
             return True
 
     @classmethod
