@@ -9,6 +9,8 @@ from sqlalchemy import Float
 from sqlalchemy import String
 from sqlalchemy import BigInteger
 from sqlalchemy import Date
+from sqlalchemy import bindparam
+from sqlalchemy import update
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import Insert

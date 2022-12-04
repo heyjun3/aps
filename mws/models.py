@@ -16,6 +16,7 @@ from sqlalchemy import Computed
 from sqlalchemy import func
 from sqlalchemy import update
 from sqlalchemy import delete
+from sqlalchemy import bindparam
 from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -117,6 +118,19 @@ class MWS(Base, ModelsBase):
             return True
 
     @classmethod
+    async def bulk_update_prices(cls, records: List[dict]) -> True|None:
+        if not records:
+            return
+        convert_records = [d | {"b_asin": d.get("asin")} for d in records]
+        stmt = update(cls) \
+               .where(cls.asin == bindparam("b_asin"))\
+               .values(price=bindparam("price"))
+
+        async with cls.session_scope() as session:
+            await session.execute(stmt, convert_records)
+            return True
+
+    @classmethod
     async def get(cls, asin: str) -> MWS:
         async with cls.session_scope() as session:
             stmt = select(cls).where(cls.asin == asin)
@@ -174,6 +188,13 @@ class MWS(Base, ModelsBase):
     async def get_object_by_price_is_None(cls) -> List[MWS]:
         async with cls.session_scope() as session:
             stmt = select(cls).where(cls.price == None)
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    @classmethod
+    async def get_asins_by_price_is_None(cls) -> List[str]:
+        async with cls.session_scope() as session:
+            stmt = select(cls.asin).where(cls.price == None)
             result = await session.execute(stmt)
             return result.scalars().all()
 
