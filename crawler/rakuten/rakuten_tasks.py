@@ -8,9 +8,9 @@ logger = log_settings.get_logger(__name__)
 SHOP_CODES = [
     'superdeal', 'ksdenki', 'dj', 'e-zoa', 'reckb', 
     'ioplaza', 'ikebe',
-    'shoptsukumo', 'premiumgt', 'acer-direct', 'wakeari', 'jism', 'sakurayama',
+    'shoptsukumo', 'premiumgt', 'acer-direct', 'wakeari', 'sakurayama',
     'ikeshibu', 'aikyoku-bargain-center', 'aikyoku', 'ikebe-rockhouse', 'ishibashi',
-    'pckoubou', 'e-earphone', 'applied2', 'yamada-denki', 'key', 'r-kojima']
+    'pckoubou', 'e-earphone', 'applied2', 'key', 'r-kojima']
 
 
 def run_rakuten_search_at_shop_code(shop_code: str) -> None:
