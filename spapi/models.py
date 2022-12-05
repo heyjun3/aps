@@ -197,14 +197,19 @@ class SpapiFees(Base, ModelsBase):
         return True
 
     @classmethod
-    async def insert_all_on_conflict_do_update_fee(cls, values: List[SpapiFees]) -> True|None:
+    async def insert_all_on_conflict_do_update_fee(cls, values: List[SpapiFees|dict]) -> True|None:
         if not values:
             return
         stmt = insert(cls).values([{
             'asin': value.asin,
             'fee_rate': value.fee_rate,
             'ship_fee': value.ship_fee,
+        } if isinstance(value, SpapiFees) else {
+            "asin": value.get("asin"),
+            "fee_rate": value.get("fee_rate"),
+            "ship_fee": value.get("ship_fee"),
         } for value in values])
+        
         update_on_stmt = stmt.on_conflict_do_update(
             index_elements=['asin'],
             set_=dict(
