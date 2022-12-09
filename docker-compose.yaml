@@ -4,6 +4,7 @@ volumes:
   mongo_db_store:
   rabbitmq_store:
   pg_store:
+  pg_store_2:
 
 services:
   mongo:
@@ -97,7 +98,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - type: volume
-        source: pg_store
+        source: pg_store_2
         target: /var/lib/postgresql/data
 
   uwsgi:
