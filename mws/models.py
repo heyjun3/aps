@@ -131,6 +131,19 @@ class MWS(Base, ModelsBase):
             return True
 
     @classmethod
+    async def bulk_update_fees(cls, records: List[dict]) -> True|None:
+        if not records:
+            return
+        convert_records = [d | {"b_asin": d.get("asin")} for d in records]
+        stmt = update(cls)\
+               .where(cls.asin == bindparam("b_asin"))\
+               .values(fee_rate=bindparam("fee_rate"), shipping_fee=bindparam("ship_fee"))
+
+        async with cls.session_scope() as session:
+            await session.execute(stmt, convert_records)
+            return True
+
+    @classmethod
     async def get(cls, asin: str) -> MWS:
         async with cls.session_scope() as session:
             stmt = select(cls).where(cls.asin == asin)
@@ -203,6 +216,15 @@ class MWS(Base, ModelsBase):
         async with cls.session_scope() as session:
             stmt = select(cls).where(or_(cls.fee_rate == None, cls.shipping_fee == None))\
                     .order_by(cls.created_at).limit(limit_count)
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    @classmethod
+    async def get_asins_by_fee_is_None(cls, limit_count=10000) -> List[str]:
+        stmt = select(cls.asin)\
+               .where(or_(cls.fee_rate == None, cls.shipping_fee == None))\
+               .order_by(cls.created_at).limit(limit_count)
+        async with cls.session_scope() as session:
             result = await session.execute(stmt)
             return result.scalars().all()
 
