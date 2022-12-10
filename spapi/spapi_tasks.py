@@ -244,32 +244,7 @@ class RunAmzTask(object):
     async def get_my_fees_estimate(self, interval_sec: int=2) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
-        # async def _get_my_fees_estimate(asin_list: List[str]) -> List[SpapiFees]:
-        #     result = []
-
-        #     for i in range(0, len(asin_list), 20):
-        #         response = await self.client.get_my_fees_estimates(asin_list[i:i+20])
-        #         products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
-        #         for product in products:
-        #             result.append(SpapiFees(product['asin'], product['fee_rate'], product['ship_fee']))
-        #         await asyncio.sleep(interval_sec)
-        #     return result
-
-        # def _mws_mapping_spapi_fees(mws_list: List[MWS], spapi_fees: List[SpapiFees]) -> List[MWS]:
-        #     mws_objects = deepcopy(mws_list)
-        #     chain_map_fees = collections.ChainMap(
-        #                             *[{fee.asin: fee} for fee in spapi_fees])
-
-        #     for mws in mws_objects:
-        #         fee = chain_map_fees.get(mws.asin)
-        #         if fee:
-        #             mws.fee_rate = fee.fee_rate
-        #             mws.shipping_fee = fee.ship_fee
-
-        #     return mws_objects
-
         while True:
-            # mws_objects = await MWS.get_fee_is_None_asins(1000)
             asins = await MWS.get_asins_by_fee_is_None(1000)
             if not asins:
                 await asyncio.sleep(30)
@@ -277,17 +252,14 @@ class RunAmzTask(object):
 
             fees = await SpapiFees.get_asins_fee(asins)
             if fees:
-                asyncio.ensure_future(SpapiFees.insert_all_on_conflict_do_update_fee(fees))
+                asyncio.ensure_future(MWS.bulk_update_fees([fee.values for fee in fees]))
+
             asins = list(set(asins) - {fee.asin for fee in fees})
             for i in range(0, len(asins), 20):
-                resp = await self.client.get_my_fees_estimates(asins[i+i+20])
+                resp = await self.client.get_my_fees_estimates(asins[i:i+20])
                 products = SPAPIJsonParser.parse_get_my_fees_estimates(resp)
-                await MWS.bulk_update_fees(products)
-                await SpapiFees.insert_all_on_conflict_do_update_fee(products)
-                await asyncio.sleep(interval_sec)
-
-            # result = await _get_my_fees_estimate(list(asins - {fee.asin for fee in fees}))
-            # mws_objects = _mws_mapping_spapi_fees(mws_objects, fees + result)
-
-            # asyncio.ensure_future(SpapiFees.insert_all_on_conflict_do_update_fee(result))
-            # await MWS.insert_all_on_conflict_do_update_fee(mws_objects)
+                await asyncio.gather(
+                    MWS.bulk_update_fees(deepcopy(products)),
+                    SpapiFees.insert_all_on_conflict_do_update_fee(products),
+                    asyncio.sleep(interval_sec),
+                )
