@@ -105,7 +105,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/postgresql/Dockerfile
-    container_name: postgresql-server
+    container_name: postgresql-server-restore
     restart: always
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
     environment:
