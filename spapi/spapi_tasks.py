@@ -139,56 +139,61 @@ class RunAmzTask(object):
 
         logger.info('action=main status=done')
 
+    @log_decorator
+    def _validation_parameter(self, param: dict) -> dict|None:
+        require = ('cost', 'jan', 'filename', 'url')
+        if not all(r in param for r in require):
+            logger.error({'bad parameter': param})
+            return
+        return param
+
+    @log_decorator
+    def _map_asin_info_and_message(self, messages: List[dict], asins: List[AsinsInfo]):
+        send_messages, mws_objects = [], []
+        asin_infos = {k: list(g) for k, g in itertools.groupby(
+                            sorted(asins, key=lambda x: x.jan), lambda x: x.jan)}
+
+        for message in messages:
+            asin_info = asin_infos.get(message['jan'])
+            if not asin_info:
+                send_messages.append(message)
+                continue
+            mws_object = [MWS(
+                            asin=info.asin,
+                            filename=message['filename'],
+                            title=info.title,
+                            jan=info.jan,
+                            unit=info.quantity,
+                            cost=message['cost'],
+                            url=message['url'],
+                            ) for info in asin_info]
+            mws_objects.extend(mws_object)
+
+        return send_messages, mws_objects   
+
     async def get_queue(self, interval_sec: int=10, task_count=100) -> None:
         logger.info('action=get_queue status=run')
-
-        require = ('cost', 'jan', 'filename', 'url')
-
-        @log_decorator
-        def _validation_parameter(param: dict) -> dict|None:
-            if not all(r in param for r in require):
-                logger.error({'bad parameter': param})
-                return
-            return param
-
-        async def _get_asins_info_objects(jan_codes: List[str]) -> dict[str, List[AsinsInfo]]:
-            asins = await AsinsInfo.get_asin_object_by_jan_list(jan_codes)
-            asins = sorted(asins, key=lambda x: x.jan)
-            return {k: list(g) for k, g in itertools.groupby(asins, lambda x: x.jan)}
-
-        @log_decorator
-        def _check_param_in_cache(param: dict) -> List[MWS]|None:
-            if param is None: 
-                return
-
-            db_cache = asins.get(param['jan'])
-            if db_cache is None:
-                self.search_catalog_queue.publish(json.dumps(param))
-                return
-                
-            return [MWS(
-                asin=asin_info.asin,
-                filename=param['filename'],
-                title=asin_info.title,
-                jan=asin_info.jan,
-                unit=asin_info.quantity,
-                cost=param['cost'],
-                url=param['url'],
-            ) for asin_info in db_cache]
 
         for messages in self.mq.receive(task_count):
             if messages is None:
                 await asyncio.sleep(interval_sec)
                 continue
 
-            messages = [json.loads(message) for message in messages]
-            jan_codes = list(map(lambda x: x['jan'], messages))
-            asins = await _get_asins_info_objects(jan_codes)
-            mws_objects = list(filter(None, reduce(lambda data, func: map(func, data),
-                                [_validation_parameter, _check_param_in_cache], messages)))
+            messages = list(filter(None, reduce(lambda d, f: map(f, d), [
+                json.loads, self._validation_parameter], messages)))
+            asins = await AsinsInfo.get_asin_object_by_jan_list(
+                [message.get('jan') for message in messages])
+
+            if not asins:
+                [self.search_catalog_queue.publish(json.dumps(message))
+                                                         for message in messages]
+                continue
+
+            send_messages, mws_objects = self._map_asin_info_and_message(messages, asins)
             if mws_objects:
-                mws_objects = itertools.chain.from_iterable(mws_objects)
                 await MWS.insert_all_on_conflict_do_nothing(mws_objects)
+            if send_messages:
+                [self.search_catalog_queue.publish(json.dumps(message)) for message in send_messages]
 
     async def search_catalog_items_v20220401(self, id_type: str='JAN', interval_sec: int=2) -> None:
         logger.info('action=search_catalog_items status=run')
@@ -244,32 +249,7 @@ class RunAmzTask(object):
     async def get_my_fees_estimate(self, interval_sec: int=2) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
 
-        # async def _get_my_fees_estimate(asin_list: List[str]) -> List[SpapiFees]:
-        #     result = []
-
-        #     for i in range(0, len(asin_list), 20):
-        #         response = await self.client.get_my_fees_estimates(asin_list[i:i+20])
-        #         products = SPAPIJsonParser.parse_get_my_fees_estimates(response)
-        #         for product in products:
-        #             result.append(SpapiFees(product['asin'], product['fee_rate'], product['ship_fee']))
-        #         await asyncio.sleep(interval_sec)
-        #     return result
-
-        # def _mws_mapping_spapi_fees(mws_list: List[MWS], spapi_fees: List[SpapiFees]) -> List[MWS]:
-        #     mws_objects = deepcopy(mws_list)
-        #     chain_map_fees = collections.ChainMap(
-        #                             *[{fee.asin: fee} for fee in spapi_fees])
-
-        #     for mws in mws_objects:
-        #         fee = chain_map_fees.get(mws.asin)
-        #         if fee:
-        #             mws.fee_rate = fee.fee_rate
-        #             mws.shipping_fee = fee.ship_fee
-
-        #     return mws_objects
-
         while True:
-            # mws_objects = await MWS.get_fee_is_None_asins(1000)
             asins = await MWS.get_asins_by_fee_is_None(1000)
             if not asins:
                 await asyncio.sleep(30)
@@ -277,17 +257,14 @@ class RunAmzTask(object):
 
             fees = await SpapiFees.get_asins_fee(asins)
             if fees:
-                asyncio.ensure_future(SpapiFees.insert_all_on_conflict_do_update_fee(fees))
+                asyncio.ensure_future(MWS.bulk_update_fees([fee.values for fee in fees]))
+
             asins = list(set(asins) - {fee.asin for fee in fees})
             for i in range(0, len(asins), 20):
-                resp = await self.client.get_my_fees_estimates(asins[i+i+20])
+                resp = await self.client.get_my_fees_estimates(asins[i:i+20])
                 products = SPAPIJsonParser.parse_get_my_fees_estimates(resp)
-                await MWS.bulk_update_fees(products)
-                await SpapiFees.insert_all_on_conflict_do_update_fee(products)
-                await asyncio.sleep(interval_sec)
-
-            # result = await _get_my_fees_estimate(list(asins - {fee.asin for fee in fees}))
-            # mws_objects = _mws_mapping_spapi_fees(mws_objects, fees + result)
-
-            # asyncio.ensure_future(SpapiFees.insert_all_on_conflict_do_update_fee(result))
-            # await MWS.insert_all_on_conflict_do_update_fee(mws_objects)
+                await asyncio.gather(
+                    MWS.bulk_update_fees(deepcopy(products)),
+                    SpapiFees.insert_all_on_conflict_do_update_fee(products),
+                    asyncio.sleep(interval_sec),
+                )

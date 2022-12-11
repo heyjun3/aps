@@ -100,6 +100,23 @@ services:
       - type: volume
         source: pg_store_2
         target: /var/lib/postgresql/data
+        
+  postgresql-server-restore:
+    build:
+      context: .
+      dockerfile: ./docker/postgresql/Dockerfile
+    container_name: postgresql-server-restore
+    restart: always
+    command: -c 'config_file=/etc/postgresql/postgresql.conf'
+    environment:
+      - TZ=Asia/Tokyo
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - type: volume
+        source: pg_store
+        target: /var/lib/postgresql/data
 
   uwsgi:
     build:
