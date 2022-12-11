@@ -148,7 +148,7 @@ class RunAmzTask(object):
         return param
 
     @log_decorator
-    def _map_db_cache_and_message(self, messages: List[dict], asins: List[AsinsInfo]):
+    def _map_asin_info_and_message(self, messages: List[dict], asins: List[AsinsInfo]):
         send_messages, mws_objects = [], []
         asin_infos = {k: list(g) for k, g in itertools.groupby(
                             sorted(asins, key=lambda x: x.jan), lambda x: x.jan)}
@@ -174,49 +174,22 @@ class RunAmzTask(object):
     async def get_queue(self, interval_sec: int=10, task_count=100) -> None:
         logger.info('action=get_queue status=run')
 
-        # async def _get_asins_info_objects(jan_codes: List[str]) -> dict[str, List[AsinsInfo]]:
-        #     asins = await AsinsInfo.get_asin_object_by_jan_list(jan_codes)
-        #     asins = sorted(asins, key=lambda x: x.jan)
-        #     return {k: list(g) for k, g in itertools.groupby(asins, lambda x: x.jan)}
-
-        # @log_decorator
-        # def _check_param_in_cache(param: dict) -> List[MWS]|None:
-        #     if param is None: 
-        #         return
-
-        #     db_cache = asins.get(param['jan'])
-        #     if db_cache is None:
-        #         self.search_catalog_queue.publish(json.dumps(param))
-        #         return
-                
-        #     return [MWS(
-        #         asin=asin_info.asin,
-        #         filename=param['filename'],
-        #         title=asin_info.title,
-        #         jan=asin_info.jan,
-        #         unit=asin_info.quantity,
-        #         cost=param['cost'],
-        #         url=param['url'],
-        #     ) for asin_info in db_cache]
-
         for messages in self.mq.receive(task_count):
             if messages is None:
                 await asyncio.sleep(interval_sec)
                 continue
+
             messages = list(filter(None, reduce(lambda d, f: map(f, d), [
                 json.loads, self._validation_parameter], messages)))
-            # messages = [json.loads(message) for message in messages]
-            # jan_codes = list(map(lambda x: x['jan'], messages))
             asins = await AsinsInfo.get_asin_object_by_jan_list(
                 [message.get('jan') for message in messages])
+
             if not asins:
                 [self.search_catalog_queue.publish(json.dumps(message))
                                                          for message in messages]
                 continue
-            # asins = await _get_asins_info_objects(jan_codes)
-            send_messages, mws_objects = self._map_db_cache_and_message(messages, asins)
-            # mws_objects = list(filter(None, reduce(lambda data, func: map(func, data),
-                                # [_validation_parameter, _check_param_in_cache], messages)))
+
+            send_messages, mws_objects = self._map_asin_info_and_message(messages, asins)
             if mws_objects:
                 await MWS.insert_all_on_conflict_do_nothing(mws_objects)
             if send_messages:
