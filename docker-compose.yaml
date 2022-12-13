@@ -104,10 +104,10 @@ services:
   postgresql-server-restore:
     build:
       context: .
-      dockerfile: ./docker/postgresql/Dockerfile
+      dockerfile: ./docker/postgresql_restore/Dockerfile
     container_name: postgresql-server-restore
     restart: always
-    command: -c 'config_file=/etc/postgresql/postgresql_restore.conf'
+    command: -c 'config_file=/etc/postgresql/postgresql.conf'
     environment:
       - TZ=Asia/Tokyo
       - POSTGRES_USER=${POSTGRES_USER}
