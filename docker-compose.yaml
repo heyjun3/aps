@@ -107,7 +107,7 @@ services:
       dockerfile: ./docker/postgresql/Dockerfile
     container_name: postgresql-server-restore
     restart: always
-    command: -c 'config_file=/etc/postgresql/postgresql.conf'
+    command: -c 'config_file=/etc/postgresql/postgresql_restore.conf'
     environment:
       - TZ=Asia/Tokyo
       - POSTGRES_USER=${POSTGRES_USER}
