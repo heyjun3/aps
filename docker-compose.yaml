@@ -101,22 +101,23 @@ services:
         source: pg_store_2
         target: /var/lib/postgresql/data
         
-  postgresql-server-restore:
+  timescaledb:
     build:
       context: .
-      dockerfile: ./docker/postgresql_restore/Dockerfile
-    container_name: postgresql-server-restore
+      dockerfile: ./docker/timescaledb/Dockerfile
+    container_name: timescaledb
     restart: always
-    command: -c 'config_file=/etc/postgresql/postgresql.conf'
     environment:
       - TZ=Asia/Tokyo
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - 5433:5432
     volumes:
       - type: volume
         source: pg_store
-        target: /var/lib/postgresql/data
+        target: /home/postgres/pgdata/data
 
   uwsgi:
     build:
