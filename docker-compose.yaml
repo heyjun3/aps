@@ -5,6 +5,7 @@ volumes:
   rabbitmq_store:
   pg_store:
   pg_store_2:
+  pg_store_3:
 
 services:
   mongo:
@@ -116,7 +117,7 @@ services:
       - 5433:5432
     volumes:
       - type: volume
-        source: pg_store
+        source: pg_store_3
         target: /home/postgres/pgdata/data
 
   uwsgi:

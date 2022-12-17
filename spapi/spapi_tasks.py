@@ -89,8 +89,8 @@ class UpdateChartData(object):
             await KeepaProducts.insert_all_on_conflict_do_update_chart_data(keepa_products)
 
     @staticmethod
-    @log_decorator
     def _mapping_keepa_products_and_parsed_data(product: KeepaProducts, parsed_data: dict):
+        logger.info({"action": "mapping_keepa_products_and_parsed_data", "status": "run"})
         now = convert_unix_time_to_keepa_time(time.time())    
         value = parsed_data.get(product.asin)
         if not value:
@@ -108,6 +108,7 @@ class UpdateChartData(object):
                                                 'rank_data': product.rank_data,
                                                 'price_data': product.price_data,})
 
+        logger.info({"action": "mapping_keepa_products_and_parsed_data", "status": "done"})
         return product
 
 
