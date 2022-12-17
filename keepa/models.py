@@ -25,6 +25,7 @@ from models_base import ModelsBase
 
 
 logger = log_settings.get_logger(__name__)
+logger_decorator = log_settings.decorator_logging(logger)
 postgresql_engine = create_engine(settings.DB_URL, pool_size=20, max_overflow=0, pool_pre_ping=True)
 async_engine = create_async_engine(settings.DB_ASYNC_URL, pool_timeout=3000)
 Base = declarative_base()
@@ -119,6 +120,7 @@ class KeepaProducts(Base, ModelsBase):
             return product
 
     @classmethod
+    @logger_decorator
     async def get_keepa_products_by_asins(cls, asins: List[str]) -> List[KeepaProducts]|None:
         if not asins:
             return
