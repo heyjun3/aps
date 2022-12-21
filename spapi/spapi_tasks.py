@@ -90,6 +90,7 @@ class UpdateChartData(object):
 
     @staticmethod
     def _mapping_keepa_products_and_parsed_data(product: KeepaProducts, parsed_data: dict):
+        logger.info({"action": "mapping_keepa_products_and_parsed_data", "status": "run"})
         now = convert_unix_time_to_keepa_time(time.time())    
         value = parsed_data.get(product.asin)
         if not value:
@@ -106,6 +107,8 @@ class UpdateChartData(object):
         product.render_data = convert_recharts_data({
                                                 'rank_data': product.rank_data,
                                                 'price_data': product.price_data,})
+
+        logger.info({"action": "mapping_keepa_products_and_parsed_data", "status": "done"})
         return product
 
 
