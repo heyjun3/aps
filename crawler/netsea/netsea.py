@@ -205,6 +205,8 @@ class NetseaHTMLPage(object):
                 continue
 
             url = product.select_one('.showcaseHd a').attrs.get('href')
+            if url:
+                url = urljoin(settings.NETSEA_ENDPOINT, url)
             shop_code = urlparse(url).path.split('/')[SHOP_CODE_NUM]
             product_code = urlparse(url).path.split('/')[PRODUCT_CODE_NUM]
             netsea_product = NetseaProduct(
