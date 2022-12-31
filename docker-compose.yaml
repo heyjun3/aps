@@ -1,4 +1,4 @@
-version: '3.9'
+version: "20.0"
 
 volumes:
   mongo_db_store:
@@ -55,6 +55,21 @@ services:
       TZ: Asia/Tokyo
     ports:
       - 9880:9880
+
+  front:
+    build:
+      context: .
+      dockerfile: ./services/front/Dockerfile
+      args:
+        APP_PATH: "services/front/"
+    container_name: front
+    restart: always
+    ports:
+     - 80:80
+    tty: true
+    stdin_open: true
+    environment:
+     - CHOKIDAR_USEPOLLING=true
   
   rabbitmq:
     image: rabbitmq:3.10.7-management
