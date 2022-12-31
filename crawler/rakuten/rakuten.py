@@ -336,8 +336,8 @@ class RakutenHTMLPage(object):
         for product in products:
             name = product.select_one('.content.title a')
             url = product.select_one('.image a')
-            price = product.select_one('.important')
-            point = product.select_one('.content.points span')
+            price = product.select_one('.price--OX_YW')
+            point = product.select_one('.points--AHzKn span')
             if not all((name, url, price, point)):
                 logger.error({
                     "message": 'parse value not Found Error',

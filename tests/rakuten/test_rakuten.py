@@ -126,20 +126,24 @@ class ScrapeDetailProductPage(unittest.TestCase):
         
     def test_parse_product_list_page(self):
 
-        path = os.path.join(dirname, 'product_list_page.html')
+        path = os.path.join(dirname, 'product_list_page_2.html')
         with open(path, 'r') as f:
             response = f.read()
 
         parsed_value = RakutenHTMLPage.parse_product_list_page(response)
-        assert parsed_value[0]['name'] == 'シャープ 加湿空気清浄機 KI-NS40W'
-        assert parsed_value[0]['url'] == 'https://item.rakuten.co.jp/superdeal/11118kins40w20211101/'
-        assert parsed_value[0]['price'] == 29800
-        assert parsed_value[0]['product_code'] == '11118kins40w20211101'
+        assert parsed_value[0]['name'] == "【税込み】【メーカー保証】Verbatim VBR130RP100SV4 プレミアム・アウトレット ワケあり"
+        assert parsed_value[0]['point'] == 339
+        assert parsed_value[0]['price'] == 3580
+        assert parsed_value[0]['product_code'] == "3100-00010038-00000001"
+        assert parsed_value[0]['url'] == "https://item.rakuten.co.jp/ioplaza/3100-00010038-00000001/"
 
-        assert parsed_value[-1]['name'] == 'シロカ siroca 4L 電気圧力鍋 SP-4D151'
-        assert parsed_value[-1]['url'] == 'https://item.rakuten.co.jp/superdeal/10052sp-4d151191004/'
-        assert parsed_value[-1]['price'] == 16000
-        assert parsed_value[-1]['product_code'] == '10052sp-4d151191004'
+        assert parsed_value[-1]['name'] == "【送料無料】【税込み】【メーカー保証】アイオーデータ IO DATA ED-SV4/32GR3 プレミアム・アウトレット ワケあり"
+        assert parsed_value[-1]['point'] == 1239
+        assert parsed_value[-1]['price'] == 15400
+        assert parsed_value[-1]['product_code'] == "3100-01615139-00000001"
+        assert parsed_value[-1]['url'] == "https://item.rakuten.co.jp/ioplaza/3100-01615139-00000001/"
+
+        assert len(parsed_value) == 45
         
     def test_parse_max_products_count(self):
         path = os.path.join(dirname, 'product_list_page.html')
