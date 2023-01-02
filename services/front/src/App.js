@@ -6,6 +6,7 @@ import SignUp from './templates/SignUp'
 import CustomizedInputBase from './components/Search'
 import ApiFecth from './components/ApiFetch';
 import ChartLists from './components/ChartLists'
+import Dashboard from './components/Dashboard';
 
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <Route path="/list" element={<ApiFecth />} />
           <Route path="/chartList/*" element={<ChartLists />} />
           <Route path="/" element={<CustomizedInputBase />} />
+          <Route path="/dashboard" element={<Dashboard/>} />
         </Routes>
       </BrowserRouter>
     </div>
