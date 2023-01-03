@@ -1,0 +1,6 @@
+FROM node:18.0-alpine3.14 AS builder
+
+ENV NODE_VERSION 18.0
+ARG APP_PATH
+WORKDIR /app
+USER node
