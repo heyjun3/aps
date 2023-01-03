@@ -1,9 +1,9 @@
 import React from "react"
-import OutlineCard from "./OutlineCard"
+import OutlinedCard from "./OutlinedCard"
 
 const Dashboard = () => {
     return (
-        <OutlineCard/>
+        <OutlinedCard/>
     )
 }
 
