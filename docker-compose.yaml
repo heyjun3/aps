@@ -1,4 +1,4 @@
-version: "20.0"
+version: "3.9"
 
 volumes:
   mongo_db_store:
@@ -70,6 +70,8 @@ services:
     stdin_open: true
     environment:
      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+     - uwsgi
   
   rabbitmq:
     image: rabbitmq:3.10.7-management
