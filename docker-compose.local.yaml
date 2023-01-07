@@ -18,3 +18,15 @@ services:
      - type: bind
        source: ./services/front/
        target: /app
+  
+  migrate_timescaledb_dev:
+    build:
+      context: .
+      dockerfile: ./services/migrate_timescaledb/Dockerfile
+    container_name: migrate-timescaledb
+    environment:
+     - TZ=Asia/Tokyo
+    entrypoint: tail -f /dev/null
+    volumes:
+     - ./services/migrate_timescaledb:/go/src
+  
