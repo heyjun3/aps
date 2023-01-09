@@ -40,4 +40,7 @@ func main() {
 	for k, v := range d {
 		fmt.Println(k, v)
 	}
+	m := 11111
+	fmt.Println(&m)
+	fmt.Println(*&m)
 }
