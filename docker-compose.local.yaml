@@ -23,7 +23,7 @@ services:
     build:
       context: .
       dockerfile: ./services/migrate_timescaledb/Dockerfile
-    container_name: migrate-timescaledb
+    container_name: migrate_timescaledb_dev
     environment:
      - TZ=Asia/Tokyo
     entrypoint: tail -f /dev/null
