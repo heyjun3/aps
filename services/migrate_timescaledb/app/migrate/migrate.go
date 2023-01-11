@@ -2,12 +2,11 @@ package migrate
 
 import (
 	"encoding/json"
-	"context"
 	"fmt"
 	"time"
 	"strconv"
 
-	con "migrate_timescaledb/app/connection"
+	"github.com/volatiletech/null/v8"
 	"migrate_timescaledb/app/models"
 )
 
@@ -22,22 +21,37 @@ func convKeepaTimeToTime(keepa_time string) (*time.Time, error) {
 	return &t, nil
 }
 
-func ConvKeepaProductToAsinsInfo(asin string) {
-	p, err := models.FindKeepaProduct(context.Background(), con.DbConnection, asin)
-	if err != nil {
-		fmt.Printf("get keepa product failed. argument is %v\n", asin)
-		return
-	}
+func ConvKeepaProductToAsinsInfo(p *models.KeepaProduct) ([]models.AsinsInfoTime, error) {
 
+	var asinInfos []models.AsinsInfoTime
 	prices := make(map[string]float64)
 	if err := json.Unmarshal(p.PriceData.JSON, &prices); err != nil {
 		fmt.Println("price data unmarshal error")
-		return
+		return nil, err
+	}
+	for time, price := range prices {
+		t, err := convKeepaTimeToTime(time)
+		if err != nil {
+			fmt.Printf("action=ConvKeepaProductToAsinsInfo keepa time convert error value %v", err)
+			return nil, err
+		}
+		data := models.AsinsInfoTime{Time: *t, Asin: p.Asin, Price: null.NewInt(int(price), true)}
+		asinInfos = append(asinInfos, data)
 	}
 
 	ranks := make(map[string]float64)
 	if err := json.Unmarshal(p.RankData.JSON, &ranks); err != nil {
 		fmt.Println("rank data unmarshal error")
-		return
+		return nil, err
 	}
+	for time, rank := range ranks {
+		t, err := convKeepaTimeToTime(time)
+		if err != nil {
+			fmt.Printf("action=ConvKeepaProductToAsinsInfo keepa time convert error value %v", err)
+			return nil, err
+		}
+		data := models.AsinsInfoTime{Time: *t, Asin: p.Asin, Rank: null.NewInt(int(rank), true)}
+		asinInfos = append(asinInfos, data)
+	}
+	return asinInfos, nil
 }

@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"migrate_timescaledb/app/connection"
 	"migrate_timescaledb/app/models"
+	"migrate_timescaledb/app/migrate"
 
 	_ "github.com/lib/pq"
 )
@@ -25,22 +25,21 @@ type Data struct {
 }
 
 func main() {
+	tmp()
+}
+
+func tmp() {
 	asin := "B07MTRXVR7"
 	product, err := models.FindKeepaProduct(context.Background(), connection.DbConnection, asin)
 	if err != nil {
-		fmt.Println("error")
+		fmt.Printf("get keepa product failed: %v", err)
 		return
 	}
-	fmt.Println(product.Asin)
-	fmt.Println(product.SalesDrops90)
-	fmt.Println(product.Created)
-	fmt.Println(product.Modified)
-	d := make(map[string]float64)
-	err = json.Unmarshal(product.PriceData.JSON, &d)
-	for k, v := range d {
-		fmt.Println(k, v)
+
+	infos, err := migrate.ConvKeepaProductToAsinsInfo(product)
+	if err != nil {
+		fmt.Printf("convert asins info failed: %v", err)
+		return
 	}
-	m := 11111
-	fmt.Println(&m)
-	fmt.Println(*&m)
+	fmt.Println(infos)
 }
