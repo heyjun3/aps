@@ -60,4 +60,66 @@ func TestConvKeepaProductToAsinsInfo(t *testing.T) {
 		assert.Equal(t, k1, result[0])
 		assert.Equal(t, k2, result[len(result)-1])
 	})
+
+	t.Run("price is required", func (t *testing.T) {
+		p := models.KeepaProduct{
+			Asin: "AAAABBBB",
+		    SalesDrops90: null.NewInt(1, true),
+			Created: null.NewTime(time.Date(2023, 1, 12, 1, 40, 0, 0, time.Local), true),	
+			Modified: null.NewTime(time.Date(2024, 1, 12, 1, 40, 0, 0, time.Local), true),	
+			RankData: null.JSONFrom([]byte(`{"11111": 11111, "22222": 22222}`)),
+		}
+
+		result, err := ConvKeepaProductToAsinsInfo(&p)
+
+		assert.Error(t, err)
+		assert.Equal(t, []models.AsinsInfoTime(nil), result)
+	})
+
+	t.Run("rank is required", func (t *testing.T) {
+		p := models.KeepaProduct{
+			Asin: "AAAABBBB",
+		    SalesDrops90: null.NewInt(1, true),
+			Created: null.NewTime(time.Date(2023, 1, 12, 1, 40, 0, 0, time.Local), true),	
+			Modified: null.NewTime(time.Date(2024, 1, 12, 1, 40, 0, 0, time.Local), true),	
+			PriceData: null.JSONFrom([]byte(`{"11111": 11111, "22222": 22222}`)),
+		}
+
+		result, err := ConvKeepaProductToAsinsInfo(&p)
+
+		assert.Error(t, err)
+		assert.Equal(t, []models.AsinsInfoTime(nil), result)
+	})
+
+	t.Run("price keepa time is 0 to 9 strings", func(t *testing.T) {
+		p := models.KeepaProduct{
+			Asin: "AAAABBBB",
+		    SalesDrops90: null.NewInt(1, true),
+			Created: null.NewTime(time.Date(2023, 1, 12, 1, 40, 0, 0, time.Local), true),	
+			Modified: null.NewTime(time.Date(2024, 1, 12, 1, 40, 0, 0, time.Local), true),	
+			PriceData: null.JSONFrom([]byte(`{"aaaa": 10000, "20000": 20000}`)),
+			RankData: null.JSONFrom([]byte(`{"11111": 11111, "22222": 22222}`)),
+		}
+
+		result, err := ConvKeepaProductToAsinsInfo(&p)
+
+		assert.Error(t, err)
+		assert.Equal(t, []models.AsinsInfoTime(nil), result)
+	})
+
+	t.Run("rank keepa time is 0 to 9 strings", func(t *testing.T) {
+		p := models.KeepaProduct{
+			Asin: "AAAABBBB",
+		    SalesDrops90: null.NewInt(1, true),
+			Created: null.NewTime(time.Date(2023, 1, 12, 1, 40, 0, 0, time.Local), true),	
+			Modified: null.NewTime(time.Date(2024, 1, 12, 1, 40, 0, 0, time.Local), true),	
+			PriceData: null.JSONFrom([]byte(`{"10000": 10000, "20000": 20000}`)),
+			RankData: null.JSONFrom([]byte(`{"11111": 11111, "LLLLLL": 22222}`)),
+		}
+
+		result, err := ConvKeepaProductToAsinsInfo(&p)
+
+		assert.Error(t, err)
+		assert.Equal(t, []models.AsinsInfoTime(nil), result)
+	})
 }
