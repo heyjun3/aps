@@ -1,14 +1,17 @@
 package migrate
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
-	"strconv"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null/v8"
 
+	"migrate_timescaledb/app/config"
+	"migrate_timescaledb/app/connection"
 	"migrate_timescaledb/app/models"
 )
 
@@ -149,5 +152,36 @@ func TestConvKeepaProductToAsinsInfo(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, []models.AsinsInfoTime(nil), result)
+	})
+}
+
+func TestUpsertAsinsInfoTimes(t *testing.T) {
+	c, _ := config.NewConfig("../../sqlboiler.yaml")
+	db, err := connection.CreateDBConnection(c.Dsn())
+	if err != nil {
+		fmt.Printf("Doesn't connection database")
+		return
+	}
+
+	t.Run("upsert asins_info_time records", func(t *testing.T) {
+		tx, _ := db.Begin()
+		defer tx.Rollback()
+		ctx := context.Background()
+		p := []models.AsinsInfoTime{
+			{
+				Time: time.Date(2023, 1, 15, 1, 4, 0, 0, time.Local),
+				Asin: "XXXXXXX",
+				Price: null.IntFrom(1000),
+			},
+			{
+				Time: time.Date(2023, 1, 15, 1, 4, 0, 0, time.Local),
+				Asin: "XXXXXXX",
+				Rank: null.IntFrom(9999),
+			},
+		}
+
+		err := UpsertAsinsInfoTimes(ctx, db, p)
+
+		assert.Equal(t, nil, err)
 	})
 }

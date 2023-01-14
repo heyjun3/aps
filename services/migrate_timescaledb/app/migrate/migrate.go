@@ -2,7 +2,6 @@ package migrate
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -88,12 +87,11 @@ func ConvKeepaProductToAsinsInfo(p *models.KeepaProduct) ([]models.AsinsInfoTime
 	return asinInfos, nil
 }
 
-func UpsertAsinsInfoTimes(p []models.AsinsInfoTime, db *sql.DB) error {
-	ctx := context.Background()
+func UpsertAsinsInfoTimes(ctx context.Context, db boil.ContextExecutor, p []models.AsinsInfoTime) error {
 	conflictColums := []string{"time", "asin"}
 
 	for _, r := range p {
-		var upCol []string
+		upCol := []string{}
 		if r.Rank.IsZero() == false {
 			upCol = append(upCol, "rank")
 		}
