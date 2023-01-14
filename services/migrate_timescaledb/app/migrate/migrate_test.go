@@ -31,6 +31,34 @@ func TestConvKeepaTimeToTime(t *testing.T) {
 	})
 }
 
+func TestGetMapKeys(t *testing.T) {
+	t.Run("get keys for map", func(t *testing.T) {
+		m := map[string]float64{
+			"1111": 5000,
+			"0999": 1000,
+			"5555": 5555,
+		}
+
+		keys, err := getMapKeys(m)
+
+		assert.Equal(t, nil, err)
+		assert.Equal(t, []int{999, 1111, 5555}, keys)
+	})
+
+	t.Run("keys specified 0 to 9 only", func(t *testing.T) {
+		m := map[string]float64{
+			"1111": 5000,
+			"0999": 1000,
+			"aaa": 5555,
+		}
+
+		keys, err := getMapKeys(m)
+
+		assert.Error(t, err)
+		assert.Equal(t, []int(nil), keys)
+	})
+}
+
 func TestConvKeepaProductToAsinsInfo(t *testing.T) {
 	t.Run("convert keepa product to asins infos", func (t *testing.T) {
 		p := models.KeepaProduct{

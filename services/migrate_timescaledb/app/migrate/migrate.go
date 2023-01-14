@@ -1,13 +1,18 @@
 package migrate
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
-	"time"
+	"sort"
 	"strconv"
+	"time"
+
+	"migrate_timescaledb/app/models"
 
 	"github.com/volatiletech/null/v8"
-	"migrate_timescaledb/app/models"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 func convKeepaTimeToTime(keepa_time string) (*time.Time, error) {
@@ -21,6 +26,21 @@ func convKeepaTimeToTime(keepa_time string) (*time.Time, error) {
 	return &t, nil
 }
 
+func getMapKeys(m map[string]float64) ([]int, error) {
+	keys := []int{}
+	for k := range m {
+		i, err := strconv.Atoi(k)
+		if err != nil {
+			fmt.Printf("conver key error isn't valid value: %v", err)
+			return nil, err
+		}
+
+		keys = append(keys, i)
+	}
+	sort.Ints(keys)
+	return keys, nil
+}
+
 func ConvKeepaProductToAsinsInfo(p *models.KeepaProduct) ([]models.AsinsInfoTime, error) {
 
 	var asinInfos []models.AsinsInfoTime
@@ -29,13 +49,19 @@ func ConvKeepaProductToAsinsInfo(p *models.KeepaProduct) ([]models.AsinsInfoTime
 		fmt.Println("price data unmarshal error")
 		return nil, err
 	}
-	for time, price := range prices {
-		t, err := convKeepaTimeToTime(time)
+	times, err := getMapKeys(prices)
+	if err != nil {
+		fmt.Printf("prices map conver key error")
+		return nil, err
+	}
+	for _, time := range times {
+		ts := strconv.Itoa(time)
+		t, err := convKeepaTimeToTime(ts)
 		if err != nil {
 			fmt.Printf("action=ConvKeepaProductToAsinsInfo keepa time convert error value %v", err)
 			return nil, err
 		}
-		data := models.AsinsInfoTime{Time: *t, Asin: p.Asin, Price: null.NewInt(int(price), true)}
+		data := models.AsinsInfoTime{Time: *t, Asin: p.Asin, Price: null.NewInt(int(prices[ts]), true)}
 		asinInfos = append(asinInfos, data)
 	}
 
@@ -44,14 +70,43 @@ func ConvKeepaProductToAsinsInfo(p *models.KeepaProduct) ([]models.AsinsInfoTime
 		fmt.Println("rank data unmarshal error")
 		return nil, err
 	}
-	for time, rank := range ranks {
-		t, err := convKeepaTimeToTime(time)
+	times, err = getMapKeys(ranks)
+	if err != nil {
+		fmt.Printf("ranks map conver key error")
+		return nil, err
+	}
+	for _, time := range times{
+		ts := strconv.Itoa(time)
+		t, err := convKeepaTimeToTime(ts)
 		if err != nil {
 			fmt.Printf("action=ConvKeepaProductToAsinsInfo keepa time convert error value %v", err)
 			return nil, err
 		}
-		data := models.AsinsInfoTime{Time: *t, Asin: p.Asin, Rank: null.NewInt(int(rank), true)}
+		data := models.AsinsInfoTime{Time: *t, Asin: p.Asin, Rank: null.NewInt(int(ranks[ts]), true)}
 		asinInfos = append(asinInfos, data)
 	}
 	return asinInfos, nil
+}
+
+func UpsertAsinsInfoTimes(p []models.AsinsInfoTime, db *sql.DB) error {
+	ctx := context.Background()
+	conflictColums := []string{"time", "asin"}
+
+	for _, r := range p {
+		var upCol []string
+		if r.Rank.IsZero() == false {
+			upCol = append(upCol, "rank")
+		}
+		if r.Price.IsZero() == false {
+			upCol = append(upCol, "price")
+		}
+		updateColumns := boil.Whitelist(upCol...)
+
+		err := r.Upsert(ctx, db, true, conflictColums, updateColumns, boil.Infer())
+		if err != nil {
+			fmt.Printf("AsinsInfoTime Upsert error: %v, value: %v", err, r)
+			return err
+		}
+	}
+	return nil
 }
