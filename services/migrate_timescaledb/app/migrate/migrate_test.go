@@ -1,7 +1,6 @@
 package migrate
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -10,8 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null/v8"
 
-	"migrate_timescaledb/app/config"
-	"migrate_timescaledb/app/connection"
 	"migrate_timescaledb/app/models"
 )
 
@@ -62,6 +59,53 @@ func TestGetMapKeys(t *testing.T) {
 	})
 }
 
+func TestDeleteDuplicateAsinsInfoTimes(t *testing.T) {
+	t.Run("delete duplicate AsinsInfoTimes", func(t *testing.T) {
+		p := []models.AsinsInfoTime{
+			{
+				Time: time.Date(2023, 1, 16, 0, 35, 0, 0, time.Local),
+				Asin: "XXXX",
+				Price: null.IntFrom(1000),
+				Rank: null.IntFrom(1000),
+			},
+			{
+				Time: time.Date(2023, 1, 16, 0, 35, 0, 0, time.Local),
+				Asin: "XXXX",
+				Price: null.IntFrom(2000),
+				Rank: null.IntFrom(2000),
+			},
+			{
+				Time: time.Date(2023, 1, 17, 0, 35, 0, 0, time.Local),
+				Asin: "XXXX",
+				Rank: null.IntFrom(4000),
+			},
+			{
+				Time: time.Date(2023, 1, 17, 0, 35, 0, 0, time.Local),
+				Asin: "XXXX",
+				Price: null.IntFrom(3000),
+			},
+		}
+
+		d := deleteDuplicateAsinsInfoTimes(p)
+
+		ext := []models.AsinsInfoTime{
+			{
+				Time: time.Date(2023, 1, 16, 0, 35, 0, 0, time.Local),
+				Asin: "XXXX",
+				Price: null.IntFrom(2000),
+				Rank: null.IntFrom(2000),
+			},
+			{
+				Time: time.Date(2023, 1, 17, 0, 35, 0, 0, time.Local),
+				Asin: "XXXX",
+				Price: null.IntFrom(3000),
+				Rank: null.IntFrom(4000),
+			},
+		}
+		assert.Equal(t, ext, d)
+	})
+}
+
 func TestConvKeepaProductToAsinsInfo(t *testing.T) {
 	t.Run("convert keepa product to asins infos", func (t *testing.T) {
 		p := models.KeepaProduct{
@@ -73,7 +117,7 @@ func TestConvKeepaProductToAsinsInfo(t *testing.T) {
 			RankData: null.JSONFrom([]byte(`{"11111": 11111, "22222": 22222}`)),
 		}
 
-		result, err := ConvKeepaProductToAsinsInfo(&p)
+		result, err := convKeepaProductToAsinsInfo(&p)
 		
 		assert.Equal(t, nil, err)
 		assert.IsType(t, []models.AsinsInfoTime{}, result)
@@ -101,7 +145,7 @@ func TestConvKeepaProductToAsinsInfo(t *testing.T) {
 			RankData: null.JSONFrom([]byte(`{"11111": 11111, "22222": 22222}`)),
 		}
 
-		result, err := ConvKeepaProductToAsinsInfo(&p)
+		result, err := convKeepaProductToAsinsInfo(&p)
 
 		assert.Error(t, err)
 		assert.Equal(t, []models.AsinsInfoTime(nil), result)
@@ -116,7 +160,7 @@ func TestConvKeepaProductToAsinsInfo(t *testing.T) {
 			PriceData: null.JSONFrom([]byte(`{"11111": 11111, "22222": 22222}`)),
 		}
 
-		result, err := ConvKeepaProductToAsinsInfo(&p)
+		result, err := convKeepaProductToAsinsInfo(&p)
 
 		assert.Error(t, err)
 		assert.Equal(t, []models.AsinsInfoTime(nil), result)
@@ -132,7 +176,7 @@ func TestConvKeepaProductToAsinsInfo(t *testing.T) {
 			RankData: null.JSONFrom([]byte(`{"11111": 11111, "22222": 22222}`)),
 		}
 
-		result, err := ConvKeepaProductToAsinsInfo(&p)
+		result, err := convKeepaProductToAsinsInfo(&p)
 
 		assert.Error(t, err)
 		assert.Equal(t, []models.AsinsInfoTime(nil), result)
@@ -148,40 +192,11 @@ func TestConvKeepaProductToAsinsInfo(t *testing.T) {
 			RankData: null.JSONFrom([]byte(`{"11111": 11111, "LLLLLL": 22222}`)),
 		}
 
-		result, err := ConvKeepaProductToAsinsInfo(&p)
+		result, err := convKeepaProductToAsinsInfo(&p)
 
 		assert.Error(t, err)
 		assert.Equal(t, []models.AsinsInfoTime(nil), result)
 	})
 }
 
-func TestUpsertAsinsInfoTimes(t *testing.T) {
-	c, _ := config.NewConfig("../../sqlboiler.yaml")
-	db, err := connection.CreateDBConnection(c.Dsn())
-	if err != nil {
-		fmt.Printf("Doesn't connection database")
-		return
-	}
 
-	t.Run("upsert asins_info_time records", func(t *testing.T) {
-		tx, _ := db.Begin()
-		defer tx.Rollback()
-		ctx := context.Background()
-		p := []models.AsinsInfoTime{
-			{
-				Time: time.Date(2023, 1, 15, 1, 4, 0, 0, time.Local),
-				Asin: "XXXXXXX",
-				Price: null.IntFrom(1000),
-			},
-			{
-				Time: time.Date(2023, 1, 15, 1, 4, 0, 0, time.Local),
-				Asin: "XXXXXXX",
-				Rank: null.IntFrom(9999),
-			},
-		}
-
-		err := UpsertAsinsInfoTimes(ctx, db, p)
-
-		assert.Equal(t, nil, err)
-	})
-}

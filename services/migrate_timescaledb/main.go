@@ -1,17 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"migrate_timescaledb/app/connection"
 	"migrate_timescaledb/app/migrate"
-	"migrate_timescaledb/app/models"
 	"sort"
 	"strconv"
 
 	_ "github.com/lib/pq"
-	// "github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 type detailData struct {
@@ -29,35 +24,7 @@ type Data struct {
 }
 
 func main() {
-	tmp()
-}
-
-func tmp() {
-	asin := "B07MTRXVR7"
-	product, err := models.FindKeepaProduct(context.Background(), connection.DbConnection, asin)
-	if err != nil {
-		fmt.Printf("get keepa product failed: %v", err)
-		return
-	}
-
-	infos, err := migrate.ConvKeepaProductToAsinsInfo(product)
-	if err != nil {
-		fmt.Printf("convert asins info failed: %v", err)
-		return
-	}
-	// infos[0].Rank = null.IntFrom(1000)
-	var upCol []string
-	if infos[0].Rank.IsZero() == false{
-		upCol = append(upCol, "rank")
-	}
-	if infos[0].Price.IsZero() == false {
-		upCol = append(upCol, "price")
-	}
-	updateColumns := boil.Whitelist(upCol...)
-	infos[0].Upsert(context.Background(), connection.DbConnection, true, []string{"time", "asin"}, updateColumns, boil.Infer())
-	if err != nil {
-		fmt.Printf("insert error: %v", err)
-	}
+	migrate.StartMigrate()
 }
 
 func tmp2() {
