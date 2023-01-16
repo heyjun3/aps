@@ -5,7 +5,6 @@ volumes:
   rabbitmq_store:
   pg_store:
   pg_store_2:
-  pg_store_3:
 
 services:
   front:
@@ -190,24 +189,6 @@ services:
     depends_on:
       - postgresql-server
       - redis-server
-
-  timescaledb:
-    build:
-      context: .
-      dockerfile: ./docker/timescaledb/Dockerfile
-    container_name: timescaledb
-    restart: always
-    environment:
-      - TZ=Asia/Tokyo
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    ports:
-      - 5433:5432
-    volumes:
-      - type: volume
-        source: pg_store_3
-        target: /home/postgres/pgdata/data
 
   uwsgi:
     build:
