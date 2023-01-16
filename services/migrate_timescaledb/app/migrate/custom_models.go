@@ -36,7 +36,7 @@ func upsertAsinsInfoTimes(ctx context.Context, db boil.ContextExecutor, p []mode
 }
 
 func balkUpsertAsinsInfoTimes(ctx context.Context, db boil.ContextExecutor, p []models.AsinsInfoTime) error {
-	limit := 30000
+	limit := 10000
 	for i := 0; i < len(p); i += limit {
 		end := i + limit
 		if len(p) < end {

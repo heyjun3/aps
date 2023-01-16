@@ -106,6 +106,45 @@ func TestDeleteDuplicateAsinsInfoTimes(t *testing.T) {
 	})
 }
 
+func TestConvAsinsInfoTimesToStringSlice(t *testing.T) {
+	t.Run("convert asinsInfoTimes to str slice", func(t *testing.T) {
+		p := []models.AsinsInfoTime{
+			{
+				Time: time.Date(2023, 1, 16, 0, 35, 0, 0, time.Local),
+				Asin: "XXXX",
+				Price: null.IntFrom(1000),
+				Rank: null.IntFrom(1000),
+			},
+			{
+				Time: time.Date(2023, 1, 16, 0, 35, 0, 0, time.Local),
+				Asin: "XXXX",
+				Price: null.IntFrom(2000),
+				Rank: null.IntFrom(2000),
+			},
+			{
+				Time: time.Date(2023, 1, 17, 0, 35, 0, 0, time.Local),
+				Asin: "XXXX",
+				Rank: null.IntFrom(4000),
+			},
+			{
+				Time: time.Date(2023, 1, 17, 0, 35, 0, 0, time.Local),
+				Asin: "XXXX",
+				Price: null.IntFrom(3000),
+			},
+		}
+
+		strs := convAsinsInfoTimesToStringSlice(p)
+
+		ext := [][]string{
+			{"2023-01-16T00:35:00+09:00", "XXXX", "1000", "1000"},
+			{"2023-01-16T00:35:00+09:00", "XXXX", "2000", "2000"},
+			{"2023-01-17T00:35:00+09:00", "XXXX", "\\N", "4000"},
+			{"2023-01-17T00:35:00+09:00", "XXXX", "3000", "\\N"},
+		}
+		assert.Equal(t, ext, strs)
+	})
+}
+
 func TestConvKeepaProductToAsinsInfo(t *testing.T) {
 	t.Run("convert keepa product to asins infos", func (t *testing.T) {
 		p := models.KeepaProduct{

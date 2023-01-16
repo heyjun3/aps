@@ -2,8 +2,10 @@ package migrate
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 	"time"
@@ -21,7 +23,7 @@ func StartMigrate() {
 	if err != nil {
 		return
 	}
-	for _, asin := range asins[:10] {
+	for _, asin := range asins {
 		product, err := models.FindKeepaProduct(context.Background(), connection.DbConnection, asin.Asin)
 		if err != nil {
 			fmt.Printf("get keepa product failed: %v", err)
@@ -34,7 +36,15 @@ func StartMigrate() {
 			return
 		}
 		p := deleteDuplicateAsinsInfoTimes(infos)
-		err = balkUpsertAsinsInfoTimes(ctx, connection.DbConnection, p)
+		s := convAsinsInfoTimesToStringSlice(p)
+
+		f, err := os.OpenFile("insert.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		if err != nil {
+			fmt.Printf("open file error: %v", err)
+			return
+		}
+		w := csv.NewWriter(f)
+		w.WriteAll(s)
 	}
 }
 
@@ -99,6 +109,25 @@ func deleteDuplicateAsinsInfoTimes(p []models.AsinsInfoTime) []models.AsinsInfoT
 	}
 
 	return asinsInfoTimes
+}
+
+// TODO Write Test
+func convAsinsInfoTimesToStringSlice(p []models.AsinsInfoTime) [][]string{
+	records := [][]string{}
+	for _, m := range p {
+		time := m.Time.Format(time.RFC3339)
+		asin := m.Asin
+		price := strconv.Itoa(m.Price.Int)
+		if price == "0" {
+			price = "\\N"
+		}
+		rank := strconv.Itoa(m.Rank.Int)
+		if rank == "0" {
+			rank = "\\N"
+		}
+		records = append(records, []string{time, asin, price, rank})
+	}
+	return records
 }
 
 func convKeepaProductToAsinsInfo(p *models.KeepaProduct) ([]models.AsinsInfoTime, error) {
