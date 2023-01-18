@@ -5,57 +5,8 @@ volumes:
   rabbitmq_store:
   pg_store:
   pg_store_2:
-  pg_store_3:
 
 services:
-  mongo:
-    build:
-      context: .
-      dockerfile: ./docker/mongo/Dockerfile
-    container_name: mongo_db
-    restart: always
-    environment:
-      TZ: Asia/Tokyo
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
-      MONGO_USERNAME: ${MONGO_USERNAME}
-      MONGO_PASSWORD: ${MONGO_PASSWORD}
-    ports:
-      - 27017:27017
-    volumes:
-      - type: volume
-        source: mongo_db_store
-        target: /data/db
-      - type: volume
-        source: mongo_db_store
-        target: /data/configdb
-
-  mongo-express:
-    image: mongo-express
-    container_name: mongo_express
-    restart: always
-    ports:
-      - 8081:8081
-    environment:
-      TZ: Asia/Tokyo
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
-      ME_CONFIG_MONGODB_SERVER: mongo
-    depends_on:
-      - mongo
-
-  fluentd:
-    build:
-      context: .
-      dockerfile: ./docker/fluentd/Dockerfile
-    container_name: fluentd
-    restart: always
-    environment:
-      TZ: Asia/Tokyo
-    ports:
-      - 9880:9880
-
   front:
     build:
       context: .
@@ -238,24 +189,6 @@ services:
     depends_on:
       - postgresql-server
       - redis-server
-
-  timescaledb:
-    build:
-      context: .
-      dockerfile: ./docker/timescaledb/Dockerfile
-    container_name: timescaledb
-    restart: always
-    environment:
-      - TZ=Asia/Tokyo
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    ports:
-      - 5433:5432
-    volumes:
-      - type: volume
-        source: pg_store_3
-        target: /home/postgres/pgdata/data
 
   uwsgi:
     build:
