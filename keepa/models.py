@@ -6,6 +6,7 @@ from typing import List
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Date
 from sqlalchemy import JSON
@@ -128,6 +129,13 @@ class KeepaProducts(Base, ModelsBase):
         async with cls.session_scope() as session:
             result = await session.execute(stmt)
             return result.scalars().all()
+
+    @classmethod
+    async def get_not_modified_count_by_date(cls, date=datetime.datetime.now()) -> tuple(int, int):
+        stmt = select(func.count(cls.modified != date), func.count(cls.modified)).select_from(cls)
+        async with cls.session_scope() as session:
+            result = await session.execute(stmt)
+            return result.first()
 
     async def save(self):
         async with self.session_scope() as session:
