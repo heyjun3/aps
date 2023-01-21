@@ -1,8 +1,8 @@
+import datetime
+
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import sessionmaker
 
 import settings
 from keepa.models import Base, KeepaProducts
@@ -17,7 +17,7 @@ class TestModels(object):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         KeepaProducts.host_url = settings.DB_TEST_URL
-        await KeepaProducts(asin='test', sales_drops_90=10, price_data={1000: 1000}, rank_data={2000: 2000}).save()
+        await KeepaProducts(asin='test', sales_drops_90=10, price_data={1000: 1000}, rank_data={2000: 2000}, modified=datetime.date(2023, 1, 21)).save()
         yield
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
@@ -60,6 +60,16 @@ class TestGetNotModifiedCount(TestModels):
 
     @pytest.mark.asyncio
     async def test_get_count(self):
-        result = await KeepaProducts.get_not_modified_count_by_date()
+        date = datetime.date(2023, 1, 21)
+
+        result = await KeepaProducts.get_modified_count_by_date(date)
 
         assert result == (1, 1)
+
+    @pytest.mark.asyncio
+    async def test_get_diff_date(self):
+        date = datetime.datetime.now() - datetime.timedelta(days=1)
+
+        result = await KeepaProducts.get_modified_count_by_date(date)
+
+        assert result == (0, 1)
