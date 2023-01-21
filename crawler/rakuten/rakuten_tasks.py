@@ -10,7 +10,7 @@ SHOP_CODES = [
     'ioplaza', 'ikebe',
     'shoptsukumo', 'premiumgt', 'acer-direct', 'wakeari', 'sakurayama',
     'ikeshibu', 'aikyoku-bargain-center', 'aikyoku', 'ikebe-rockhouse', 'ishibashi',
-    'pckoubou', 'e-earphone', 'applied2', 'key', 'r-kojima']
+    'pckoubou', 'e-earphone', 'applied2', 'key']
 
 
 def run_rakuten_search_at_shop_code(shop_code: str) -> None:
