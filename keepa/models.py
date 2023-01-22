@@ -63,11 +63,12 @@ class KeepaProducts(Base, ModelsBase):
             return result.scalars().all()
 
     @classmethod
-    async def get_modified_count_by_date(cls, date=datetime.date.today()) -> tuple(int, int):
+    async def get_modified_count_by_date(cls, date=datetime.date.today()) -> dict[str, int]:
         stmt = select(func.count(or_(cls.modified == date, None)), func.count(cls.modified))
         async with cls.session_scope() as session:
             result = await session.execute(stmt)
-            return result.first()
+            modified, total = result.first()
+            return {"modified": modified, "total": total}
 
     async def save(self):
         async with self.session_scope() as session:

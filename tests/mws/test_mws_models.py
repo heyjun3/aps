@@ -147,3 +147,21 @@ class TestModels(object):
         assert result == True
         filenames = await MWS.get_filenames()
         assert filenames == []
+
+
+class TestGetCountByPriceAndFee(TestModels):
+
+    @pytest.mark.asyncio
+    async def test_get_rous_count(self):
+        result = await MWS.get_count_by_price_and_fee()
+
+        assert result == {"price": 1, "fee": 1, "total": 2}
+
+    @pytest.mark.asyncio
+    async def test_get_rows_count_add_rows(self):
+        await MWS(asin="XXX", filename="ZZZ").save()
+        await MWS(asin="XXXX", filename="ZZZZ", price=1).save()
+
+        result = await MWS.get_count_by_price_and_fee()
+
+        assert result == {"price": 2, "fee": 1, "total": 4}

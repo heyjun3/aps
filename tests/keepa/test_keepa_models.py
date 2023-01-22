@@ -64,7 +64,7 @@ class TestGetNotModifiedCount(TestModels):
 
         result = await KeepaProducts.get_modified_count_by_date(date)
 
-        assert result == (1, 1)
+        assert result == {"modified": 1, "total": 1}
 
     @pytest.mark.asyncio
     async def test_get_diff_date(self):
@@ -72,4 +72,4 @@ class TestGetNotModifiedCount(TestModels):
 
         result = await KeepaProducts.get_modified_count_by_date(date)
 
-        assert result == (0, 1)
+        assert result == {"modified": 0, "total": 1}
