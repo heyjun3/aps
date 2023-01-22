@@ -1,4 +1,5 @@
 import math
+import datetime
 
 from flask import Flask
 from flask import request
@@ -86,7 +87,7 @@ async def get_rows_count() -> str:
     if not request.method == "GET":
         return jsonify({"status": "error", "message": "Bad request"}), 400
 
-    keepa = await KeepaProducts.get_modified_count_by_date()
+    keepa = await KeepaProducts.get_modified_count_by_date(datetime.date.today())
     mws = await MWS.get_count_by_price_and_fee()
     return jsonify({"keepa": keepa, "mws": mws}), 200
 
