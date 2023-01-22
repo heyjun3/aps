@@ -81,5 +81,15 @@ async def get_chart_data(filename: str) -> str:
         return jsonify({'status': 'error'}), 400
 
 
+@app.route("/api/counts", methods=["GET"])
+async def get_rows_count() -> str:
+    if not request.method == "GET":
+        return jsonify({"status": "error", "message": "Bad request"}), 400
+
+    keepa = await KeepaProducts.get_modified_count_by_date()
+    mws = await MWS.get_count_by_price_and_fee()
+    return jsonify({"keepa": keepa, "mws": mws}), 200
+
+
 def start():
     app.run(host=settings.HOST, port=settings.PORT, threaded=True, debug=True)

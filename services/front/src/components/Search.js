@@ -5,7 +5,7 @@ import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import SearchIcon from '@mui/icons-material/Search';
 import RenderLineChart from './LineChart';
-
+import Dashboard from "./Dashboard";
 
 
 export default function CustomizedInputBase() {
@@ -31,6 +31,7 @@ export default function CustomizedInputBase() {
 
   return (
     <div>
+    <Dashboard/>
     <Paper
       component="form"
       sx={{ p: '2px 4px', display: 'flex', alignItems: 'center', width: '50%' , margin: 'auto', mt: '50px'}}

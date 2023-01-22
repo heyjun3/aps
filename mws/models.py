@@ -218,6 +218,14 @@ class MWS(Base, ModelsBase):
                     .order_by(cls.created_at).limit(limit_count)
             result = await session.execute(stmt)
             return result.scalars().all()
+        
+    @classmethod
+    async def get_count_by_price_and_fee(cls) -> dict[str, int]:
+        stmt = select(func.count(cls.price), func.count(cls.fee_rate), func.count(cls.asin))
+        async with cls.session_scope() as session:
+            result = await session.execute(stmt)
+            price, fee, total = result.first()
+            return {"price": price, "fee": fee, "total": total}
 
     @classmethod
     async def get_asins_by_fee_is_None(cls, limit_count=10000) -> List[str]:

@@ -17,8 +17,7 @@ from spapi.spapi import SPAPIJsonParser
 from spapi.models import AsinsInfo, SpapiPrices
 from spapi.models import SpapiFees
 from keepa.models import KeepaProducts
-from keepa.models import convert_unix_time_to_keepa_time
-from keepa.models import convert_recharts_data
+from keepa import convert
 from mws.models import MWS
 from mq import MQ
 from spapi.utils import Cache
@@ -91,7 +90,7 @@ class UpdateChartData(object):
     @staticmethod
     def _mapping_keepa_products_and_parsed_data(product: KeepaProducts, parsed_data: dict):
         logger.info({"action": "mapping_keepa_products_and_parsed_data", "status": "run"})
-        now = convert_unix_time_to_keepa_time(time.time())    
+        now = convert.unix_time_to_keepa_time(time.time())    
         value = parsed_data.get(product.asin)
         if not value:
             return product
@@ -104,7 +103,7 @@ class UpdateChartData(object):
 
         product.price_data[now] = price
         product.rank_data[now] = rank
-        product.render_data = convert_recharts_data({
+        product.render_data = convert.recharts_data({
                                                 'rank_data': product.rank_data,
                                                 'price_data': product.price_data,})
 
