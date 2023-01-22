@@ -13,7 +13,8 @@ services:
     stdin_open: true
     environment:
      - CHOKIDAR_USEPOLLING=true
-    entrypoint: tail -f /dev/null
+     - REACT_APP_FQDN=http://localhost:5000
+    entrypoint: npm run start
     volumes:
      - type: bind
        source: ./services/front/
