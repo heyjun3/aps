@@ -295,20 +295,37 @@ class NetseaHTMLPage(object):
     def scrape_favorite_list_page(cls, response: str) -> list[str, int]:
         logger.info('action=scraping_favorite_list_page status=run')
 
-        product_data = []
+        # e.g. https://www.netsea.jp/shop/84918/28234210
+        SHOP_CODE_INDEX = 1
+        PRODUCT_CODE_INDEX = 2
+        products = []
         soup = BeautifulSoup(response, 'lxml')
         products_box = soup.select('form .showcaseType03')
 
         for box in products_box:
-            try:
-                url = box.select_one('.showcaseHd a').attrs.get('href')
-                price = box.select_one('.afterPrice')
-                if price is None:
-                    price = box.select_one('.price')
-                price = int(int(''.join(re.findall('[\\d+]', price.text))) * 1.1)
-                product_data.append([url, price])
-            except AttributeError as e:
-                logger.error(f'action=scraping_favorite_list_page error={e}')
+            title_tag = box.select_one('.showcaseHd a')
+            if not title_tag:
+                logger.error({"action": "scrape_favorite_list_page", "message": "Not Found Title"})
+                continue
+            title = title_tag.text.strip()
+            url = title_tag.attrs.get("href")
+            if not url:
+                logger.error({"action": "scrape_favorite_list_page", "message": "Not Found URL"})
+                continue
 
+            url_path = list(filter(None, urlparse(url).path.split("/")))
+            try:
+                shop_code = url_path[SHOP_CODE_INDEX]
+                product_code = url_path[PRODUCT_CODE_INDEX]
+            except IndexError as ex:
+                logger.error({"action": "scrape_favorite_list_page", "message": "Not Found product_code and shop_code"})
+                continue
+
+            price = price_tag if (price_tag := box.select_one('.afterPrice')) else box.select_one(".price")
+            if price:
+                price = int(int(''.join(re.findall('[0-9]+', price.text))) * 1.1)
+
+            products.append(NetseaProduct(name=title, price=price,
+                            shop_code=shop_code, product_code=product_code, url=url))
         logger.info('action=scraping_favorite_list_page status=done')
-        return product_data 
+        return products

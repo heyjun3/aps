@@ -12,7 +12,6 @@ from crawler.rakuten import rakuten_tasks
 from crawler.rakuten import rakuten_scheduler
 from crawler.super import super_tasks
 from crawler.netsea import netsea_tasks
-from crawler.netsea import netsea_scheduler
 from crawler.pcones import pcones
 from crawler.spread_sheet.spread_sheet import SpreadSheetCrawler
 from crawler.paypaymall.paypaymoll import YahooShopCrawler
@@ -64,8 +63,6 @@ if __name__ == '__main__':
             netsea_tasks.run_new_product_search()
         case ('netsea', 'discount'):
             netsea_tasks.run_get_discount_products()
-        case ('netsea', 'scheduler'):
-            netsea_scheduler.main()
         case ('netsea', _):
             netsea_tasks.run_netsea_at_shop_id(shop_id)
         case ('repeat', None):
