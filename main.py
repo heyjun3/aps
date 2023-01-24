@@ -63,6 +63,8 @@ if __name__ == '__main__':
             netsea_tasks.run_new_product_search()
         case ('netsea', 'discount'):
             netsea_tasks.run_get_discount_products()
+        case ('netsea', 'bookmark'):
+            netsea_tasks.run_get_favorite_products()
         case ('netsea', _):
             netsea_tasks.run_netsea_at_shop_id(shop_id)
         case ('repeat', None):

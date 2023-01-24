@@ -37,7 +37,7 @@ PORT = config['WEB']['PORT']
 # SAVE PATH
 BASE_SAVE_PATH = os.path.join(BASE_PATH, 'scrape_files')
 SCRAPE_SAVE_PATH = os.path.join(BASE_SAVE_PATH, 'scrape')
-SCRAPE_SCHEDULE_SAVE_PATH =  os.path.join(BASE_SAVE_PATH, 'scrape_schedule')
+SCRAPE_SCHEDULE_SAVE_PATH = os.path.join(BASE_SAVE_PATH, 'scrape_schedule')
 SCRAPE_DONE_SAVE_PATH = os.path.join(BASE_SAVE_PATH, '.scrape')
 MWS_SAVE_PATH = os.path.join(BASE_SAVE_PATH, 'mws')
 MWS_DONE_SAVE_PATH = os.path.join(BASE_SAVE_PATH, '.mws')
@@ -75,6 +75,7 @@ NETSEA_LOGIN_URL = 'https://www.netsea.jp/login'
 NETSEA_NEXT_URL = 'https://www.netsea.jp/search/'
 NETSEA_SHOP_URL = 'https://www.netsea.jp/shop/'
 NETSEA_ENDPOINT = 'https://www.netsea.jp'
+NETSEA_DOMAIN = 'www.netsea.jp'
 NETSEA_ID = config['NETSEA']['ID']
 NETSEA_PASSWD = config['NETSEA']['PASSWD']
 
@@ -86,8 +87,8 @@ RAKUTEN_ENDPOINT = 'https://item.rakuten.co.jp/'
 # SUPER settings
 SUPER_LOGIN_URL = 'https://www.superdelivery.com/p/login.do'
 SUPER_LOGIN_INFO = {
-            'identification': config['SUPER']['MAIL_ADDRESS'],
-            'password': config['SUPER']['PASSWORD'],
+    'identification': config['SUPER']['MAIL_ADDRESS'],
+    'password': config['SUPER']['PASSWORD'],
 }
 SUPER_DOMAIN_URL = 'https://www.superdelivery.com'
 SUPER_NEW_PRODUCTS_URL = 'https://www.superdelivery.com/p/do/psl/'
