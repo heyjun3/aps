@@ -88,3 +88,42 @@ class ScrapeNextPageUrl(unittest.TestCase):
             response.text = f.read()
         url = SuperHTMLPage.scrape_next_page_url(response.text)
         self.assertEqual(url, 'https://www.superdelivery.com/p/do/dpsl/21321/all/2/?so=newly')
+
+    def test_scrape_favorite_products_page(self):
+        path = os.path.join(dirname, "favorite_product_page.html")
+        with open(path, "r") as f:
+            res = f.read()
+
+        url = SuperHTMLPage.scrape_next_page_url(res)
+
+        assert url == "https://www.superdelivery.com/p/wishlist/search.do?o=ad&p=2&cc=all&dc=0"
+
+    def test_scrape_last_favorite_products_page(self):
+        path = os.path.join(dirname, "favorite_last_page.html")
+        with open(path, "r") as f:
+            res = f.read()
+        
+        url = SuperHTMLPage.scrape_next_page_url(res)
+
+        assert url == None
+
+class TestScrapeFavoriteProductListPage(object):
+
+    def test_scrape_products(self):
+        path = os.path.join(dirname, "favorite_product_page.html")
+        with open(path, "r") as f:
+            res = f.read()
+        
+        products = SuperHTMLPage.scrape_favorite_product_list_page(res)
+
+        assert len(products) == 48
+        assert products[0].name == "80%OFF【スクエアエニックス】ドラゴンクエスト 文具屋 冒険ダイアリー2023"
+        assert products[0].product_code == "11049757"
+        assert products[0].price == 655
+        assert products[0].url == "https://www.superdelivery.com/p/r/pd_p/11049757/"
+        assert products[0].shop_code == None
+        assert products[-1].name == "ビクトリノックス ( VICTORINOX )　1.3713　ハントマン　91mm　レッド　箱入"
+        assert products[-1].product_code == "10182027"
+        assert products[-1].price == 4287
+        assert products[-1].url == "https://www.superdelivery.com/p/r/pd_p/10182027/"
+        assert products[-1].shop_code == None

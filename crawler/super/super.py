@@ -257,7 +257,7 @@ class SuperHTMLPage(object):
         logger.info('action=scrape_next_page_url status=run')
 
         soup = BeautifulSoup(response, 'lxml')
-        next_page_url = soup.select_one('.page-nav-next')
+        next_page_url = soup.select_one('.page-nav-next[href]')
         if next_page_url:
             try:
                 next_page_url = urllib.parse.urljoin(settings.SUPER_DOMAIN_URL, next_page_url.attrs.get('href'))
@@ -271,20 +271,36 @@ class SuperHTMLPage(object):
         return next_page_url
 
     @staticmethod
-    def scrape_favorite_product_list_page(response: str) -> list[str, int]:
+    def scrape_favorite_product_list_page(response: str, tax_rate: float=1.1) -> list[SuperProduct]:
         logger.info('action=scraping_favorite_page status=run')
 
-        products = []
+        # e.g. https://www.superdelivery.com/p/r/pd_p/11049757/
+        PRODUCT_CODE_INDEX = -1
+
         soup = BeautifulSoup(response, 'lxml')
         items = soup.select('.itembox-out-line')
 
+        products = []
         for item in items:
-            try:
-                url = settings.SUPER_DOMAIN_URL + item.select_one('.title a').attrs.get('href')
-                cost = int(int(''.join(re.findall('\\d+', item.select_one('.trade-status-large').text))) * 1.1)
-                products.append([url, cost])
-            except AttributeError as e:
-                logger.error(e)
+            title_tag = item.select_one(".title a[href]")
+            if title_tag is None:
+                logger.error("Not Found Title tag")
                 continue
+            title = title_tag.text
 
+            href = title_tag.get("href")
+            if href is None:
+                logger.error("Not Found URL in Title tag")
+                continue
+            url = urllib.parse.urljoin(settings.SUPER_DOMAIN_URL, href)
+
+            product_code = list(filter(None, url.split("/")))[PRODUCT_CODE_INDEX]
+            price_tag = item.select_one(".trade-status-large")
+            if price_tag is None:
+                logger.error("Not Found price tag")
+                continue
+            price = int(int(''.join(re.findall("[0-9]+", price_tag.text))) * tax_rate)
+            products.append(SuperProduct(product_code, title, price, url=url))
+
+        logger.info('action=scraping_favorite_page status=run')
         return products
