@@ -171,7 +171,7 @@ class RunAmzTask(object):
                             ) for info in asin_info]
             mws_objects.extend(mws_object)
 
-        return send_messages, mws_objects   
+        return send_messages, mws_objects
 
     async def get_queue(self, interval_sec: int=10, task_count=100) -> None:
         logger.info('action=get_queue status=run')

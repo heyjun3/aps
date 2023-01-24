@@ -82,10 +82,7 @@ def run_get_all_shop_info(path: str = 'shop', interval_sec: int = 2) -> None:
         time.sleep(interval_sec)
 
 @logger_decorator
-def run_get_favorite_products(path: str = 'bookmark') -> pd.DataFrame:
-    url = urllib.parse.urljoin(settings.NETSEA_ENDPOINT, path)
-    params = {'stock_option': 'in'}
-    url = requests.Request(method='GET', url=url, params=params).prepare().url
-    client = Netsea([url], params)
-    df = client.pool_favorite_product_list_page()
-    return df
+def run_get_favorite_products() -> None:
+    url = "https://www.netsea.jp/bookmark?stock_option=in"
+    client = Netsea([url])
+    client.start_favorite_products(url)

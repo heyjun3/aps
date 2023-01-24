@@ -103,4 +103,24 @@ class ScrapeProductDetailPage(unittest.TestCase):
 
         parsed_value = NetseaHTMLPage.scrape_product_detail_page(response.text)
         self.assertEqual(parsed_value.get('jan'), '4962644942725')
-    
+
+class TestScrapeFavoriteListPage(object):
+
+    def test_scrape_favorite_list_page(self):
+        html_path = os.path.join(dirname, "scrape_favorite_list_page.html") 
+        with open(html_path, "r") as f:
+            file = f.read()
+        
+        parsed = NetseaHTMLPage.scrape_favorite_list_page(file)
+
+        assert len(parsed) == 40
+        assert parsed[0].name == "NEW日本シグマックス メディエイド しっかりガード 腰 スタンダードプラス L"
+        assert parsed[0].price == 2300
+        assert parsed[0].shop_code == "84918"
+        assert parsed[0].product_code == "28234210"
+        assert parsed[0].url == "https://www.netsea.jp/shop/84918/28234210"
+        assert parsed[-1].name == "韓国コスメ エイプリルスキン（APRILSKIN）リアルカレン ピールオフパック　100ｇ"
+        assert parsed[-1].price == 1019
+        assert parsed[-1].shop_code == "8070"
+        assert parsed[-1].product_code == "2022020703"
+        assert parsed[-1].url == "https://www.netsea.jp/shop/8070/2022020703"

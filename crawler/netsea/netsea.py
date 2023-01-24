@@ -118,36 +118,36 @@ class Netsea(object):
 
         logger.info('action=pool_product_detail_page status=done')
 
-    def pool_favorite_product_list_page(self, interval_sec: int = 2) -> pd.DataFrame:
-        logger.info('action=pool_favorite_product_list_page status=run')
+    def start_favorite_products(self, url: str, interval_sec: int=2) -> None:
+        logger.info({"action": "start_favorite_products", "status": "run"})
 
-        netsea_product_list = []
+        products = []
+        while url is not None:
+            response = utils.request(session=self.session, url=url, time_sleep=interval_sec)
+            products.extend(NetseaHTMLPage.scrape_favorite_list_page(response.text))
+            url = NetseaHTMLPage.scrape_next_page_url(response.text, response.url)
+            logger.info({"action": "start_favorite_products",
+                         "messages": f"next_page_url is {url}"})
 
-        while self.url is not None:
-            response = utils.request(session=self.session, url=self.url)
-            time.sleep(interval_sec)
-            netsea_product_list.extend(NetseaHTMLPage.scrape_favorite_list_page(response.text))
-            self.url = NetseaHTMLPage.scrape_next_page_url(response.text, response.url)
-
-        df = pd.DataFrame(data=None, columns={'jan': str, 'cost': int})
-        PRODUCT_CODE_NUM = -1
-        SHOP_ID_NUM = -2
-
-        for product in netsea_product_list:
-            url, price = product
-            product_id = url.split('/')[PRODUCT_CODE_NUM]
-            shop_id = url.split('/')[SHOP_ID_NUM]
-            netsea_object = NetseaProduct.get_object_filter_productcode_and_shopcode(product_id, shop_id)
-            if netsea_object and netsea_object.jan:
-                jan = netsea_object.jan
-            elif re.fullmatch('[0-9]{13}', product_id):
-                jan = product_id
-            else:
+        for product in products:
+            p = NetseaProduct.get_object_filter_productcode_and_shopcode(product.product_code, product.shop_code)
+            if p is None:
+                logger.error({"action": "start_favorite_products", 
+                              "message": "Not Found product in database",
+                              "product_code": product.product_code,
+                              "shop_code": product.shop_code,})
                 continue
-            df = df.append({'jan': jan, 'cost': price}, ignore_index=True)
-        df = df.dropna()
-        logger.info('action=pool_favorite_product_list_page status=done')
-        return df
+            if not p.jan:
+                logger.error({"action": "start_favorite_products", 
+                              "message": "product has'nt jan code",
+                              "product_code": product.product_code,
+                              "shop_code": product.shop_code,})
+                continue
+            product.jan = p.jan
+
+        [self.publish_queue(product.jan, product.price, product.url) for product in products] 
+
+        logger.info({"action": "start_favorite_products", "status": "done"})
 
     def publish_queue(self, jan: str, price: int, url: str) -> None:
         logger.info('action=publish_queue status=run')
@@ -292,23 +292,44 @@ class NetseaHTMLPage(object):
         return shop_list
 
     @classmethod
-    def scrape_favorite_list_page(cls, response: str) -> list[str, int]:
+    def scrape_favorite_list_page(cls, response: str, tax_rate: float=1.1) -> list[NetseaProduct]:
         logger.info('action=scraping_favorite_list_page status=run')
 
-        product_data = []
+        # e.g. https://www.netsea.jp/shop/84918/28234210
+        SHOP_CODE_INDEX = 1
+        PRODUCT_CODE_INDEX = 2
+
+        products = []
         soup = BeautifulSoup(response, 'lxml')
         products_box = soup.select('form .showcaseType03')
 
         for box in products_box:
-            try:
-                url = box.select_one('.showcaseHd a').attrs.get('href')
-                price = box.select_one('.afterPrice')
-                if price is None:
-                    price = box.select_one('.price')
-                price = int(int(''.join(re.findall('[\\d+]', price.text))) * 1.1)
-                product_data.append([url, price])
-            except AttributeError as e:
-                logger.error(f'action=scraping_favorite_list_page error={e}')
+            title_tag = box.select_one('.showcaseHd a')
+            if not title_tag:
+                logger.error({"action": "scrape_favorite_list_page", "message": "Not Found Title"})
+                continue
+            title = title_tag.text.strip()
+            url = title_tag.attrs.get("href")
+            if not url:
+                logger.error({"action": "scrape_favorite_list_page", "message": "Not Found URL"})
+                continue
 
+            url_path = list(filter(None, urlparse(url).path.split("/")))
+            try:
+                shop_code = url_path[SHOP_CODE_INDEX]
+                product_code = url_path[PRODUCT_CODE_INDEX]
+            except IndexError as ex:
+                logger.error({
+                    "action": "scrape_favorite_list_page",
+                    "message": "Not Found product_code and shop_code",
+                    "error": ex})
+                continue
+
+            price = price_tag if (price_tag := box.select_one('.afterPrice')) else box.select_one(".price")
+            if price:
+                price = int(int(''.join(re.findall('[0-9]+', price.text))) * tax_rate)
+
+            products.append(NetseaProduct(name=title, price=price,
+                            shop_code=shop_code, product_code=product_code, url=url))
         logger.info('action=scraping_favorite_list_page status=done')
-        return product_data 
+        return products
