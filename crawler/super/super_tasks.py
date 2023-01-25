@@ -71,12 +71,11 @@ def run_get_super_shop_info():
     logger.info('action=run_get_super_shop_info status=done')
 
 
-def run_get_favorite_products() -> pd.DataFrame:
+def run_get_favorite_products() -> None:
     logger.info('action=run_get_favorite_products status=run')
     
     url = 'https://www.superdelivery.com/p/wishlist/search.do'
     client = SuperCrawler(url=url)
-    df = client.pool_favorite_product_list_page()
+    client.start_scrape_favorite_products(url)
 
     logger.info('action=run_get_favorite_products status=done')
-    return df

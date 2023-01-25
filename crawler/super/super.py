@@ -106,35 +106,27 @@ class SuperCrawler(object):
 
         logger.info('action=get_product_detail_page status=done')
 
-    def pool_favorite_product_list_page(self, interval_sec: int = 2):
-        logger.info('action=pool_favorite_product_list_page status=run')
+    def start_scrape_favorite_products(self, url: str, interval_sec: int=2) -> None:
+        logger.info({"action": "start_scrape_favorite_products", "status": "run"})
 
+        products = []
+        while url is not None:
+            response = utils.request(url=url, session=self.session, time_sleep=interval_sec)
+            products.extend(SuperHTMLPage.scrape_favorite_product_list_page(response.text))
+            url = SuperHTMLPage.scrape_next_page_url(response.text)
+            logger.info({"action": "start_scrape_favorite_products",
+                         "messages": f"next url is {url}"})
 
-        while self.url is not None:
-            response = utils.request(url=self.url, session=self.session)
-            time.sleep(interval_sec)
-            self.favorite_product_list.extend(SuperHTMLPage.scrape_favorite_product_list_page(response.text))
-            self.url = SuperHTMLPage.scrape_next_page_url(response.text)
-        
-        df = pd.DataFrame(data=None, columns={'jan': str, 'cost': int})
-        for item in self.favorite_product_list:
-            url, cost = item
-            product_code = url.split('/')[-2]
-            products = SuperProductDetails.get_objects_to_product_code(product_code)
+        for product in products:
+            details = SuperProductDetails.get_objects_to_product_code(product.product_code)
+            if details is None:
+                logger.error(f"Not Found product details {product.product_code}")
+                continue
 
-            if products is None:
-                response = utils.request(url=url, session=self.session)
-                time.sleep(interval_sec)
-                products = SuperHTMLPage.scrape_product_detail_page(response.text)
+            for d in details:
+                self.publish_queue(d.jan, product.price, product.url)
 
-            for product in products:
-                    if product.jan:
-                        df = df.append({'jan': product.jan, 'cost': cost}, ignore_index=True)
-                    else:
-                        logger.info(product.value)
-
-        df = df.dropna()
-        return df
+        logger.info({"action": "start_scrape_favorite_products", "status": "done"})
 
     def publish_queue(self, jan: str, price: int, url: str) -> None:
         logger.info('action=publish_queue status=run')

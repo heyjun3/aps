@@ -107,6 +107,15 @@ class ScrapeNextPageUrl(unittest.TestCase):
 
         assert url == None
 
+    def test_scrape_second_favorite_page(self):
+        path = os.path.join(dirname, "favorite_second_page.html")
+        with open(path, "r") as f:
+            res = f.read()
+
+        url = SuperHTMLPage.scrape_next_page_url(res)
+
+        assert url == "https://www.superdelivery.com/p/wishlist/search.do?o=ad&p=3&cc=all&dc=0"
+
 class TestScrapeFavoriteProductListPage(object):
 
     def test_scrape_products(self):

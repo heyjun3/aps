@@ -57,6 +57,8 @@ if __name__ == '__main__':
             super_tasks.run_schedule_super_task()
         case ('super', 'discount'):
             super_tasks.run_discount_product_search()
+        case ('super', 'bookmark'):
+            super_tasks.run_get_favorite_products()
         case ('netsea', 'all'):
             netsea_tasks.run_netsea_all_products()
         case ('netsea', 'new'):
