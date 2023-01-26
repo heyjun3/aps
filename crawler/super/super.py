@@ -106,35 +106,27 @@ class SuperCrawler(object):
 
         logger.info('action=get_product_detail_page status=done')
 
-    def pool_favorite_product_list_page(self, interval_sec: int = 2):
-        logger.info('action=pool_favorite_product_list_page status=run')
+    def start_scrape_favorite_products(self, url: str, interval_sec: int=2) -> None:
+        logger.info({"action": "start_scrape_favorite_products", "status": "run"})
 
+        products = []
+        while url is not None:
+            response = utils.request(url=url, session=self.session, time_sleep=interval_sec)
+            products.extend(SuperHTMLPage.scrape_favorite_product_list_page(response.text))
+            url = SuperHTMLPage.scrape_next_page_url(response.text)
+            logger.info({"action": "start_scrape_favorite_products",
+                         "messages": f"next url is {url}"})
 
-        while self.url is not None:
-            response = utils.request(url=self.url, session=self.session)
-            time.sleep(interval_sec)
-            self.favorite_product_list.extend(SuperHTMLPage.scrape_favorite_product_list_page(response.text))
-            self.url = SuperHTMLPage.scrape_next_page_url(response.text)
-        
-        df = pd.DataFrame(data=None, columns={'jan': str, 'cost': int})
-        for item in self.favorite_product_list:
-            url, cost = item
-            product_code = url.split('/')[-2]
-            products = SuperProductDetails.get_objects_to_product_code(product_code)
+        for product in products:
+            details = SuperProductDetails.get_objects_to_product_code(product.product_code)
+            if details is None:
+                logger.error(f"Not Found product details {product.product_code}")
+                continue
 
-            if products is None:
-                response = utils.request(url=url, session=self.session)
-                time.sleep(interval_sec)
-                products = SuperHTMLPage.scrape_product_detail_page(response.text)
+            for d in details:
+                self.publish_queue(d.jan, product.price, product.url)
 
-            for product in products:
-                    if product.jan:
-                        df = df.append({'jan': product.jan, 'cost': cost}, ignore_index=True)
-                    else:
-                        logger.info(product.value)
-
-        df = df.dropna()
-        return df
+        logger.info({"action": "start_scrape_favorite_products", "status": "done"})
 
     def publish_queue(self, jan: str, price: int, url: str) -> None:
         logger.info('action=publish_queue status=run')
@@ -257,7 +249,7 @@ class SuperHTMLPage(object):
         logger.info('action=scrape_next_page_url status=run')
 
         soup = BeautifulSoup(response, 'lxml')
-        next_page_url = soup.select_one('.page-nav-next')
+        next_page_url = soup.select_one('.page-nav-next[href]')
         if next_page_url:
             try:
                 next_page_url = urllib.parse.urljoin(settings.SUPER_DOMAIN_URL, next_page_url.attrs.get('href'))
@@ -271,20 +263,36 @@ class SuperHTMLPage(object):
         return next_page_url
 
     @staticmethod
-    def scrape_favorite_product_list_page(response: str) -> list[str, int]:
+    def scrape_favorite_product_list_page(response: str, tax_rate: float=1.1) -> list[SuperProduct]:
         logger.info('action=scraping_favorite_page status=run')
 
-        products = []
+        # e.g. https://www.superdelivery.com/p/r/pd_p/11049757/
+        PRODUCT_CODE_INDEX = -1
+
         soup = BeautifulSoup(response, 'lxml')
         items = soup.select('.itembox-out-line')
 
+        products = []
         for item in items:
-            try:
-                url = settings.SUPER_DOMAIN_URL + item.select_one('.title a').attrs.get('href')
-                cost = int(int(''.join(re.findall('\\d+', item.select_one('.trade-status-large').text))) * 1.1)
-                products.append([url, cost])
-            except AttributeError as e:
-                logger.error(e)
+            title_tag = item.select_one(".title a[href]")
+            if title_tag is None:
+                logger.error("Not Found Title tag")
                 continue
+            title = title_tag.text
 
+            href = title_tag.get("href")
+            if href is None:
+                logger.error("Not Found URL in Title tag")
+                continue
+            url = urllib.parse.urljoin(settings.SUPER_DOMAIN_URL, href)
+
+            product_code = list(filter(None, url.split("/")))[PRODUCT_CODE_INDEX]
+            price_tag = item.select_one(".trade-status-large")
+            if price_tag is None:
+                logger.error("Not Found price tag")
+                continue
+            price = int(int(''.join(re.findall("[0-9]+", price_tag.text))) * tax_rate)
+            products.append(SuperProduct(product_code, title, price, url=url))
+
+        logger.info('action=scraping_favorite_page status=run')
         return products

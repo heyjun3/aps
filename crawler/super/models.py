@@ -18,11 +18,18 @@ logger = log_settings.get_logger(__name__)
 
 class SuperProduct(Base):
     __tablename__ = 'super_products'
-    name = Column(String)
     product_code = Column(String, primary_key=True, nullable=False)
+    name = Column(String)
     price = Column(BigInteger)
     shop_code = Column(String)
     url = Column(String)
+
+    def __init__(self, product_code, name=None, price=None, shop_code=None, url=None):
+        self.product_code = product_code
+        self.name = name
+        self.price = price
+        self.shop_code = shop_code
+        self.url = url
 
     @classmethod
     def get_product(cls, product_code, price):
