@@ -79,3 +79,4 @@ def run_get_favorite_products() -> None:
     client.start_scrape_favorite_products(url)
 
     logger.info('action=run_get_favorite_products status=done')
+    

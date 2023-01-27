@@ -30,4 +30,15 @@ services:
     entrypoint: tail -f /dev/null
     volumes:
      - ./services/migrate_timescaledb:/go/src
+
+  crawler_dev:
+    build:
+      context: .
+      dockerfile: ./services/crawler/local.Dockerfile
+    container_name: crawler_dev
+    environment:
+      - TZ=Asia/Tokyo
+    entrypoint: tail -f /dev/null
+    volumes: 
+      - ./services/crawler:/go/src
   
