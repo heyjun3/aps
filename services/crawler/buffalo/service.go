@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	// "strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -26,8 +27,6 @@ func BuffaloScrapeAllPageService() {
 		log.Fatal(err)
 	}
 
-	doc.Find("a").Each(func (i int, s *goquery.Selection) {
-		fmt.Println(s.Text())
-	})
-	http.NewRequest()
+	tags := doc.Find(".product-card")
+	fmt.Println(len(tags.Nodes))
 }
