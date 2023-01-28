@@ -118,13 +118,11 @@ class SuperCrawler(object):
                          "messages": f"next url is {url}"})
 
         for product in products:
-            details = SuperProductDetails.get_objects_to_product_code(product.product_code)
-            if details is None:
-                logger.error(f"Not Found product details {product.product_code}")
-                continue
+            res = utils.request(product.url, session=self.session, time_sleep=interval_sec)
+            details = SuperHTMLPage.scrape_product_detail_page(res.text)
 
             for d in details:
-                self.publish_queue(d.jan, product.price, product.url)
+                self.publish_queue(d.jan, d.price, product.url)
 
         logger.info({"action": "start_scrape_favorite_products", "status": "done"})
 

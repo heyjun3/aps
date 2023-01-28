@@ -15,6 +15,7 @@ PORT = config['DB']['PORT']
 DB = config['DB']['DB']
 TEST_DB = config['DB']['TEST']
 DB_URL = f"postgresql+psycopg2://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB}"
+DB_TEST_URL_SYNC = f"postgresql+psycopg2://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{TEST_DB}"
 DB_ASYNC_URL = f"postgresql+asyncpg://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB}"
 DB_TEST_URL = f"postgresql+asyncpg://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{TEST_DB}"
 
