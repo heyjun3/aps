@@ -1,3 +1,7 @@
+from __future__ import annotations
+from typing import List
+from contextlib import contextmanager
+
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import BigInteger
@@ -5,8 +9,12 @@ from sqlalchemy import Integer
 from sqlalchemy import ForeignKey
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import and_
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 import log_settings
+import settings
 from crawler.models import Base
 from crawler.models import session_scope
 from crawler.models import Shop
@@ -62,8 +70,9 @@ class SuperProduct(Base):
             return False
 
 
-
 class SuperProductDetails(Base):
+    dsn = settings.DB_URL
+
     __tablename__ = 'super_product_details'
     product_code = Column(String, ForeignKey("super_products.product_code"), nullable=False, primary_key=True)
     set_number = Column(Integer, primary_key=True)
@@ -125,6 +134,38 @@ class SuperProductDetails(Base):
         except Exception as ex:
             logger.error(ex)
             return False
+
+    @classmethod 
+    def upsert_many(cls, products: List[SuperProductDetails]) -> bool:
+        if not products:
+            return False
+
+        stmt = insert(cls).values([p.value for p in products])
+        do_stmt = stmt.on_conflict_do_update(
+            index_elements=["product_code", "set_number"],
+            set_=dict(price=stmt.excluded.price))
+        
+        with cls.session_scope() as session:
+            session.execute(do_stmt)
+        return True
+
+    @classmethod
+    @contextmanager
+    def session_scope(cls):
+        engine = create_engine(cls.dsn)
+        maker = sessionmaker(engine, expire_on_commit=False)
+        session = maker()
+        try:
+            yield session
+            session.commit()
+        except IntegrityError as ex:
+            logger.error(ex)
+            session.rollback()
+        except Exception as ex:
+            logger.error(ex)
+            session.rollback()
+        finally:
+            session.close()
 
 
 class SuperShop(Shop, Base):
