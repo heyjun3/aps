@@ -1,5 +1,6 @@
 import urllib.parse
 from typing import List
+from functools import partial
 
 from spapi.spapi import SPAPI
 import log_settings
@@ -14,7 +15,13 @@ class ListingsItemsAPI(SPAPI):
     def __init__(self) -> None:
         super().__init__()
 
-    async def get_listing_item(self, sku: str) -> dict:
+    async def create_new_sku(self, *args, **kwargs):
+        return await self._request(partial(self._patch_listings_item, *args, **kwargs))
+    
+    async def get_listing_item(self, *args):
+        return await self._request(partial(self._get_listing_item(*args)))
+
+    def _get_listing_item(self, sku: str) -> dict:
         logger.info({'action': 'get_listing_item', 'status': 'run'})
 
         method = 'GET'
@@ -26,15 +33,13 @@ class ListingsItemsAPI(SPAPI):
             'includedData': 'attributes'
         }
 
-        response = await self.request(method, url, query)
-
         logger.info({'action': 'get_listing_item', 'status': 'done'})
-        return response
+        return (method, url, query, None)
 
-    async def patch_listings_item(self, sku: str, price: float, asin: str, 
+    def _patch_listings_item(self, sku: str, price: float, asin: str, 
                                   condition_note: str, product_type: str='PRODUCT', 
                                   condition_type: str='new_new') -> dict:
-        logger.info({'action': 'patch_listings_item', 'status': 'done'})
+        logger.info({'action': 'patch_listings_item', 'status': 'run'})
 
         method = 'PATCH'
         path = f'/listings/2021-08-01/items/{self.seller_id}/{sku}'
@@ -111,11 +116,10 @@ class ListingsItemsAPI(SPAPI):
             ],
         }
 
-        response = await self.request(method, url, query, body)
-        logger.info({'action': 'put_listings_item', 'action': 'done'})
-        return response
+        logger.info({'action': 'patch_listing_items', 'action': 'done'})
+        return (method, url, query, body)
 
-    async def put_listings_item(self, sku: str, asin: str, price: float, condition_type: str='new_new', condition_note: str=None) -> dict:
+    def _put_listings_item(self, sku: str, asin: str, price: float, condition_type: str='new_new', condition_note: str=None) -> dict:
         logger.info({'action': 'put_listings_item', 'status': 'run'})
 
         method = 'PUT'
@@ -165,10 +169,10 @@ class ListingsItemsAPI(SPAPI):
             }
         }
 
-        response = await self.request(method, url, query, body)
-        return response
+        logger.info({'action': 'put_listings_item', 'status': 'done'})
+        return (method, url, query, body)
 
-    async def search_definitions_product_types(self) -> dict:
+    def search_definitions_product_types(self) -> tuple:
         logger.info({'action': 'search_difinitions_product_types', 'status': 'run'})
         
         method = 'GET'
@@ -179,10 +183,8 @@ class ListingsItemsAPI(SPAPI):
             'marketplaceIds': self.marketplace_id,
         }
 
-        response = await self.request(method, url, query)
-
         logger.info({'action': 'search_difinitions_product_types', 'status': 'done'})
-        return response
+        return (method, url, query, None)
 
     async def get_definitinos_product_type(self, product_type: str) -> dict:
         logger.info({'action': 'get_difinitions_product_type', 'status': 'run'})
