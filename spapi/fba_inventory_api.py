@@ -14,7 +14,7 @@ class FBAInventoryAPI(SPAPI):
     def __init__(self) -> None:
         super().__init__()
 
-    async def fba_inventory_api_v1(self, skus) -> dict:
+    async def fba_inventory_api_v1(self, skus: List[str]) -> dict:
         return await self._request(partial(self._fba_inventory_api_v1, skus))
 
     def _fba_inventory_api_v1(self, skus: List[str]) -> tuple:

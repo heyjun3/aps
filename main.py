@@ -6,6 +6,7 @@ from keepa import keepa
 from mws.models import MWS
 from spapi.spapi_tasks import UpdateChartDataRequestTask, UpdateChartData
 from spapi.spapi_tasks import RunAmzTask
+from spapi.register_service import RegisterService
 from crawler.buffalo import buffalo
 from crawler.pc4u import pc4u
 from crawler.rakuten import rakuten_tasks
@@ -85,5 +86,9 @@ if __name__ == '__main__':
             asyncio.run(MWS.delete_rows_lower_price())
         case ('spread_sheet', None):
             SpreadSheetCrawler(settings.CREDENTIAL_FILE_NAME, settings.SHEET_TITLE, settings.SHEET_NAME).start_crawler()
+        case ('spapi', "register"):
+            asyncio.run(RegisterService(settings.CREDENTIAL_FILE_NAME).start_register("仕入帳_2023", "ADD"))
+        case ('spapi', "check"):
+            asyncio.run(RegisterService(settings.CREDENTIAL_FILE_NAME).check_registerd("仕入帳_2023", "ADD", "DB"))
         case _:
             sys.stdout.write(f'{task} is not a command')

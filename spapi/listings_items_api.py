@@ -1,6 +1,9 @@
 import urllib.parse
+import time
 from typing import List
 from functools import partial
+
+import aiohttp
 
 from spapi.spapi import SPAPI
 import log_settings
@@ -16,10 +19,25 @@ class ListingsItemsAPI(SPAPI):
         super().__init__()
 
     async def create_new_sku(self, *args, **kwargs):
-        return await self._request(partial(self._patch_listings_item, *args, **kwargs))
+        return await self._request(*self._patch_listings_item(*args, **kwargs))
     
-    async def get_listing_item(self, *args):
-        return await self._request(partial(self._get_listing_item, *args))
+    async def get_listing_item(self, *args, **kwargs):
+        return await self._request(*self._get_listing_item(*args, **kwargs))
+    
+    async def _request(self, method, url, query, body, retry: int=3, interval_sec: int=2) -> dict:
+        token = await self.get_spapi_access_token()
+        headers = self.create_authorization_headers(token, method, url, query, body)
+
+        for _ in range(retry):
+            async with aiohttp.request(method, url, params=query, headers=headers, json=body) as res:
+                result = await res.json()
+                if res.status == 200:
+                    return result
+                
+                logger.error({"action": "ListingsItemsAPI request", "message": "request failed",
+                              "status_code": res.status, "value": result})
+                time.sleep(interval_sec)
+        return {}
 
     def _get_listing_item(self, sku: str) -> dict:
         logger.info({'action': 'get_listing_item', 'status': 'run'})
