@@ -19,7 +19,7 @@ class ListingsItemsAPI(SPAPI):
         return await self._request(partial(self._patch_listings_item, *args, **kwargs))
     
     async def get_listing_item(self, *args):
-        return await self._request(partial(self._get_listing_item(*args)))
+        return await self._request(partial(self._get_listing_item, *args))
 
     def _get_listing_item(self, sku: str) -> dict:
         logger.info({'action': 'get_listing_item', 'status': 'run'})
