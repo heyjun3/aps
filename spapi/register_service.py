@@ -48,18 +48,16 @@ class RegisterService(object):
         add = self.client.open(title).worksheet(get_sheet)
         records = add.get_all_records()
 
-        fnsku = {}
+        inventories = []
         for i in range(0, len(records), 50):
             skus = [record.get("SKU") for record in records[i:i+50]]
             res = await self.inventory.fba_inventory_api_v1(skus)
-            res = FBAInventoryAPIParser.parse_fba_inventory_api_v1(res)
+            inventory = FBAInventoryAPIParser.parse_fba_inventory_api_v1(res)
             time.sleep(10)
-            if res is None:
-                continue
+            if inventory:
+                inventories.extend(inventory)
 
-            for r in res:
-                fnsku[r["sku"]] = r["fnsku"]
-
+        fnsku = {inv["sku"]: inv["fnsku"] for inv in inventories}
         for record in records:
             record["FNSKU"] = fnsku.get(record.get("SKU"))
 
