@@ -21,7 +21,7 @@ func ScrapeService() {
 	if res.StatusCode != 200 {
 		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
 	}
-	parseProducts(res)
+	// parseProducts(res)
 	// doc, err := goquery.NewDocumentFromReader(res.Body)
 	// doc, err := goquery.NewDocumentFromResponse(res)
 	// if err != nil {

@@ -1,0 +1,10 @@
+output = "models"
+
+[psql]
+    dbname = "aps"
+    host = "postgresql-server"
+    port = "5432"
+    user = "postgres"
+    pass = "postgres"
+    sslmode = "disable"
+    blacklist = ["migrations", "other"]
