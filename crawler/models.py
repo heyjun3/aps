@@ -175,6 +175,10 @@ class Product:
         }
 
 
+class IkebeProduct(Product, Base):
+    __tablename__ = "ikebe_product"
+
+
 @contextmanager
 def session_scope():
     session = Session()
