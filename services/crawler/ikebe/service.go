@@ -11,6 +11,11 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+const (
+	scheme = "https"
+	host = "www.ikebe-gakki.com"
+)
+
 func ScrapeService() {
 	url := "https://www.ikebe-gakki.com/p/search?sort=latest&keyword=&tag=&tag=&tag=&minprice=&maxprice=100000&cat1=&value2=&cat2=&value3=&cat3=&tag=%E6%96%B0%E5%93%81&detailRadio=%E6%96%B0%E5%93%81&detailShop=null"
 	res, err := http.Get(url)

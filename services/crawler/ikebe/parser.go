@@ -3,6 +3,7 @@ package ikebe
 import (
 	"fmt"
 	"log"
+	URL "net/url"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ func parseProducts(r *http.Response) ([]*models.IkebeProduct, string) {
 		return nil, ""
 	}
 
+	isSold := false
 	var products []*models.IkebeProduct
 	doc.Find(".fs-c-productList__list__item.fs-c-productListItem").Each(func(i int, s *goquery.Selection) {
 		name := s.Find(".fs-c-productName__name").Text()
@@ -34,11 +36,14 @@ func parseProducts(r *http.Response) ([]*models.IkebeProduct, string) {
 			return
 		}
 
-		url, exist := s.Find(".fs-c-productListItem__image.fs-c-productImage a[href]").Attr("href")
-		if exist == false {
+		path, exist := s.Find(".fs-c-productListItem__image.fs-c-productImage a[href]").Attr("href")
+		url, err := URL.Parse(path)
+		if exist == false || err != nil {
 			fmt.Println("Not Found url")
 			return
 		}
+		url.Scheme = scheme
+		url.Host = host
 
 		price := s.Find(".fs-c-productPrice__addon__price.fs-c-price .fs-c-price__value").Text()
 		p, err := strconv.Atoi(strings.ReplaceAll(price, ",", ""))
@@ -47,13 +52,24 @@ func parseProducts(r *http.Response) ([]*models.IkebeProduct, string) {
 			return
 		}
 
-		products = append(products, NewIkebeProduct(name, productId, url, int64(p)))
+		sold := s.Find(".fs-c-productListItem__outOfStock.fs-c-productListItem__notice.fs-c-productStock").Text()
+		if sold == "SOLD" {
+			fmt.Println("this product is sold out")
+			isSold = true
+			return
+		}
+
+		products = append(products, NewIkebeProduct(name, productId, url.String(), int64(p)))
 	})
 
-	nextURL, exist := doc.Find(".fs-c-pagination__item.fs-c-pagination__item--nex[href]").First().Attr("href")
-	if exist == false {
+	nextPath, exist := doc.Find(".fs-c-pagination__item.fs-c-pagination__item--next[href]").First().Attr("href")
+	u, err := URL.Parse(nextPath)
+	if exist == false || err != nil || isSold == true {
 		fmt.Println("Next Page URL is Not Found")
+		return products, ""
 	}
+	u.Scheme = scheme
+	u.Host = host
 
-	return products, nextURL
+	return products, u.String()
 }
