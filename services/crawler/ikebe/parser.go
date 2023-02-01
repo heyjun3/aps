@@ -3,6 +3,7 @@ package ikebe
 import (
 	"fmt"
 	"log"
+	"regexp"
 	URL "net/url"
 	"net/http"
 	"strconv"
@@ -72,4 +73,27 @@ func parseProducts(r *http.Response) ([]*models.IkebeProduct, string) {
 	u.Host = host
 
 	return products, u.String()
+}
+
+func parseProduct(r *http.Response) *string{
+	doc, err := goquery.NewDocumentFromResponse(r)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	rex := regexp.MustCompile("[0-9]+")
+
+	jan := doc.Find(".janCode.notEmpty").Text()
+	if jan == "" {
+		fmt.Println("Not Founc jan code")
+		return nil
+	}
+	janCode := rex.FindString(jan)
+	if janCode == "" {
+		fmt.Println("Not Founc jan code")
+		return nil
+	}
+
+	return &janCode
 }
