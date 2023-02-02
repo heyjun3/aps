@@ -1,14 +1,10 @@
 package ikebe
 
 import (
-	"bytes"
-	"io/ioutil"
 	"log"
 	"net/http"
 
 	// "strings"
-
-	"github.com/PuerkitoBio/goquery"
 )
 
 const (
@@ -37,9 +33,7 @@ func ScrapeService() {
 	// fmt.Println(len(tags.Nodes))
 }
 
-func tmp() {
-	r := http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(nil)),
-	}
-	goquery.NewDocumentFromResponse(&r)
+func Tmp() {
+	conn, _ := NewDBconnection(cfg.dsn())
+	bulkUpsertIkebeProducts(conn)
 }

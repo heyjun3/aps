@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	ikebe.ScrapeService()
+	ikebe.Tmp()
 }
