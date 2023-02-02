@@ -84,9 +84,9 @@ func parseProduct(r *http.Response) *string{
 
 	rex := regexp.MustCompile("[0-9]+")
 
-	jan := doc.Find(".janCode.notEmpty").Text()
+	jan := doc.Find(".janCode").Text()
 	if jan == "" {
-		fmt.Println("Not Founc jan code")
+		fmt.Println("Not Found jan code")
 		return nil
 	}
 	janCode := rex.FindString(jan)

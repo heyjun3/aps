@@ -75,3 +75,21 @@ func TestParseProducts(t *testing.T) {
 		assert.Equal(t, p17, products[len(products)-1])
 	})
 }
+
+func TestParseProduct(t *testing.T) {
+	t.Run("parse product page", func(t *testing.T) {
+		f, err := ioutil.ReadFile("html/product.html")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		res := &http.Response{
+			Body: ioutil.NopCloser(bytes.NewReader(f)),
+			Request: &http.Request{},
+		}
+
+		jan := parseProduct(res)
+
+		assert.Equal(t, "2500140008600", *jan)
+	})
+}

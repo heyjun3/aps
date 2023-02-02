@@ -12,5 +12,6 @@ func NewIkebeProduct(name, productCode, URL string, price int64) *models.IkebePr
 		ProductCode: productCode,
 		URL: null.StringFrom(URL),
 		Price: null.Int64From(price),
+		ShopCode: "ikebe",
 	}
 }
