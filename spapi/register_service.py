@@ -65,8 +65,8 @@ class RegisterService(object):
         db = self.client.open(title).worksheet(keep_sheet)
         db.append_rows(rows)
 
-        for record in records:
-            cell = add.find(record.get("SKU"), in_column=5)
+        for row in rows:
+            cell = add.find(row.get("SKU"), in_column=5)
             time.sleep(1)
             if cell:
                 add.delete_row(cell.row)

@@ -33,9 +33,15 @@ func bulkUpsertIkebeProducts(conn *sql.DB) {
 	stmt := fmt.Sprintf(`INSERT INTO ikebe_product (name, jan, price, shop_code, product_code, url) 
 						VALUES %s ON CONFLICT (shop_code, product_code) DO UPDATE SET 
 						name = excluded.name, jan = excluded.jan, price = excluded.price, 
-						url = excluded.url RETURNING * ;`, "($1, $2, $3, $4, $5, $6)")
-	p, err := conn.Exec(stmt, "test", "4444", 4444, "ikebe", "test", "url")
+						url = excluded.url RETURNING url, name;`, "($1, $2, $3, $4, $5, $6)")
+	// p, err := conn.Exec(stmt, "test", "4444", 4444, "ikebe", "test", "url")
+	rows, err := conn.Query(stmt, "test", sql.NullString{}, 1111, "t", "t", "url")
 	if err != nil {
 		fmt.Println(err)
+	}
+	for rows.Next() {
+		var name *string
+		rows.Scan(&name)
+		fmt.Println(*name)
 	}
 }
