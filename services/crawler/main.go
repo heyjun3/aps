@@ -1,9 +1,9 @@
 package main
 
 import (
-	"crawler/buffalo"
+	"crawler/ikebe"
 )
 
 func main() {
-	buffalo.BuffaloScrapeAllPageService()
+	ikebe.Tmp()
 }
