@@ -10,7 +10,6 @@ import (
 
 type Config struct {
 	Psql Psql
-	output string `toml:"output"`
 }
 
 type Psql struct {
