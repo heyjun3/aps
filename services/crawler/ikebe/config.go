@@ -24,12 +24,12 @@ type Psql struct {
 
 var cfg Config
 func init() {
-	cfg = NewConfig()
+	cfg = NewConfig("sqlboiler.toml")
 }
 
-func NewConfig() Config {
+func NewConfig(path string) Config {
 	var cfg Config
-	_, err := toml.DecodeFile("sqlboiler.toml", &cfg)
+	_, err := toml.DecodeFile(path, &cfg)
 	if err != nil {
 		fmt.Println(err)
 		return cfg

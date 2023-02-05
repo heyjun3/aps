@@ -1,6 +1,7 @@
 package ikebe
 
 import (
+	"context"
 	"crawler/models"
 	"fmt"
 	"io"
@@ -8,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"github.com/volatiletech/null/v8"
 )
 
 const (
@@ -37,6 +38,22 @@ func request(client *http.Client, method, url string, body io.Reader) (*http.Res
 	return nil, err
 }
 
+func mappingIkebeProducts(products, productsInDB []*models.IkebeProduct) []*models.IkebeProduct{
+	var inDB map[string]*models.IkebeProduct
+	for _, p := range productsInDB {
+		inDB[p.ProductCode] = p
+	}
+
+	for _, product := range products {
+		p := inDB[product.ProductCode]
+		if p == nil {
+			continue
+		}
+		product.Jan = p.Jan
+	}
+	return products
+}
+
 func ScrapeService(url string) {
 	url = "https://www.ikebe-gakki.com/p/search?sort=latest&keyword=&tag=&tag=&tag=&minprice=&maxprice=100000&cat1=&value2=&cat2=&value3=&cat3=&tag=%E6%96%B0%E5%93%81&detailRadio=%E6%96%B0%E5%93%81&detailShop=null"
 	httpClient := &http.Client{}
@@ -57,9 +74,29 @@ func ScrapeService(url string) {
 	for _, p := range products {
 		codes = append(codes, p.ProductCode)
 	}
-	productsInDB := models.IkebeProducts(
-		qm.WhereIn("")
-	)
+	ctx := context.Background()
+	conn, _ := NewDBconnection(cfg.dsn())
+	productsInDB, err := getIkebeProductsByProductCode(ctx, conn, codes...)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	products = mappingIkebeProducts(products, productsInDB)
+	for _, product := range products {
+		if product.Jan.Valid == true {
+			continue
+		}
+		res, err := request(httpClient, "GET", product.URL.String, nil)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		jan := parseProduct(res)
+		product.Jan = null.StringFrom(*jan)
+	}
+
+	// productsInDB := models.IkebeProducts(
+		// qm.WhereIn(""),
+	// )
 
 	// parseProducts(res)
 	// doc, err := goquery.NewDocumentFromReader(res.Body)
@@ -73,9 +110,8 @@ func ScrapeService(url string) {
 }
 
 func Tmp() {
-	url := true
-	for url {
+	m := map[string]string{"aaa": "aaa"}
+	if m["aaa"] == "" {
 		fmt.Println("test")
-		url = false
 	}
 }

@@ -32,9 +32,13 @@ func NewIkebeProduct(name, productCode, URL string, price int64) *models.IkebePr
 	}
 }
 
-func getIkebeProductsByProductCode(ctx context.Context, conn boil.ContextExecutor, codes... string) ([]*models.IkebeProduct, error){
+func getIkebeProductsByProductCode(ctx context.Context, conn boil.ContextExecutor, codes ...string) ([]*models.IkebeProduct, error){
+	var i []interface{}
+	for _, code := range codes {
+		i = append(i, code)
+	}
 	return models.IkebeProducts(
-		qm.WhereIn("product_code in ?", codes),
+		qm.WhereIn("product_code in ?", i...),
 	).All(ctx, conn)
 }
 
