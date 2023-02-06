@@ -3,7 +3,6 @@ package ikebe
 import (
 	"context"
 	"crawler/models"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -56,8 +55,8 @@ func mappingIkebeProducts(products, productsInDB []*models.IkebeProduct) []*mode
 
 func ScrapeService(url string) {
 	url = "https://www.ikebe-gakki.com/p/search?sort=latest&keyword=&tag=&tag=&tag=&minprice=&maxprice=100000&cat1=&value2=&cat2=&value3=&cat3=&tag=%E6%96%B0%E5%93%81&detailRadio=%E6%96%B0%E5%93%81&detailShop=null"
-	httpClient := &http.Client{}
 
+	httpClient := &http.Client{}
 	products := []*models.IkebeProduct{}
 	for url != "" {
 		res, err := request(httpClient, "GET", url, nil)
@@ -65,15 +64,16 @@ func ScrapeService(url string) {
 			log.Fatal(err)
 			break
 		}
-		var p []*models.IkebeProduct
-		p, url = parseProducts(res)
-		products = append(products, p...)
+		var product []*models.IkebeProduct
+		product, url = parseProducts(res)
+		products = append(products, product...)
 	}
 
 	var codes []string
 	for _, p := range products {
 		codes = append(codes, p.ProductCode)
 	}
+
 	ctx := context.Background()
 	conn, _ := NewDBconnection(cfg.dsn())
 	productsInDB, err := getIkebeProductsByProductCode(ctx, conn, codes...)
@@ -94,24 +94,55 @@ func ScrapeService(url string) {
 		product.Jan = null.StringFrom(*jan)
 	}
 
-	// productsInDB := models.IkebeProducts(
-		// qm.WhereIn(""),
-	// )
+}
 
-	// parseProducts(res)
-	// doc, err := goquery.NewDocumentFromReader(res.Body)
-	// doc, err := goquery.NewDocumentFromResponse(res)
-	// if err != nil {
-		// log.Fatal(err)
-	// }
+func scrapeProductsList(url string) chan<- *models.IkebeProduct{
+	c := make(chan<- *models.IkebeProduct)
+	go func() {
+		defer close(c)
+		httpClient := &http.Client{}
+		for url != "" {
+			res, err := request(httpClient, "GET", url, nil)
+			if err != nil {
+				log.Fatal(err)
+				break
+			}
+			var product []*models.IkebeProduct
+			product, url = parseProducts(res)
+			for _, p := range product {
+				c <- p
+			}
+		}
+	}()
+	return c
+}
 
-	// tags := doc.Find(".product-card")
-	// fmt.Println(len(tags.Nodes))
+func getIkebeProduct(c <-chan *models.IkebeProduct) chan<- *models.IkebeProduct{
+	send := make(chan *models.IkebeProduct)
+	go func() {
+		defer close(send)
+		ctx := context.Background()
+		conn, err := NewDBconnection(cfg.dsn())
+		if err != nil {
+			log.Fatalln(err)
+			return
+		}
+
+		for p := range c {
+			ikebe, err := models.FindIkebeProduct(ctx, conn, p.ShopCode, p.ProductCode)
+			if err != nil {
+				log.Fatalln(err)
+				continue
+			}
+			if ikebe.Jan.Valid {
+				p.Jan = ikebe.Jan
+			}
+			send <- p
+		}
+	}()
+	return send
 }
 
 func Tmp() {
-	m := map[string]string{"aaa": "aaa"}
-	if m["aaa"] == "" {
-		fmt.Println("test")
-	}
+	createMQConnection("")
 }
