@@ -3,6 +3,7 @@ package ikebe
 import (
 	"context"
 	"crawler/models"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -96,6 +97,21 @@ func ScrapeService(url string) {
 
 }
 
+func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
+	m := map[string]interface{}{
+		"filename": filename,
+		"jan": p.Jan.String,
+		"price": p.Price.Int64,
+		"url": p.URL.String,
+	}
+	message, err := json.Marshal(m)
+	if err != nil {
+		log.Fatalln(err)
+		return nil, err
+	}
+	return message, err
+}
+
 func scrapeProductsList(url string) chan<- *models.IkebeProduct{
 	c := make(chan<- *models.IkebeProduct)
 	go func() {
@@ -144,5 +160,6 @@ func getIkebeProduct(c <-chan *models.IkebeProduct) chan<- *models.IkebeProduct{
 }
 
 func Tmp() {
-	createMQConnection("")
+	c := NewMQClient(cfg.MQDsn(), "mws")
+	c.batchPublish("TEST", "HELLO")
 }

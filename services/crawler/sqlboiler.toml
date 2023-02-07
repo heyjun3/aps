@@ -8,3 +8,9 @@ output = "models"
     pass = "postgres"
     sslmode = "disable"
     blacklist = ["migrations", "other"]
+
+[rabbitmq]
+    user = "rabbitmq"
+    pass = "rabbitmq"
+    host = "rabbitmq"
+    port = "5672"

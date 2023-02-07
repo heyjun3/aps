@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	Psql Psql
+	RabbitMQ RabbitMQ
 }
 
 type Psql struct {
@@ -20,6 +21,13 @@ type Psql struct {
 	Pass string `toml:"pass"`
 	SSLmode string `toml:"sslmode"`
 	Blacklist []string `toml:"blacklist"`
+}
+
+type RabbitMQ struct {
+	User string `toml:"user"`
+	Pass string `toml:"pass"`
+	Host string `toml:"host"`
+	Port string `toml:"port"`
 }
 
 var cfg Config
@@ -46,5 +54,15 @@ func (c Config) dsn() string {
 		c.Psql.Port,
 		c.Psql.DBname,
 		c.Psql.SSLmode,
+	)
+}
+
+func (c Config) MQDsn() string {
+	return fmt.Sprintf(
+		"amqp://%s:%s@%s:%s/",
+		c.RabbitMQ.User,
+		c.RabbitMQ.Pass,
+		c.RabbitMQ.Host,
+		c.RabbitMQ.Port,
 	)
 }
