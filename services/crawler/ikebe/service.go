@@ -4,6 +4,7 @@ import (
 	"context"
 	"crawler/models"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -16,43 +17,6 @@ const (
 	scheme = "https"
 	host = "www.ikebe-gakki.com"
 )
-
-func request(client *http.Client, method, url string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		log.Fatalln("action=request message=new request error")
-		log.Fatalln(err)
-		return nil, err
-	}
-
-	for i := 0; i < 3; i++ {
-		res, err := client.Do(req)
-		time.Sleep(time.Second * 2)
-		if err != nil && res.StatusCode > 200 {
-			log.Fatalln(err)
-			log.Fatalf("status code: %d %s", res.StatusCode, res.Status)
-			continue
-		}
-		return res, err
-	}
-	return nil, err
-}
-
-func mappingIkebeProducts(products, productsInDB []*models.IkebeProduct) []*models.IkebeProduct{
-	var inDB map[string]*models.IkebeProduct
-	for _, p := range productsInDB {
-		inDB[p.ProductCode] = p
-	}
-
-	for _, product := range products {
-		p := inDB[product.ProductCode]
-		if p == nil {
-			continue
-		}
-		product.Jan = p.Jan
-	}
-	return products
-}
 
 func ScrapeService(url string) {
 	url = "https://www.ikebe-gakki.com/p/search?sort=latest&keyword=&tag=&tag=&tag=&minprice=&maxprice=100000&cat1=&value2=&cat2=&value3=&cat3=&tag=%E6%96%B0%E5%93%81&detailRadio=%E6%96%B0%E5%93%81&detailShop=null"
@@ -94,22 +58,79 @@ func ScrapeService(url string) {
 		jan := parseProduct(res)
 		product.Jan = null.StringFrom(*jan)
 	}
+	
+	var messages [][]byte
+	filename := "ikebe_" + timeToStr(time.Now())
+	for _, p := range products {
+		m, err := generateMessage(p, filename)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		messages = append(messages, m)
+	}
+	mqClient := NewMQClient(cfg.MQDsn(), "mws")
+	mqClient.batchPublish(messages...)
+}
 
+func request(client *http.Client, method, url string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		log.Fatalln("action=request message=new request error")
+		log.Fatalln(err)
+		return nil, err
+	}
+
+	for i := 0; i < 3; i++ {
+		res, err := client.Do(req)
+		time.Sleep(time.Second * 2)
+		if err != nil && res.StatusCode > 200 {
+			log.Fatalln(err)
+			log.Fatalf("status code: %d %s", res.StatusCode, res.Status)
+			continue
+		}
+		return res, err
+	}
+	return nil, err
+}
+
+func mappingIkebeProducts(products, productsInDB []*models.IkebeProduct) []*models.IkebeProduct{
+	var inDB map[string]*models.IkebeProduct
+	for _, p := range productsInDB {
+		inDB[p.ProductCode] = p
+	}
+
+	for _, product := range products {
+		p := inDB[product.ProductCode]
+		if p == nil {
+			continue
+		}
+		product.Jan = p.Jan
+	}
+	return products
 }
 
 func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
-	m := map[string]interface{}{
-		"filename": filename,
-		"jan": p.Jan.String,
-		"price": p.Price.Int64,
-		"url": p.URL.String,
+	if p.Jan.Valid == false {
+		return nil, fmt.Errorf("Jan code isn't valid %s", p.ProductCode)
 	}
+	if p.Price.Valid == false {
+		return nil, fmt.Errorf("price isn't valid %s", p.ProductCode)
+	}
+	if p.URL.Valid == false {
+		return nil, fmt.Errorf("url isn't valid %s", p.ProductCode)
+	}
+	m := NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
 	message, err := json.Marshal(m)
 	if err != nil {
 		log.Fatalln(err)
 		return nil, err
 	}
 	return message, err
+}
+
+func timeToStr(t time.Time) string {
+	return t.Format("20060102_150405")
 }
 
 func scrapeProductsList(url string) chan<- *models.IkebeProduct{
@@ -161,5 +182,5 @@ func getIkebeProduct(c <-chan *models.IkebeProduct) chan<- *models.IkebeProduct{
 
 func Tmp() {
 	c := NewMQClient(cfg.MQDsn(), "mws")
-	c.batchPublish("TEST", "HELLO")
+	c.batchPublish([]byte("TEST"), []byte("HELLO"))
 }
