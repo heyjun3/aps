@@ -95,7 +95,7 @@ func request(client *http.Client, method, url string, body io.Reader) (*http.Res
 }
 
 func mappingIkebeProducts(products, productsInDB []*models.IkebeProduct) []*models.IkebeProduct{
-	var inDB map[string]*models.IkebeProduct
+	inDB := map[string]*models.IkebeProduct{}
 	for _, p := range productsInDB {
 		inDB[p.ProductCode] = p
 	}
@@ -111,13 +111,13 @@ func mappingIkebeProducts(products, productsInDB []*models.IkebeProduct) []*mode
 }
 
 func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
-	if p.Jan.Valid == false {
+	if !p.Jan.Valid {
 		return nil, fmt.Errorf("Jan code isn't valid %s", p.ProductCode)
 	}
-	if p.Price.Valid == false {
+	if !p.Price.Valid {
 		return nil, fmt.Errorf("price isn't valid %s", p.ProductCode)
 	}
-	if p.URL.Valid == false {
+	if !p.URL.Valid {
 		return nil, fmt.Errorf("url isn't valid %s", p.ProductCode)
 	}
 	m := NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
@@ -133,52 +133,52 @@ func timeToStr(t time.Time) string {
 	return t.Format("20060102_150405")
 }
 
-func scrapeProductsList(url string) chan<- *models.IkebeProduct{
-	c := make(chan<- *models.IkebeProduct)
-	go func() {
-		defer close(c)
-		httpClient := &http.Client{}
-		for url != "" {
-			res, err := request(httpClient, "GET", url, nil)
-			if err != nil {
-				log.Fatal(err)
-				break
-			}
-			var product []*models.IkebeProduct
-			product, url = parseProducts(res)
-			for _, p := range product {
-				c <- p
-			}
-		}
-	}()
-	return c
-}
+// func scrapeProductsList(url string) chan<- *models.IkebeProduct{
+// 	c := make(chan<- *models.IkebeProduct)
+// 	go func() {
+// 		defer close(c)
+// 		httpClient := &http.Client{}
+// 		for url != "" {
+// 			res, err := request(httpClient, "GET", url, nil)
+// 			if err != nil {
+// 				log.Fatal(err)
+// 				break
+// 			}
+// 			var product []*models.IkebeProduct
+// 			product, url = parseProducts(res)
+// 			for _, p := range product {
+// 				c <- p
+// 			}
+// 		}
+// 	}()
+// 	return c
+// }
 
-func getIkebeProduct(c <-chan *models.IkebeProduct) chan<- *models.IkebeProduct{
-	send := make(chan *models.IkebeProduct)
-	go func() {
-		defer close(send)
-		ctx := context.Background()
-		conn, err := NewDBconnection(cfg.dsn())
-		if err != nil {
-			log.Fatalln(err)
-			return
-		}
+// func getIkebeProduct(c <-chan *models.IkebeProduct) chan<- *models.IkebeProduct{
+// 	send := make(chan *models.IkebeProduct)
+// 	go func() {
+// 		defer close(send)
+// 		ctx := context.Background()
+// 		conn, err := NewDBconnection(cfg.dsn())
+// 		if err != nil {
+// 			log.Fatalln(err)
+// 			return
+// 		}
 
-		for p := range c {
-			ikebe, err := models.FindIkebeProduct(ctx, conn, p.ShopCode, p.ProductCode)
-			if err != nil {
-				log.Fatalln(err)
-				continue
-			}
-			if ikebe.Jan.Valid {
-				p.Jan = ikebe.Jan
-			}
-			send <- p
-		}
-	}()
-	return send
-}
+// 		for p := range c {
+// 			ikebe, err := models.FindIkebeProduct(ctx, conn, p.ShopCode, p.ProductCode)
+// 			if err != nil {
+// 				log.Fatalln(err)
+// 				continue
+// 			}
+// 			if ikebe.Jan.Valid {
+// 				p.Jan = ikebe.Jan
+// 			}
+// 			send <- p
+// 		}
+// 	}()
+// 	return send
+// }
 
 func Tmp() {
 	c := NewMQClient(cfg.MQDsn(), "mws")
