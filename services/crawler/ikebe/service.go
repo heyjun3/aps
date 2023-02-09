@@ -19,7 +19,6 @@ const (
 )
 
 func ScrapeService(url string) {
-	url = "https://www.ikebe-gakki.com/p/search?sort=latest&keyword=&tag=&tag=&tag=&minprice=&maxprice=100000&cat1=&value2=&cat2=&value3=&cat3=&tag=%E6%96%B0%E5%93%81&detailRadio=%E6%96%B0%E5%93%81&detailShop=null"
 
 	httpClient := &http.Client{}
 	products := []*models.IkebeProduct{}
@@ -58,7 +57,11 @@ func ScrapeService(url string) {
 		jan := parseProduct(res)
 		product.Jan = null.StringFrom(*jan)
 	}
-	
+
+	err = bulkUpsertIkebeProducts(conn, products...)
+	if err != nil {
+		fmt.Println(err)
+	}
 	var messages [][]byte
 	filename := "ikebe_" + timeToStr(time.Now())
 	for _, p := range products {
@@ -179,8 +182,3 @@ func timeToStr(t time.Time) string {
 // 	}()
 // 	return send
 // }
-
-func Tmp() {
-	c := NewMQClient(cfg.MQDsn(), "mws")
-	c.batchPublish([]byte("TEST"), []byte("HELLO"))
-}
