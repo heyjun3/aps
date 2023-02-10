@@ -88,7 +88,7 @@ func parseProduct(r *http.Response) (string, error) {
 		return "", err
 	}
 
-	rex := regexp.MustCompile("[0-9]+")
+	rex := regexp.MustCompile("[0-9]{13}")
 	janCode := rex.FindString(jan)
 	if janCode == "" {
 		err = fmt.Errorf("Not Found jan code")
