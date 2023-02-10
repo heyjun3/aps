@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
@@ -23,9 +22,10 @@ func ScrapeService(url string) {
 	httpClient := &http.Client{}
 	products := []*models.IkebeProduct{}
 	for url != "" {
+		logger.Info("http request", "url", url)
 		res, err := request(httpClient, "GET", url, nil)
 		if err != nil {
-			log.Fatal(err)
+			logger.Error("http request error", err)
 			break
 		}
 		var product []*models.IkebeProduct
@@ -42,7 +42,7 @@ func ScrapeService(url string) {
 	conn, _ := NewDBconnection(cfg.dsn())
 	productsInDB, err := getIkebeProductsByProductCode(ctx, conn, codes...)
 	if err != nil {
-		log.Fatalln(err)
+		logger.Error("get ikebe products error", err)
 	}
 
 	products = mappingIkebeProducts(products, productsInDB)
@@ -50,24 +50,29 @@ func ScrapeService(url string) {
 		if product.Jan.Valid == true {
 			continue
 		}
+		logger.Info("http request", "url", product.URL.String)
 		res, err := request(httpClient, "GET", product.URL.String, nil)
 		if err != nil {
-			log.Fatalln(err)
+			logger.Error("http request error", err)
 		}
-		jan := parseProduct(res)
-		product.Jan = null.StringFrom(*jan)
+		jan, err := parseProduct(res)
+		if err != nil {
+			logger.Error("jancode is valid", err)
+			continue
+		}
+		product.Jan = null.StringFrom(jan)
 	}
 
 	err = bulkUpsertIkebeProducts(conn, products...)
 	if err != nil {
-		fmt.Println(err)
+		logger.Error("bulk upsert is failed", err)
 	}
 	var messages [][]byte
 	filename := "ikebe_" + timeToStr(time.Now())
 	for _, p := range products {
 		m, err := generateMessage(p, filename)
 		if err != nil {
-			fmt.Println(err)
+			logger.Error("generate message error", err)
 			continue
 		}
 		messages = append(messages, m)
@@ -79,8 +84,6 @@ func ScrapeService(url string) {
 func request(client *http.Client, method, url string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		log.Fatalln("action=request message=new request error")
-		log.Fatalln(err)
 		return nil, err
 	}
 
@@ -88,8 +91,7 @@ func request(client *http.Client, method, url string, body io.Reader) (*http.Res
 		res, err := client.Do(req)
 		time.Sleep(time.Second * 2)
 		if err != nil && res.StatusCode > 200 {
-			log.Fatalln(err)
-			log.Fatalf("status code: %d %s", res.StatusCode, res.Status)
+			logger.Error("http request error", err)
 			continue
 		}
 		return res, err
@@ -126,7 +128,6 @@ func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
 	m := NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
 	message, err := json.Marshal(m)
 	if err != nil {
-		log.Fatalln(err)
 		return nil, err
 	}
 	return message, err

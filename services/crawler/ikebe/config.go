@@ -2,8 +2,10 @@ package ikebe
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/BurntSushi/toml"
+	"golang.org/x/exp/slog"
 )
 
 
@@ -31,8 +33,10 @@ type RabbitMQ struct {
 }
 
 var cfg Config
+var logger *slog.Logger
 func init() {
 	cfg = NewConfig("sqlboiler.toml")
+	logger = slog.New(slog.NewJSONHandler(os.Stdout))
 }
 
 func NewConfig(path string) Config {

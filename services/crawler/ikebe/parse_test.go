@@ -88,8 +88,9 @@ func TestParseProduct(t *testing.T) {
 			Request: &http.Request{},
 		}
 
-		jan := parseProduct(res)
+		jan, err := parseProduct(res)
 
-		assert.Equal(t, "2500140008600", *jan)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, "2500140008600", jan)
 	})
 }

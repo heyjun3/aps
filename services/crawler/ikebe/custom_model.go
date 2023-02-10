@@ -17,7 +17,7 @@ import (
 func NewDBconnection(dsn string) (*sql.DB, error) {
 	conn, err := sql.Open("postgres", dsn)
 	if err != nil {
-		fmt.Println(err)
+		logger.Error("open error", err)
 		return nil, err
 	}
 	return conn, nil

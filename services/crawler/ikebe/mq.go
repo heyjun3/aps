@@ -2,7 +2,6 @@ package ikebe
 
 import (
 	"context"
-	"log"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -26,19 +25,19 @@ func NewMQClient(dsn, name string) *MQClient{
 func (mq *MQClient)createMQConnection() (*amqp.Channel, error){
 	conn, err := amqp.Dial(mq.dsn)
 	if err != nil {
-		log.Fatalln("Failed to connect to RabbitMQ")
+		logger.Error("Failed to connect to RabbitMQ", err)
 		return nil, err
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatalln("Failed to open channel")
+		logger.Error("Failed to open channel", err)
 		return nil, err
 	}
 
 	_, err = ch.QueueDeclare(mq.queueName, true, false, false, false, nil)
 	if err != nil {
-		log.Fatalln("Failed to declare a queue")
+		logger.Error("Failed to declare a queue", err)
 		return nil, err
 	}
 
@@ -48,7 +47,7 @@ func (mq *MQClient)createMQConnection() (*amqp.Channel, error){
 func (mq *MQClient) publish(message []byte) error {
 	ch, err := mq.createMQConnection()
 	if err != nil {
-		log.Fatalln(err)
+		logger.Error("create connection error", err)
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 10)
@@ -61,14 +60,12 @@ func (mq *MQClient) publish(message []byte) error {
 func (mq *MQClient) batchPublish(messages ...[]byte) error {
 	ch, err := mq.createMQConnection()
 	if err != nil {
-		log.Fatalln(err)
 		return err
 	}
 	ctx := context.Background()
 	for _, message := range messages {
 		err = ch.PublishWithContext(ctx, "", mq.queueName, false, false, amqp.Publishing{ContentType: "text/plain", Body: message})
 		if err != nil {
-			log.Fatalln(err)
 			return err
 		}
 	}
