@@ -40,11 +40,13 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 		return
 	}
 	models.IkebeProducts().DeleteAll(ctx, conn)
-	p := NewIkebeProduct("test", "test_code", "https://test.com", 1111)
+	p := NewIkebeProduct("test", "test_code", "https://test.com", "", 1111)
 	p.Insert(ctx, conn, boil.Infer())
 
 	t.Run("get products", func(t *testing.T) {
-		products, err := getIkebeProductsByProductCode(ctx, conn, "test_code", "test", "code")
+		r := IkebeProductRepository{}
+
+		products, err := r.getByProductCodes(ctx, conn, "test_code", "test", "code")
 
 		assert.Equal(t, nil, err)
 		assert.Equal(t, 1, len(products))
@@ -70,12 +72,13 @@ func TestBulkUpsertIkebeProducts(t *testing.T) {
 
 	t.Run("upsert ikebe products", func(t *testing.T) {
 		p := []*models.IkebeProduct{
-			ikebeProductFactor("test", "1111", "ikebe", "test", "https://test.jp", 9000),
-			ikebeProductFactor("test", "1111", "ikebe", "test1", "https://test.jp", 9000),
-			ikebeProductFactor("test", "1111", "ikebe", "test2", "https://test.jp", 9000),
+			NewIkebeProduct("test", "test", "https://test.jp", "1111", 9000),
+			NewIkebeProduct("test",  "test1", "https://test.jp", "1111", 9000),
+			NewIkebeProduct("test",  "test2", "https://test.jp", "1111", 9000),
 		}
+		r := IkebeProductRepository{}
 
-		err = bulkUpsertIkebeProducts(conn, p...)
+		err = r.bulkUpsert(conn, p...)
 
 		assert.Equal(t, nil, err)
 		i, _ := models.FindIkebeProduct(ctx, conn, "ikebe", "test1")

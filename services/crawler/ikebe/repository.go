@@ -23,17 +23,24 @@ func NewDBconnection(dsn string) (*sql.DB, error) {
 	return conn, nil
 }
 
-func NewIkebeProduct(name, productCode, URL string, price int64) *models.IkebeProduct {
+func NewIkebeProduct(name, productCode, url, jan string, price int64) *models.IkebeProduct {
+	isJan := true
+	if jan == "" {
+		isJan = false
+	}
 	return &models.IkebeProduct{
 		Name: null.StringFrom(name),
-		ProductCode: productCode,
-		URL: null.StringFrom(URL),
+		Jan: null.NewString(jan, isJan),
 		Price: null.Int64From(price),
 		ShopCode: "ikebe",
+		ProductCode: productCode,
+		URL: null.StringFrom(url),
 	}
 }
 
-func getIkebeProductsByProductCode(ctx context.Context, conn boil.ContextExecutor, codes ...string) ([]*models.IkebeProduct, error){
+type IkebeProductRepository struct {}
+
+func (r IkebeProductRepository) getByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) ([]*models.IkebeProduct, error){
 	var i []interface{}
 	for _, code := range codes {
 		i = append(i, code)
@@ -43,7 +50,7 @@ func getIkebeProductsByProductCode(ctx context.Context, conn boil.ContextExecuto
 	).All(ctx, conn)
 }
 
-func bulkUpsertIkebeProducts(conn *sql.DB, products ...*models.IkebeProduct) error{
+func (r IkebeProductRepository) bulkUpsert(conn *sql.DB, products ...*models.IkebeProduct) error{
 	strs := []string{}
 	args := []interface{}{}
 	for i, p := range products {

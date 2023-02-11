@@ -31,12 +31,14 @@ func TestParseProducts(t *testing.T) {
 			"Apocalyptica(オンライン納品専用)※代引きはご利用いただけません",
 			"750802",
 			"https://www.ikebe-gakki.com/c/c-/dt/dt03/dt031548/dt031548002/750802",
+			"",
 			34300,
 		)
 		p40 := NewIkebeProduct(
 			"DRUM MIDI - EDM GROOVES(オンライン納品専用)※代引きはご利用いただけません",
 			"750628",
 			"https://www.ikebe-gakki.com/c/c-/dt/dt03/dt031598/dt031598002/750628",
+			"",
 			3630,
 		)
 		assert.Equal(t, p1, products[0])
@@ -63,12 +65,14 @@ func TestParseProducts(t *testing.T) {
 			"SR-SK30【次回3月入荷予定】",
 			"124704",
 			"https://www.ikebe-gakki.com/c/c-/pr/pr09/pr092127/124704",
+			"",
 			3267,
 		)
 		p17 := NewIkebeProduct(
 			"SS-6B 【6口電源タップ】(SS6B)",
 			"100469",
 			"https://www.ikebe-gakki.com/c/c-/am/am09/am090814/100469",
+			"",
 			6050,
 		)
 		assert.Equal(t, p1, products[0])

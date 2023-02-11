@@ -19,6 +19,7 @@ const (
 
 func ScrapeService(url string) {
 
+	repo := IkebeProductRepository{}
 	httpClient := &http.Client{}
 	products := []*models.IkebeProduct{}
 	for url != "" {
@@ -40,7 +41,7 @@ func ScrapeService(url string) {
 
 	ctx := context.Background()
 	conn, _ := NewDBconnection(cfg.dsn())
-	productsInDB, err := getIkebeProductsByProductCode(ctx, conn, codes...)
+	productsInDB, err := repo.getByProductCodes(ctx, conn, codes...)
 	if err != nil {
 		logger.Error("get ikebe products error", err)
 	}
@@ -63,7 +64,7 @@ func ScrapeService(url string) {
 		product.Jan = null.StringFrom(jan)
 	}
 
-	err = bulkUpsertIkebeProducts(conn, products...)
+	err = repo.bulkUpsert(conn, products...)
 	if err != nil {
 		logger.Error("bulk upsert is failed", err)
 	}

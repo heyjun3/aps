@@ -59,7 +59,7 @@ func parseProducts(r *http.Response) ([]*models.IkebeProduct, string) {
 			return
 		}
 
-		products = append(products, NewIkebeProduct(name, productId, url.String(), int64(p)))
+		products = append(products, NewIkebeProduct(name, productId, url.String(), "", int64(p)))
 	})
 
 	nextPath, exist := doc.Find(".fs-c-pagination__item.fs-c-pagination__item--next[href]").First().Attr("href")
