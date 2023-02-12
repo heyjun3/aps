@@ -1,6 +1,7 @@
 package ikebe
 
 import (
+	"context"
 	"crawler/models"
 	"fmt"
 	"testing"
@@ -114,5 +115,40 @@ func TestTimeToStr(t *testing.T) {
 		s := timeToStr(d)
 		fmt.Println(s)
 		assert.Equal(t, "20230209_225900", s)
+	})
+}
+
+func TestGetIkebeProduct(t *testing.T) {
+	ctx := context.Background()
+	conf := NewConfig("../sqlboiler.toml")
+	conf.Psql.DBname = "test"
+	conn, _ := NewDBconnection(conf.dsn())
+	models.IkebeProducts().DeleteAll(ctx, conn)
+	ps := []*models.IkebeProduct{
+		NewIkebeProduct("test1", "test1", "http://", "1111", 1111),
+		NewIkebeProduct("test2", "test2", "http://", "2222", 2222),
+		NewIkebeProduct("test3", "test3", "http://", "3333", 3333),
+	}
+	r := IkebeProductRepository{}
+	r.bulkUpsert(conn, ps...)
+
+	t.Run("happy path", func(t *testing.T) {
+		s := ScrapeService{}
+		p := []*models.IkebeProduct{
+			NewIkebeProduct("test1", "test1", "http://", "", 1111),
+			NewIkebeProduct("test2", "test2", "http://", "", 2222),
+			NewIkebeProduct("test3", "test3", "http://", "", 3333),
+		}
+		ch := make(chan []*models.IkebeProduct)
+		go func (){
+			defer close(ch)
+			ch <- p
+		}()
+
+		c := s.getIkebeProduct(ch, conf.dsn())
+
+		for product := range c {
+			assert.Equal(t, ps, product)
+		}
 	})
 }

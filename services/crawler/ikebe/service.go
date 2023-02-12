@@ -159,12 +159,12 @@ func (s ScrapeService) scrapeProductsList(url string) chan []*models.IkebeProduc
 	return c
 }
 
-func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct) chan []*models.IkebeProduct{
+func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct, dsn string) chan []*models.IkebeProduct{
 	send := make(chan []*models.IkebeProduct)
 	go func() {
 		defer close(send)
 		ctx := context.Background()
-		conn, err := NewDBconnection(cfg.dsn())
+		conn, err := NewDBconnection(dsn)
 		if err != nil {
 			logger.Error("db open error", err)
 			return
