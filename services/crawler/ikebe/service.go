@@ -17,7 +17,9 @@ const (
 	host = "www.ikebe-gakki.com"
 )
 
-func ScrapeService(url string) {
+type ScrapeService struct {}
+
+func (s ScrapeService) StartScrape(url string) {
 
 	repo := IkebeProductRepository{}
 	httpClient := &http.Client{}
@@ -138,49 +140,50 @@ func timeToStr(t time.Time) string {
 	return t.Format("20060102_150405")
 }
 
-// func scrapeProductsList(url string) chan<- *models.IkebeProduct{
-// 	c := make(chan<- *models.IkebeProduct)
-// 	go func() {
-// 		defer close(c)
-// 		httpClient := &http.Client{}
-// 		for url != "" {
-// 			res, err := request(httpClient, "GET", url, nil)
-// 			if err != nil {
-// 				log.Fatal(err)
-// 				break
-// 			}
-// 			var product []*models.IkebeProduct
-// 			product, url = parseProducts(res)
-// 			for _, p := range product {
-// 				c <- p
-// 			}
-// 		}
-// 	}()
-// 	return c
-// }
+func (s ScrapeService) scrapeProductsList(url string) chan []*models.IkebeProduct{
+	c := make(chan []*models.IkebeProduct)
+	go func() {
+		defer close(c)
+		httpClient := &http.Client{}
+		for url != "" {
+			res, err := request(httpClient, "GET", url, nil)
+			if err != nil {
+				logger.Error("http request error", err)
+				break
+			}
+			var products []*models.IkebeProduct
+			products, url = parseProducts(res)
+			c <- products
+		}
+	}()
+	return c
+}
 
-// func getIkebeProduct(c <-chan *models.IkebeProduct) chan<- *models.IkebeProduct{
-// 	send := make(chan *models.IkebeProduct)
-// 	go func() {
-// 		defer close(send)
-// 		ctx := context.Background()
-// 		conn, err := NewDBconnection(cfg.dsn())
-// 		if err != nil {
-// 			log.Fatalln(err)
-// 			return
-// 		}
+func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct) chan []*models.IkebeProduct{
+	send := make(chan []*models.IkebeProduct)
+	go func() {
+		defer close(send)
+		ctx := context.Background()
+		conn, err := NewDBconnection(cfg.dsn())
+		if err != nil {
+			logger.Error("db open error", err)
+			return
+		}
 
-// 		for p := range c {
-// 			ikebe, err := models.FindIkebeProduct(ctx, conn, p.ShopCode, p.ProductCode)
-// 			if err != nil {
-// 				log.Fatalln(err)
-// 				continue
-// 			}
-// 			if ikebe.Jan.Valid {
-// 				p.Jan = ikebe.Jan
-// 			}
-// 			send <- p
-// 		}
-// 	}()
-// 	return send
-// }
+		repo := IkebeProductRepository{}
+		for p := range c {
+			var codes []string
+			for _, pro := range p {
+				codes = append(codes, pro.ProductCode)
+			}
+			dbProduct, err := repo.getByProductCodes(ctx, conn, codes...)
+			if err != nil {
+				logger.Error("db get product error", err)
+				continue
+			}
+			products := mappingIkebeProducts(p, dbProduct)
+			send <- products
+		}
+	}()
+	return send
+}
