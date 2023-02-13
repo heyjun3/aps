@@ -199,4 +199,26 @@ func TestGetIkebeProduct(t *testing.T) {
 			assert.Equal(t, ps, product)
 		}
 	})
+
+	t.Run("get products return null", func(t *testing.T) {
+		s := ScrapeService{}
+		p := []*models.IkebeProduct{
+			NewIkebeProduct("test1", "test4", "http://", "", 1111),
+			NewIkebeProduct("test2", "test5", "http://", "", 2222),
+			NewIkebeProduct("test3", "test6", "http://", "", 3333),
+		}
+
+		ch := make(chan []*models.IkebeProduct)
+		go func() {
+			defer close(ch)
+			ch <- p
+		}()
+
+		c := s.getIkebeProduct(ch, conf.dsn())
+
+		for product := range c {
+			assert.Equal(t, p, product)
+			assert.Equal(t, "", product[0].Jan.String)
+		}
+	})
 }
