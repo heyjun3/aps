@@ -2,15 +2,17 @@ package ikebe
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/BurntSushi/toml"
+	"golang.org/x/exp/slog"
 )
 
 
 
 type Config struct {
 	Psql Psql
-	output string `toml:"output"`
+	RabbitMQ RabbitMQ
 }
 
 type Psql struct {
@@ -23,14 +25,23 @@ type Psql struct {
 	Blacklist []string `toml:"blacklist"`
 }
 
-var cfg Config
-func init() {
-	cfg = NewConfig()
+type RabbitMQ struct {
+	User string `toml:"user"`
+	Pass string `toml:"pass"`
+	Host string `toml:"host"`
+	Port string `toml:"port"`
 }
 
-func NewConfig() Config {
+var cfg Config
+var logger *slog.Logger
+func init() {
+	cfg = NewConfig("sqlboiler.toml")
+	logger = slog.New(slog.NewJSONHandler(os.Stdout))
+}
+
+func NewConfig(path string) Config {
 	var cfg Config
-	_, err := toml.DecodeFile("sqlboiler.toml", &cfg)
+	_, err := toml.DecodeFile(path, &cfg)
 	if err != nil {
 		fmt.Println(err)
 		return cfg
@@ -47,5 +58,15 @@ func (c Config) dsn() string {
 		c.Psql.Port,
 		c.Psql.DBname,
 		c.Psql.SSLmode,
+	)
+}
+
+func (c Config) MQDsn() string {
+	return fmt.Sprintf(
+		"amqp://%s:%s@%s:%s/",
+		c.RabbitMQ.User,
+		c.RabbitMQ.Pass,
+		c.RabbitMQ.Host,
+		c.RabbitMQ.Port,
 	)
 }

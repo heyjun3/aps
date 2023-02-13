@@ -66,10 +66,10 @@ class RegisterService(object):
         db.append_rows(rows)
 
         for record in records:
-            sku = record.get("SKU")
-            if sku is None:
+            fnsku = record.get("FNSKU")
+            if not fnsku:
                 continue
-            cell = add.find(sku, in_column=5)
+            cell = add.find(record.get("SKU"), in_column=5)
             time.sleep(1)
             if cell:
                 add.delete_row(cell.row)
