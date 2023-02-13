@@ -22,11 +22,11 @@ type ScrapeService struct {}
 func (s ScrapeService) StartScrape(url string) {
 
 	repo := IkebeProductRepository{}
-	httpClient := &http.Client{}
+	client := Client{&http.Client{}}
 	products := []*models.IkebeProduct{}
 	for url != "" {
 		logger.Info("http request", "url", url)
-		res, err := request(httpClient, "GET", url, nil)
+		res, err := client.request("GET", url, nil)
 		if err != nil {
 			logger.Error("http request error", err)
 			break
@@ -54,7 +54,7 @@ func (s ScrapeService) StartScrape(url string) {
 			continue
 		}
 		logger.Info("http request", "url", product.URL.String)
-		res, err := request(httpClient, "GET", product.URL.String, nil)
+		res, err := client.request("GET", product.URL.String, nil)
 		if err != nil {
 			logger.Error("http request error", err)
 		}
@@ -84,14 +84,22 @@ func (s ScrapeService) StartScrape(url string) {
 	mqClient.batchPublish(messages...)
 }
 
-func request(client *http.Client, method, url string, body io.Reader) (*http.Response, error) {
+type httpClient interface {
+	request(string, string, io.Reader) (*http.Response, error)
+}
+
+type Client struct {
+	httpClient *http.Client
+}
+
+func (c Client) request(method, url string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
 
 	for i := 0; i < 3; i++ {
-		res, err := client.Do(req)
+		res, err := c.httpClient.Do(req)
 		time.Sleep(time.Second * 2)
 		if err != nil && res.StatusCode > 200 {
 			logger.Error("http request error", err)
@@ -140,13 +148,12 @@ func timeToStr(t time.Time) string {
 	return t.Format("20060102_150405")
 }
 
-func (s ScrapeService) scrapeProductsList(url string) chan []*models.IkebeProduct{
+func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []*models.IkebeProduct{
 	c := make(chan []*models.IkebeProduct)
 	go func() {
 		defer close(c)
-		httpClient := &http.Client{}
 		for url != "" {
-			res, err := request(httpClient, "GET", url, nil)
+			res, err := client.request("GET", url, nil)
 			if err != nil {
 				logger.Error("http request error", err)
 				break

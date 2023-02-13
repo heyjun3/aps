@@ -1,9 +1,13 @@
 package ikebe
 
 import (
+	"bytes"
 	"context"
 	"crawler/models"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"testing"
 	"time"
 
@@ -115,6 +119,50 @@ func TestTimeToStr(t *testing.T) {
 		s := timeToStr(d)
 		fmt.Println(s)
 		assert.Equal(t, "20230209_225900", s)
+	})
+}
+
+type clientMock struct {}
+
+func (c clientMock) request(method, url string, body io.Reader) (*http.Response, error) {
+	b, err := ioutil.ReadFile("html/last_product_list.html")
+	if err != nil {
+		logger.Error("open file error", err)
+		return nil, err
+	}
+	res := &http.Response{
+		Body: ioutil.NopCloser(bytes.NewReader(b)),
+		Request: &http.Request{},
+	}
+	return res, nil
+}
+
+func TestScrapeProductsList(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		c := clientMock{}
+		s := ScrapeService{}
+
+		ch := s.scrapeProductsList(c, "https://google.com")
+
+		p1 := NewIkebeProduct(
+			"SR-SK30【次回3月入荷予定】",
+			"124704",
+			"https://www.ikebe-gakki.com/c/c-/pr/pr09/pr092127/124704",
+			"",
+			3267,
+		)
+		p17 := NewIkebeProduct(
+			"SS-6B 【6口電源タップ】(SS6B)",
+			"100469",
+			"https://www.ikebe-gakki.com/c/c-/am/am09/am090814/100469",
+			"",
+			6050,
+		)
+		for p := range ch {
+			assert.Equal(t, 17, len(p))
+			assert.Equal(t, p1, p[0])
+			assert.Equal(t, p17, p[len(p)-1])
+		}
 	})
 }
 
