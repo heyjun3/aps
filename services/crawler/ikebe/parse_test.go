@@ -12,7 +12,7 @@ import (
 
 func TestParseProducts(t *testing.T) {
 	t.Run("parse product list page", func(t *testing.T) {
-		b, err := ioutil.ReadFile("html/product_list.html")
+		b, err := ioutil.ReadFile("html/test_product_list.html")
 		if err != nil {
 			fmt.Println("file open error")
 			return
@@ -46,7 +46,7 @@ func TestParseProducts(t *testing.T) {
 	})
 
 	t.Run("parse last product list page", func(t *testing.T) {
-		b, err := ioutil.ReadFile("html/last_product_list.html")
+		b, err := ioutil.ReadFile("html/test_last_product_list.html")
 		if err != nil {
 			fmt.Println("file open err")
 			return
@@ -82,7 +82,7 @@ func TestParseProducts(t *testing.T) {
 
 func TestParseProduct(t *testing.T) {
 	t.Run("parse product page", func(t *testing.T) {
-		f, err := ioutil.ReadFile("html/product.html")
+		f, err := ioutil.ReadFile("html/test_product.html")
 		if err != nil {
 			fmt.Println(err)
 			return

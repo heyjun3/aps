@@ -141,7 +141,7 @@ func (c clientMock) request(method, url string, body io.Reader) (*http.Response,
 
 func TestScrapeProductsList(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		c := clientMock{"html/last_product_list.html"}
+		c := clientMock{"html/test_last_product_list.html"}
 		s := ScrapeService{}
 
 		ch := s.scrapeProductsList(c, "https://google.com")
@@ -228,7 +228,7 @@ func TestGetIkebeProduct(t *testing.T) {
 func TestScrapeProduct(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		s := ScrapeService{}
-		c := clientMock{"html/product.html"}
+		c := clientMock{"html/test_product.html"}
 		p := []*models.IkebeProduct{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test3", "test6", "http://", "", 3333),
