@@ -194,3 +194,35 @@ func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct, dsn string
 	}()
 	return send
 }
+
+func (s ScrapeService) scrapeProduct(
+	ch chan []*models.IkebeProduct, client httpClient)(
+	chan *models.IkebeProduct){
+
+		send := make(chan *models.IkebeProduct)
+		go func() {
+			defer close(send)
+			for products := range ch {
+				for _, product := range products {
+					if product.Jan.Valid {
+						send <- product
+						continue
+					}
+
+					res, err := client.request("GET", product.URL.String, nil)
+					if err != nil {
+						logger.Error("http request error", err, "action", "scrapeProduct")
+						continue
+					}
+					jan, err := parseProduct(res)
+					if err != nil {
+						logger.Error("jan code isn't valid", err)
+						continue
+					}
+					product.Jan = null.StringFrom(jan)
+					send <- product
+				}
+			}
+		}()
+		return send
+	}

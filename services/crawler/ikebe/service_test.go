@@ -122,10 +122,12 @@ func TestTimeToStr(t *testing.T) {
 	})
 }
 
-type clientMock struct {}
+type clientMock struct {
+	path string
+}
 
 func (c clientMock) request(method, url string, body io.Reader) (*http.Response, error) {
-	b, err := ioutil.ReadFile("html/last_product_list.html")
+	b, err := ioutil.ReadFile(c.path)
 	if err != nil {
 		logger.Error("open file error", err)
 		return nil, err
@@ -139,7 +141,7 @@ func (c clientMock) request(method, url string, body io.Reader) (*http.Response,
 
 func TestScrapeProductsList(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		c := clientMock{}
+		c := clientMock{"html/last_product_list.html"}
 		s := ScrapeService{}
 
 		ch := s.scrapeProductsList(c, "https://google.com")
@@ -220,5 +222,34 @@ func TestGetIkebeProduct(t *testing.T) {
 			assert.Equal(t, p, product)
 			assert.Equal(t, "", product[0].Jan.String)
 		}
+	})
+}
+
+func TestScrapeProduct(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		s := ScrapeService{}
+		c := clientMock{"html/product.html"}
+		p := []*models.IkebeProduct{
+			NewIkebeProduct("test1", "test4", "http://", "", 1111),
+			NewIkebeProduct("test3", "test6", "http://", "", 3333),
+		}
+		ch := make(chan []*models.IkebeProduct)
+		go func() {
+			defer close(ch)
+			ch <- p
+		}()
+
+		channel := s.scrapeProduct(ch, c)
+			
+		expectProduct := []*models.IkebeProduct{
+			NewIkebeProduct("test1", "test4", "http://", "2500140008600", 1111),
+			NewIkebeProduct("test3", "test6", "http://", "2500140008600", 3333),
+		}
+		var products []*models.IkebeProduct
+		for product := range channel {
+			products = append(products, product)
+		}
+
+		assert.Equal(t, expectProduct, products)
 	})
 }
