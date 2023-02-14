@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 const (
@@ -226,3 +227,27 @@ func (s ScrapeService) scrapeProduct(
 		}()
 		return send
 	}
+
+func (s ScrapeService) saveProduct(ch chan *models.IkebeProduct, dsn string) (
+	chan *models.IkebeProduct) {
+	
+	send := make(chan *models.IkebeProduct)
+	go func() {
+		defer close(send)
+		ctx := context.Background()
+		conn, err := NewDBconnection(dsn)
+		if err != nil {
+			logger.Error("db open error", err)
+			return
+		}
+		for p := range ch {
+			err := p.Upsert(ctx, conn, true, []string{"shop_code", "product_code"}, boil.Infer(), boil.Infer())
+			if err != nil {
+				logger.Error("ikebe product upsert error", err)
+				continue
+			}
+			send <- p
+		}
+	}()
+	return send
+}

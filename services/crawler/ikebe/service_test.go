@@ -253,3 +253,32 @@ func TestScrapeProduct(t *testing.T) {
 		assert.Equal(t, expectProduct, products)
 	})
 }
+
+func TestSaveProduct(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		conf := NewConfig("../sqlboiler.toml")
+		conf.Psql.DBname = "test"
+		ch := make(chan *models.IkebeProduct)
+		p := []*models.IkebeProduct{
+			NewIkebeProduct("test1", "test4", "http://", "", 1111),
+			NewIkebeProduct("test2", "test5", "http://", "", 2222),
+			NewIkebeProduct("test3", "test6", "http://", "", 3333),
+		}
+		go func() {
+			defer close(ch)
+			for _, pro := range p {
+				ch <- pro
+			}
+		}()
+		s := ScrapeService{}
+
+		channel := s.saveProduct(ch, conf.dsn())
+
+		var ps []*models.IkebeProduct
+		for p := range channel {
+			ps = append(ps, p)
+			fmt.Println(p)
+		}
+		assert.Equal(t, p, ps)
+	})
+}
