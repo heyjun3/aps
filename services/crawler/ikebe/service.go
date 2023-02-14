@@ -22,131 +22,14 @@ type ScrapeService struct {}
 
 func (s ScrapeService) StartScrape(url string) {
 
-	repo := IkebeProductRepository{}
 	client := Client{&http.Client{}}
-	products := []*models.IkebeProduct{}
-	for url != "" {
-		logger.Info("http request", "url", url)
-		res, err := client.request("GET", url, nil)
-		if err != nil {
-			logger.Error("http request error", err)
-			break
-		}
-		var product []*models.IkebeProduct
-		product, url = parseProducts(res)
-		products = append(products, product...)
-	}
-
-	var codes []string
-	for _, p := range products {
-		codes = append(codes, p.ProductCode)
-	}
-
-	ctx := context.Background()
-	conn, _ := NewDBconnection(cfg.dsn())
-	productsInDB, err := repo.getByProductCodes(ctx, conn, codes...)
-	if err != nil {
-		logger.Error("get ikebe products error", err)
-	}
-
-	products = mappingIkebeProducts(products, productsInDB)
-	for _, product := range products {
-		if product.Jan.Valid == true {
-			continue
-		}
-		logger.Info("http request", "url", product.URL.String)
-		res, err := client.request("GET", product.URL.String, nil)
-		if err != nil {
-			logger.Error("http request error", err)
-		}
-		jan, err := parseProduct(res)
-		if err != nil {
-			logger.Error("jancode is valid", err)
-			continue
-		}
-		product.Jan = null.StringFrom(jan)
-	}
-
-	err = repo.bulkUpsert(conn, products...)
-	if err != nil {
-		logger.Error("bulk upsert is failed", err)
-	}
-	var messages [][]byte
-	filename := "ikebe_" + timeToStr(time.Now())
-	for _, p := range products {
-		m, err := generateMessage(p, filename)
-		if err != nil {
-			logger.Error("generate message error", err)
-			continue
-		}
-		messages = append(messages, m)
-	}
 	mqClient := NewMQClient(cfg.MQDsn(), "mws")
-	mqClient.batchPublish(messages...)
-}
+	c1 := s.scrapeProductsList(client, url)
+	c2 := s.getIkebeProduct(c1, cfg.dsn())
+	c3 := s.scrapeProduct(c2, client)
+	c4 := s.saveProduct(c3, cfg.dsn())
+	s.sendMessage(c4, mqClient, "ikebe")
 
-type httpClient interface {
-	request(string, string, io.Reader) (*http.Response, error)
-}
-
-type Client struct {
-	httpClient *http.Client
-}
-
-func (c Client) request(method, url string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 0; i < 3; i++ {
-		res, err := c.httpClient.Do(req)
-		time.Sleep(time.Second * 2)
-		if err != nil && res.StatusCode > 200 {
-			logger.Error("http request error", err)
-			continue
-		}
-		return res, err
-	}
-	return nil, err
-}
-
-func mappingIkebeProducts(products, productsInDB []*models.IkebeProduct) []*models.IkebeProduct{
-	inDB := map[string]*models.IkebeProduct{}
-	for _, p := range productsInDB {
-		inDB[p.ProductCode] = p
-	}
-
-	for _, product := range products {
-		p := inDB[product.ProductCode]
-		if p == nil {
-			continue
-		}
-		product.Jan = p.Jan
-	}
-	return products
-}
-
-func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
-	if !p.Jan.Valid {
-		return nil, fmt.Errorf("Jan code isn't valid %s", p.ProductCode)
-	}
-	if !p.Price.Valid {
-		return nil, fmt.Errorf("price isn't valid %s", p.ProductCode)
-	}
-	if !p.URL.Valid {
-		return nil, fmt.Errorf("url isn't valid %s", p.ProductCode)
-	}
-	m := NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
-	message, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-	return message, err
-}
-
-func timeToStr(t time.Time) string {
-	return t.Format("20060102_150405")
 }
 
 func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []*models.IkebeProduct{
@@ -252,7 +135,7 @@ func (s ScrapeService) saveProduct(ch chan *models.IkebeProduct, dsn string) (
 	return send
 }
 
-func (s ScrapeService) sendMessage(ch chan *models.IkebeProduct, client QueueClient, shop_name string) {
+func (s ScrapeService) sendMessage(ch chan *models.IkebeProduct, client RabbitMQClient, shop_name string) {
 	go func() {
 		filename := shop_name + timeToStr(time.Now())
 		for p := range ch {
@@ -269,3 +152,68 @@ func (s ScrapeService) sendMessage(ch chan *models.IkebeProduct, client QueueCli
 		}
 	}()
 }
+
+type httpClient interface {
+	request(string, string, io.Reader) (*http.Response, error)
+}
+
+type Client struct {
+	httpClient *http.Client
+}
+
+func (c Client) request(method, url string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < 3; i++ {
+		res, err := c.httpClient.Do(req)
+		time.Sleep(time.Second * 2)
+		if err != nil && res.StatusCode > 200 {
+			logger.Error("http request error", err)
+			continue
+		}
+		return res, err
+	}
+	return nil, err
+}
+
+func mappingIkebeProducts(products, productsInDB []*models.IkebeProduct) []*models.IkebeProduct{
+	inDB := map[string]*models.IkebeProduct{}
+	for _, p := range productsInDB {
+		inDB[p.ProductCode] = p
+	}
+
+	for _, product := range products {
+		p := inDB[product.ProductCode]
+		if p == nil {
+			continue
+		}
+		product.Jan = p.Jan
+	}
+	return products
+}
+
+func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
+	if !p.Jan.Valid {
+		return nil, fmt.Errorf("Jan code isn't valid %s", p.ProductCode)
+	}
+	if !p.Price.Valid {
+		return nil, fmt.Errorf("price isn't valid %s", p.ProductCode)
+	}
+	if !p.URL.Valid {
+		return nil, fmt.Errorf("url isn't valid %s", p.ProductCode)
+	}
+	m := NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
+	message, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return message, err
+}
+
+func timeToStr(t time.Time) string {
+	return t.Format("20060102_150405")
+}
+
