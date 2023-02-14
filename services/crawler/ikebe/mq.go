@@ -13,6 +13,10 @@ type RabbitMQClient interface {
 	batchPublish([][]byte) error
 }
 
+type QueueClient interface {
+	publish(message []byte) error
+}
+
 type MQClient struct {
 	dsn string
 	queueName string

@@ -282,3 +282,31 @@ func TestSaveProduct(t *testing.T) {
 		assert.Equal(t, p, ps)
 	})
 }
+
+type MQMock struct {}
+
+func (m MQMock) publish(message []byte) error {
+	fmt.Println(string(message))
+	return nil
+}
+
+func TestSendMessage(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		ch := make(chan *models.IkebeProduct)
+		p := []*models.IkebeProduct{
+			NewIkebeProduct("test1", "test4", "http://", "1111", 1111),
+			NewIkebeProduct("test2", "test5", "http://", "2222", 2222),
+			NewIkebeProduct("test3", "test6", "http://", "3333", 3333),
+		}
+		go func() {
+			defer close(ch)
+			for _, t := range p {
+				ch <- t
+			}
+		}()
+		c := MQMock{}
+		s := ScrapeService{}
+
+		s.sendMessage(ch, c, "ikebe")
+	})
+}

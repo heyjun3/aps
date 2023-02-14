@@ -251,3 +251,21 @@ func (s ScrapeService) saveProduct(ch chan *models.IkebeProduct, dsn string) (
 	}()
 	return send
 }
+
+func (s ScrapeService) sendMessage(ch chan *models.IkebeProduct, client QueueClient, shop_name string) {
+	go func() {
+		filename := shop_name + timeToStr(time.Now())
+		for p := range ch {
+			m, err := generateMessage(p, filename)
+			if err != nil {
+				logger.Error("generate message error", err)
+				continue
+			}
+
+			err = client.publish(m)
+			if err != nil {
+				logger.Error("message publish error", err)
+			}
+		}
+	}()
+}
