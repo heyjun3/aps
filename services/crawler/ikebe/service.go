@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/volatiletech/null/v8"
@@ -24,19 +25,24 @@ func (s ScrapeService) StartScrape(url string) {
 
 	client := Client{&http.Client{}}
 	mqClient := NewMQClient(cfg.MQDsn(), "mws")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
 	c1 := s.scrapeProductsList(client, url)
 	c2 := s.getIkebeProduct(c1, cfg.dsn())
 	c3 := s.scrapeProduct(c2, client)
 	c4 := s.saveProduct(c3, cfg.dsn())
-	s.sendMessage(c4, mqClient, "ikebe")
+	s.sendMessage(c4, mqClient, "ikebe", &wg)
 
+	wg.Wait()
 }
 
 func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []*models.IkebeProduct{
-	c := make(chan []*models.IkebeProduct)
+	c := make(chan []*models.IkebeProduct, 10)
 	go func() {
 		defer close(c)
 		for url != "" {
+			logger.Info("product list request url", "url", url)
 			res, err := client.request("GET", url, nil)
 			if err != nil {
 				logger.Error("http request error", err)
@@ -51,7 +57,7 @@ func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []
 }
 
 func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct, dsn string) chan []*models.IkebeProduct{
-	send := make(chan []*models.IkebeProduct)
+	send := make(chan []*models.IkebeProduct, 10)
 	go func() {
 		defer close(send)
 		ctx := context.Background()
@@ -92,7 +98,8 @@ func (s ScrapeService) scrapeProduct(
 						send <- product
 						continue
 					}
-
+					
+					logger.Info("product request url", "url", product.URL.String)
 					res, err := client.request("GET", product.URL.String, nil)
 					if err != nil {
 						logger.Error("http request error", err, "action", "scrapeProduct")
@@ -135,9 +142,12 @@ func (s ScrapeService) saveProduct(ch chan *models.IkebeProduct, dsn string) (
 	return send
 }
 
-func (s ScrapeService) sendMessage(ch chan *models.IkebeProduct, client RabbitMQClient, shop_name string) {
+func (s ScrapeService) sendMessage(
+	ch chan *models.IkebeProduct, client RabbitMQClient,
+	shop_name string, wg *sync.WaitGroup) {
 	go func() {
-		filename := shop_name + timeToStr(time.Now())
+		defer wg.Done()
+		filename := shop_name+ "_" + timeToStr(time.Now())
 		for p := range ch {
 			m, err := generateMessage(p, filename)
 			if err != nil {

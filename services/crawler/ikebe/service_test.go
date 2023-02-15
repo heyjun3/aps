@@ -3,16 +3,18 @@ package ikebe
 import (
 	"bytes"
 	"context"
-	"crawler/models"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null/v8"
+
+	"crawler/models"
 )
 
 func TestMappingIkebeProducts(t *testing.T) {
@@ -306,7 +308,9 @@ func TestSendMessage(t *testing.T) {
 		}()
 		c := MQMock{}
 		s := ScrapeService{}
+		wg := sync.WaitGroup{}
+		wg.Add(1)
 
-		s.sendMessage(ch, c, "ikebe")
+		s.sendMessage(ch, c, "ikebe", &wg)
 	})
 }
