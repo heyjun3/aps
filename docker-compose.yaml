@@ -203,3 +203,15 @@ services:
     entrypoint: uwsgi --ini ./ApiServer.ini
     depends_on:
       - postgresql-server
+
+  go-crawler:
+    build:
+      context: .
+      dockerfile: ./services/crawler/Dockerfile
+      args:
+        APP_PATH: "services/crawler"
+    container_name: go-crawler
+    restart: always
+    environment:
+      - TZ=Asia/Tokyo
+    entrypoint: tail -f /dev/null
