@@ -172,7 +172,7 @@ func TestScrapeProductsList(t *testing.T) {
 
 func TestGetIkebeProduct(t *testing.T) {
 	ctx := context.Background()
-	conf := NewConfig("../sqlboiler.toml")
+	conf, _ := NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
 	conn, _ := NewDBconnection(conf.dsn())
 	models.IkebeProducts().DeleteAll(ctx, conn)
@@ -258,7 +258,7 @@ func TestScrapeProduct(t *testing.T) {
 
 func TestSaveProduct(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		conf := NewConfig("../sqlboiler.toml")
+		conf, _ := NewConfig("../sqlboiler.toml")
 		conf.Psql.DBname = "test"
 		ch := make(chan *models.IkebeProduct)
 		p := []*models.IkebeProduct{
