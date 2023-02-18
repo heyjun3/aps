@@ -214,4 +214,5 @@ services:
     restart: always
     environment:
       - TZ=Asia/Tokyo
+      - ROOT_PATH=/app
     entrypoint: tail -f /dev/null

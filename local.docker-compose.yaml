@@ -38,7 +38,7 @@ services:
     container_name: crawler_dev
     environment:
       - TZ=Asia/Tokyo
-      - ROOT_PATH=/app
+      - ROOT_PATH=/go/src
     entrypoint: tail -f /dev/null
     volumes: 
       - ./services/crawler:/go/src
