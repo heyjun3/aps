@@ -73,7 +73,7 @@ func (mq MQClient) batchPublish(messages ...[]byte) error {
 type MWSSchema struct {
 	Filename string `json:"filename"`
 	Jan string `json:"jan"`
-	Price int64 `json:"price"`
+	Price int64 `json:"cost"`
 	URL string `json:"url"`
 }
 
