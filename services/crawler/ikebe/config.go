@@ -3,6 +3,7 @@ package ikebe
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"golang.org/x/exp/slog"
@@ -35,18 +36,25 @@ type RabbitMQ struct {
 var cfg Config
 var logger *slog.Logger
 func init() {
-	cfg = NewConfig("sqlboiler.toml")
 	logger = slog.New(slog.NewJSONHandler(os.Stdout))
+	path := os.Getenv("ROOT_PATH")
+	if path == "" {
+		panic("Not set env ROOT_PATH")
+	}
+	var err error
+	cfg, err = NewConfig(filepath.Join(path, "sqlboiler.toml"))
+	if err != nil {
+		panic(err)
+	}
 }
 
-func NewConfig(path string) Config {
+func NewConfig(path string) (Config, error) {
 	var cfg Config
 	_, err := toml.DecodeFile(path, &cfg)
 	if err != nil {
-		fmt.Println(err)
-		return cfg
+		return cfg, err
 	}
-	return cfg
+	return cfg, nil
 }
 
 func (c Config) dsn() string {

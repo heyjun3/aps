@@ -8,9 +8,7 @@ import (
 )
 
 type RabbitMQClient interface {
-	createMQConnection() (*amqp.Channel, error)
 	publish([]byte) error
-	batchPublish([][]byte) error
 }
 
 type MQClient struct {
@@ -18,11 +16,11 @@ type MQClient struct {
 	queueName string
 }
 
-func NewMQClient(dsn, name string) *MQClient{
-	return &MQClient{dsn: dsn, queueName: name}
+func NewMQClient(dsn, name string) MQClient{
+	return MQClient{dsn: dsn, queueName: name}
 }
 
-func (mq *MQClient)createMQConnection() (*amqp.Channel, error){
+func (mq MQClient) createMQConnection() (*amqp.Channel, error){
 	conn, err := amqp.Dial(mq.dsn)
 	if err != nil {
 		logger.Error("Failed to connect to RabbitMQ", err)
@@ -44,7 +42,7 @@ func (mq *MQClient)createMQConnection() (*amqp.Channel, error){
 	return ch, err
 }
 
-func (mq *MQClient) publish(message []byte) error {
+func (mq MQClient) publish(message []byte) error {
 	ch, err := mq.createMQConnection()
 	if err != nil {
 		logger.Error("create connection error", err)
@@ -57,7 +55,7 @@ func (mq *MQClient) publish(message []byte) error {
 	return err
 }
 
-func (mq *MQClient) batchPublish(messages ...[]byte) error {
+func (mq MQClient) batchPublish(messages ...[]byte) error {
 	ch, err := mq.createMQConnection()
 	if err != nil {
 		return err

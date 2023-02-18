@@ -3,16 +3,18 @@ package ikebe
 import (
 	"bytes"
 	"context"
-	"crawler/models"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null/v8"
+
+	"crawler/models"
 )
 
 func TestMappingIkebeProducts(t *testing.T) {
@@ -170,7 +172,7 @@ func TestScrapeProductsList(t *testing.T) {
 
 func TestGetIkebeProduct(t *testing.T) {
 	ctx := context.Background()
-	conf := NewConfig("../sqlboiler.toml")
+	conf, _ := NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
 	conn, _ := NewDBconnection(conf.dsn())
 	models.IkebeProducts().DeleteAll(ctx, conn)
@@ -251,5 +253,64 @@ func TestScrapeProduct(t *testing.T) {
 		}
 
 		assert.Equal(t, expectProduct, products)
+	})
+}
+
+func TestSaveProduct(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		conf, _ := NewConfig("../sqlboiler.toml")
+		conf.Psql.DBname = "test"
+		ch := make(chan *models.IkebeProduct)
+		p := []*models.IkebeProduct{
+			NewIkebeProduct("test1", "test4", "http://", "", 1111),
+			NewIkebeProduct("test2", "test5", "http://", "", 2222),
+			NewIkebeProduct("test3", "test6", "http://", "", 3333),
+		}
+		go func() {
+			defer close(ch)
+			for _, pro := range p {
+				ch <- pro
+			}
+		}()
+		s := ScrapeService{}
+
+		channel := s.saveProduct(ch, conf.dsn())
+
+		var ps []*models.IkebeProduct
+		for p := range channel {
+			ps = append(ps, p)
+			fmt.Println(p)
+		}
+		assert.Equal(t, p, ps)
+	})
+}
+
+type MQMock struct {}
+
+func (m MQMock) publish(message []byte) error {
+	fmt.Println(string(message))
+	return nil
+}
+
+func TestSendMessage(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		ch := make(chan *models.IkebeProduct)
+		p := []*models.IkebeProduct{
+			NewIkebeProduct("test1", "test4", "http://", "1111", 1111),
+			NewIkebeProduct("test2", "test5", "http://", "2222", 2222),
+			NewIkebeProduct("test3", "test6", "http://", "3333", 3333),
+		}
+		go func() {
+			defer close(ch)
+			for _, t := range p {
+				ch <- t
+			}
+		}()
+		c := MQMock{}
+		s := ScrapeService{}
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		s.sendMessage(ch, c, "ikebe", &wg)
 	})
 }

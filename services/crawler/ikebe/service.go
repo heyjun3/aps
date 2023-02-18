@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 const (
@@ -21,67 +23,144 @@ type ScrapeService struct {}
 
 func (s ScrapeService) StartScrape(url string) {
 
-	repo := IkebeProductRepository{}
 	client := Client{&http.Client{}}
-	products := []*models.IkebeProduct{}
-	for url != "" {
-		logger.Info("http request", "url", url)
-		res, err := client.request("GET", url, nil)
-		if err != nil {
-			logger.Error("http request error", err)
-			break
-		}
-		var product []*models.IkebeProduct
-		product, url = parseProducts(res)
-		products = append(products, product...)
-	}
-
-	var codes []string
-	for _, p := range products {
-		codes = append(codes, p.ProductCode)
-	}
-
-	ctx := context.Background()
-	conn, _ := NewDBconnection(cfg.dsn())
-	productsInDB, err := repo.getByProductCodes(ctx, conn, codes...)
-	if err != nil {
-		logger.Error("get ikebe products error", err)
-	}
-
-	products = mappingIkebeProducts(products, productsInDB)
-	for _, product := range products {
-		if product.Jan.Valid == true {
-			continue
-		}
-		logger.Info("http request", "url", product.URL.String)
-		res, err := client.request("GET", product.URL.String, nil)
-		if err != nil {
-			logger.Error("http request error", err)
-		}
-		jan, err := parseProduct(res)
-		if err != nil {
-			logger.Error("jancode is valid", err)
-			continue
-		}
-		product.Jan = null.StringFrom(jan)
-	}
-
-	err = repo.bulkUpsert(conn, products...)
-	if err != nil {
-		logger.Error("bulk upsert is failed", err)
-	}
-	var messages [][]byte
-	filename := "ikebe_" + timeToStr(time.Now())
-	for _, p := range products {
-		m, err := generateMessage(p, filename)
-		if err != nil {
-			logger.Error("generate message error", err)
-			continue
-		}
-		messages = append(messages, m)
-	}
 	mqClient := NewMQClient(cfg.MQDsn(), "mws")
-	mqClient.batchPublish(messages...)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	c1 := s.scrapeProductsList(client, url)
+	c2 := s.getIkebeProduct(c1, cfg.dsn())
+	c3 := s.scrapeProduct(c2, client)
+	c4 := s.saveProduct(c3, cfg.dsn())
+	s.sendMessage(c4, mqClient, "ikebe", &wg)
+
+	wg.Wait()
+}
+
+func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []*models.IkebeProduct{
+	c := make(chan []*models.IkebeProduct, 10)
+	go func() {
+		defer close(c)
+		for url != "" {
+			logger.Info("product list request url", "url", url)
+			res, err := client.request("GET", url, nil)
+			if err != nil {
+				logger.Error("http request error", err)
+				break
+			}
+			var products []*models.IkebeProduct
+			products, url = parseProducts(res)
+			c <- products
+		}
+	}()
+	return c
+}
+
+func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct, dsn string) chan []*models.IkebeProduct{
+	send := make(chan []*models.IkebeProduct, 10)
+	go func() {
+		defer close(send)
+		ctx := context.Background()
+		conn, err := NewDBconnection(dsn)
+		if err != nil {
+			logger.Error("db open error", err)
+			return
+		}
+
+		repo := IkebeProductRepository{}
+		for p := range c {
+			var codes []string
+			for _, pro := range p {
+				codes = append(codes, pro.ProductCode)
+			}
+			dbProduct, err := repo.getByProductCodes(ctx, conn, codes...)
+			if err != nil {
+				logger.Error("db get product error", err)
+				continue
+			}
+			products := mappingIkebeProducts(p, dbProduct)
+			send <- products
+		}
+	}()
+	return send
+}
+
+func (s ScrapeService) scrapeProduct(
+	ch chan []*models.IkebeProduct, client httpClient)(
+	chan *models.IkebeProduct){
+
+		send := make(chan *models.IkebeProduct)
+		go func() {
+			defer close(send)
+			for products := range ch {
+				for _, product := range products {
+					if product.Jan.Valid {
+						send <- product
+						continue
+					}
+					
+					logger.Info("product request url", "url", product.URL.String)
+					res, err := client.request("GET", product.URL.String, nil)
+					if err != nil {
+						logger.Error("http request error", err, "action", "scrapeProduct")
+						continue
+					}
+					jan, err := parseProduct(res)
+					if err != nil {
+						logger.Error("jan code isn't valid", err)
+						continue
+					}
+					product.Jan = null.StringFrom(jan)
+					send <- product
+				}
+			}
+		}()
+		return send
+	}
+
+func (s ScrapeService) saveProduct(ch chan *models.IkebeProduct, dsn string) (
+	chan *models.IkebeProduct) {
+	
+	send := make(chan *models.IkebeProduct)
+	go func() {
+		defer close(send)
+		ctx := context.Background()
+		conn, err := NewDBconnection(dsn)
+		if err != nil {
+			logger.Error("db open error", err)
+			return
+		}
+		for p := range ch {
+			err := p.Upsert(ctx, conn, true, []string{"shop_code", "product_code"}, boil.Infer(), boil.Infer())
+			if err != nil {
+				logger.Error("ikebe product upsert error", err)
+				continue
+			}
+			send <- p
+		}
+	}()
+	return send
+}
+
+func (s ScrapeService) sendMessage(
+	ch chan *models.IkebeProduct, client RabbitMQClient,
+	shop_name string, wg *sync.WaitGroup) {
+	go func() {
+		defer wg.Done()
+		filename := shop_name+ "_" + timeToStr(time.Now())
+		for p := range ch {
+			m, err := generateMessage(p, filename)
+			if err != nil {
+				logger.Error("generate message error", err)
+				continue
+			}
+
+			err = client.publish(m)
+			if err != nil {
+				logger.Error("message publish error", err)
+			}
+		}
+	}()
 }
 
 type httpClient interface {
@@ -148,81 +227,3 @@ func timeToStr(t time.Time) string {
 	return t.Format("20060102_150405")
 }
 
-func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []*models.IkebeProduct{
-	c := make(chan []*models.IkebeProduct)
-	go func() {
-		defer close(c)
-		for url != "" {
-			res, err := client.request("GET", url, nil)
-			if err != nil {
-				logger.Error("http request error", err)
-				break
-			}
-			var products []*models.IkebeProduct
-			products, url = parseProducts(res)
-			c <- products
-		}
-	}()
-	return c
-}
-
-func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct, dsn string) chan []*models.IkebeProduct{
-	send := make(chan []*models.IkebeProduct)
-	go func() {
-		defer close(send)
-		ctx := context.Background()
-		conn, err := NewDBconnection(dsn)
-		if err != nil {
-			logger.Error("db open error", err)
-			return
-		}
-
-		repo := IkebeProductRepository{}
-		for p := range c {
-			var codes []string
-			for _, pro := range p {
-				codes = append(codes, pro.ProductCode)
-			}
-			dbProduct, err := repo.getByProductCodes(ctx, conn, codes...)
-			if err != nil {
-				logger.Error("db get product error", err)
-				continue
-			}
-			products := mappingIkebeProducts(p, dbProduct)
-			send <- products
-		}
-	}()
-	return send
-}
-
-func (s ScrapeService) scrapeProduct(
-	ch chan []*models.IkebeProduct, client httpClient)(
-	chan *models.IkebeProduct){
-
-		send := make(chan *models.IkebeProduct)
-		go func() {
-			defer close(send)
-			for products := range ch {
-				for _, product := range products {
-					if product.Jan.Valid {
-						send <- product
-						continue
-					}
-
-					res, err := client.request("GET", product.URL.String, nil)
-					if err != nil {
-						logger.Error("http request error", err, "action", "scrapeProduct")
-						continue
-					}
-					jan, err := parseProduct(res)
-					if err != nil {
-						logger.Error("jan code isn't valid", err)
-						continue
-					}
-					product.Jan = null.StringFrom(jan)
-					send <- product
-				}
-			}
-		}()
-		return send
-	}

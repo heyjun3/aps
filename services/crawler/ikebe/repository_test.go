@@ -28,7 +28,7 @@ func IkebeProductTableFactory(conn boil.ContextExecutor) error{
 
 func TestGetIkebeProductsByProductCode(t *testing.T) {
 	ctx := context.Background()
-	conf := NewConfig("../sqlboiler.toml")
+	conf, _ := NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
 	conn, err := NewDBconnection(conf.dsn())
 	if err != nil {
@@ -55,7 +55,7 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 }
 
 func TestBulkUpsertIkebeProducts(t *testing.T) {
-	conf := NewConfig("../sqlboiler.toml")
+	conf, _ := NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
 	conn, err := NewDBconnection(conf.dsn())
 	if err != nil {
