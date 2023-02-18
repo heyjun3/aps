@@ -77,7 +77,7 @@ func TestGenerateMessage(t *testing.T) {
 		m, err := generateMessage(p, f)
 
 		assert.Equal(t, nil, err)
-		ex := `{"filename":"ikebe_20220301_120303","jan":"4444","price":6000,"url":"https://test.com"}`
+		ex := `{"filename":"ikebe_20220301_120303","jan":"4444","cost":6000,"url":"https://test.com"}`
 		assert.Equal(t, ex, string(m))
 	})
 
