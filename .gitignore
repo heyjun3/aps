@@ -16,3 +16,5 @@ logs
 test_html
 test_json
 gsheet*
+services/crawler/bin/
+services/crawler/pkg/

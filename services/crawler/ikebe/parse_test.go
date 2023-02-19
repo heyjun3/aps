@@ -3,8 +3,9 @@ package ikebe
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,17 +13,17 @@ import (
 
 func TestParseProducts(t *testing.T) {
 	t.Run("parse product list page", func(t *testing.T) {
-		b, err := ioutil.ReadFile("html/test_product_list.html")
+		b, err := os.ReadFile("html/test_product_list.html")
 		if err != nil {
 			fmt.Println("file open error")
 			return
 		}
-		res := http.Response{
-			Body: ioutil.NopCloser(bytes.NewReader(b)),
+		res := &http.Response{
+			Body: io.NopCloser(bytes.NewReader(b)),
 			Request: &http.Request{},
 		}
-
-		products, url := parseProducts(&res)
+		defer res.Body.Close()
+		products, url := parseProducts(res.Body)
 
 		assert.Equal(t, 40, len(products))
 		assert.Equal(t, "https://www.ikebe-gakki.com/p/search?maxprice=100000&tag=%E6%96%B0%E5%93%81&page=2&sort=latest", url)
@@ -46,17 +47,18 @@ func TestParseProducts(t *testing.T) {
 	})
 
 	t.Run("parse last product list page", func(t *testing.T) {
-		b, err := ioutil.ReadFile("html/test_last_product_list.html")
+		b, err := os.ReadFile("html/test_last_product_list.html")
 		if err != nil {
 			fmt.Println("file open err")
 			return
 		}
-		res := http.Response{
-			Body: ioutil.NopCloser(bytes.NewReader(b)),
+		res := &http.Response{
+			Body: io.NopCloser(bytes.NewReader(b)),
 			Request: &http.Request{},
 		}
 
-		products, url := parseProducts(&res)
+		defer res.Body.Close()
+		products, url := parseProducts(res.Body)
 
 		assert.Equal(t, 17, len(products))
 		assert.Equal(t, "", url)
@@ -82,17 +84,17 @@ func TestParseProducts(t *testing.T) {
 
 func TestParseProduct(t *testing.T) {
 	t.Run("parse product page", func(t *testing.T) {
-		f, err := ioutil.ReadFile("html/test_product.html")
+		f, err := os.ReadFile("html/test_product.html")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		res := &http.Response{
-			Body: ioutil.NopCloser(bytes.NewReader(f)),
+			Body: io.NopCloser(bytes.NewReader(f)),
 			Request: &http.Request{},
 		}
-
-		jan, err := parseProduct(res)
+		defer res.Body.Close()
+		jan, err := parseProduct(res.Body)
 
 		assert.Equal(t, nil, err)
 		assert.Equal(t, "2500140008600", jan)

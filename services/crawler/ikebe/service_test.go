@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"net/http"
 	"sync"
 	"testing"
@@ -129,13 +129,13 @@ type clientMock struct {
 }
 
 func (c clientMock) request(method, url string, body io.Reader) (*http.Response, error) {
-	b, err := ioutil.ReadFile(c.path)
+	b, err := os.ReadFile(c.path)
 	if err != nil {
 		logger.Error("open file error", err)
 		return nil, err
 	}
 	res := &http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(b)),
+		Body: io.NopCloser(bytes.NewReader(b)),
 		Request: &http.Request{},
 	}
 	return res, nil

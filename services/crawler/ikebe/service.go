@@ -49,7 +49,8 @@ func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []
 				break
 			}
 			var products []*models.IkebeProduct
-			products, url = parseProducts(res)
+			products, url = parseProducts(res.Body)
+			res.Body.Close()
 			c <- products
 		}
 	}()
@@ -105,9 +106,10 @@ func (s ScrapeService) scrapeProduct(
 						logger.Error("http request error", err, "action", "scrapeProduct")
 						continue
 					}
-					jan, err := parseProduct(res)
+					jan, err := parseProduct(res.Body)
+					res.Body.Close()
 					if err != nil {
-						logger.Error("jan code isn't valid", err)
+						logger.Error("jan code isn't valid", err, "url", res.Request.URL)
 						continue
 					}
 					product.Jan = null.StringFrom(jan)
@@ -207,7 +209,7 @@ func mappingIkebeProducts(products, productsInDB []*models.IkebeProduct) []*mode
 
 func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
 	if !p.Jan.Valid {
-		return nil, fmt.Errorf("Jan code isn't valid %s", p.ProductCode)
+		return nil, fmt.Errorf("jan code isn't valid %s", p.ProductCode)
 	}
 	if !p.Price.Valid {
 		return nil, fmt.Errorf("price isn't valid %s", p.ProductCode)
