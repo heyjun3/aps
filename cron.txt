@@ -32,6 +32,9 @@
 0 18 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py buffalo
 30 18 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spread_sheet
 0 4 * * 6 /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py rakuten -i all
+0 1 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s ikebe -u "https://www.ikebe-gakki.com/p/search?sort=latest&keyword=%E7%89%B9%E4%BE%A1"
+0 2 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s ikebe -u "https://www.ikebe-gakki.com/p/search?sort=latest&keyword=%E3%82%BB%E3%83%BC%E3%83%AB"
+0 3 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s ikebe -u "https://www.ikebe-gakki.com/p/search?sort=latest&keyword=&tag=%E3%82%A2%E3%82%A6%E3%83%88%E3%83%AC%E3%83%83%E3%83%88&detailRadio=%E3%82%A2%E3%82%A6%E3%83%88%E3%83%AC%E3%83%83%E3%83%88&tag=&tag=&tag=&cat1=&value2=&cat2=&value3=&cat3=&tag=&detailShop=&minprice=&maxprice="
 20 * * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py mws
 0 * * * * /usr/bin/docker container ls -a | grep -i 'exited (0)' | awk '{print $1}' | xargs /usr/bin/docker rm
 5 0 * * * PGPASSWORD=postgres pg_dump -d aps -h localhost -U postgres | pigz > /home/jun/backup/`date +\%Y\%m\%d`_dump.sql.gz
