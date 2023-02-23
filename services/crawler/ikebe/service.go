@@ -2,16 +2,14 @@ package ikebe
 
 import (
 	"context"
-	"crawler/models"
-	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
+
+	"crawler/models"
 )
 
 const (
@@ -164,76 +162,3 @@ func (s ScrapeService) sendMessage(
 		}
 	}()
 }
-
-type httpClient interface {
-	request(string, string, io.Reader) (*http.Response, error)
-}
-
-type Client struct {
-	httpClient *http.Client
-}
-
-func (c Client) request(method, url string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 0; i < 3; i++ {
-		res, err := c.httpClient.Do(req)
-		time.Sleep(time.Second * 2)
-		if err != nil && res.StatusCode > 200 {
-			logger.Error("http request error", err)
-			continue
-		}
-		return res, err
-	}
-	return nil, err
-}
-
-type ikebeProducts []*models.IkebeProduct
-
-func NewIkebeProducts(products ...*models.IkebeProduct) ikebeProducts{
-	p := make(ikebeProducts, len(products))
-	copy(p, products)
-	return p
-}
-
-func (p ikebeProducts) mappingIkebeProducts(productsInDB ikebeProducts) ikebeProducts{
-	inDB := map[string]*models.IkebeProduct{}
-	for _, v := range productsInDB {
-		inDB[v.ProductCode] = v
-	}
-
-	for _, v := range p {
-		product := inDB[v.ProductCode]
-		if product == nil {
-			continue
-		}
-		v.Jan = product.Jan
-	}
-	return p
-}
-
-func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
-	if !p.Jan.Valid {
-		return nil, fmt.Errorf("jan code isn't valid %s", p.ProductCode)
-	}
-	if !p.Price.Valid {
-		return nil, fmt.Errorf("price isn't valid %s", p.ProductCode)
-	}
-	if !p.URL.Valid {
-		return nil, fmt.Errorf("url isn't valid %s", p.ProductCode)
-	}
-	m := NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
-	message, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-	return message, err
-}
-
-func timeToStr(t time.Time) string {
-	return t.Format("20060102_150405")
-}
-
