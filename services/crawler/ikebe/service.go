@@ -37,8 +37,8 @@ func (s ScrapeService) StartScrape(url string) {
 	wg.Wait()
 }
 
-func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []*models.IkebeProduct{
-	c := make(chan []*models.IkebeProduct, 10)
+func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan ikebeProducts{
+	c := make(chan ikebeProducts, 10)
 	go func() {
 		defer close(c)
 		for url != "" {
@@ -48,7 +48,7 @@ func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []
 				logger.Error("http request error", err)
 				break
 			}
-			var products []*models.IkebeProduct
+			var products ikebeProducts
 			products, url = parseProducts(res.Body)
 			res.Body.Close()
 			c <- products
@@ -57,8 +57,8 @@ func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []
 	return c
 }
 
-func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct, dsn string) chan []*models.IkebeProduct{
-	send := make(chan []*models.IkebeProduct, 10)
+func (s ScrapeService) getIkebeProduct(c chan ikebeProducts, dsn string) chan ikebeProducts{
+	send := make(chan ikebeProducts, 10)
 	go func() {
 		defer close(send)
 		ctx := context.Background()
@@ -79,7 +79,7 @@ func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct, dsn string
 				logger.Error("db get product error", err)
 				continue
 			}
-			products := mappingIkebeProducts(p, dbProduct)
+			products := NewIkebeProducts(p...).mappingIkebeProducts(dbProduct)
 			send <- products
 		}
 	}()
@@ -87,7 +87,7 @@ func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct, dsn string
 }
 
 func (s ScrapeService) scrapeProduct(
-	ch chan []*models.IkebeProduct, client httpClient)(
+	ch chan ikebeProducts, client httpClient)(
 	chan *models.IkebeProduct){
 
 		send := make(chan *models.IkebeProduct)
@@ -191,20 +191,28 @@ func (c Client) request(method, url string, body io.Reader) (*http.Response, err
 	return nil, err
 }
 
-func mappingIkebeProducts(products, productsInDB []*models.IkebeProduct) []*models.IkebeProduct{
+type ikebeProducts []*models.IkebeProduct
+
+func NewIkebeProducts(products ...*models.IkebeProduct) ikebeProducts{
+	p := make(ikebeProducts, len(products))
+	copy(p, products)
+	return p
+}
+
+func (p ikebeProducts) mappingIkebeProducts(productsInDB ikebeProducts) ikebeProducts{
 	inDB := map[string]*models.IkebeProduct{}
-	for _, p := range productsInDB {
-		inDB[p.ProductCode] = p
+	for _, v := range productsInDB {
+		inDB[v.ProductCode] = v
 	}
 
-	for _, product := range products {
-		p := inDB[product.ProductCode]
-		if p == nil {
+	for _, v := range p {
+		product := inDB[v.ProductCode]
+		if product == nil {
 			continue
 		}
-		product.Jan = p.Jan
+		v.Jan = product.Jan
 	}
-	return products
+	return p
 }
 
 func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
