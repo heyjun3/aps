@@ -53,4 +53,3 @@ func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
 func timeToStr(t time.Time) string {
 	return t.Format("20060102_150405")
 }
-
