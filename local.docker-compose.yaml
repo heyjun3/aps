@@ -36,10 +36,13 @@ services:
       context: .
       dockerfile: ./services/crawler/local.Dockerfile
     container_name: crawler_dev
+    restart: always
     environment:
       - TZ=Asia/Tokyo
       - ROOT_PATH=/go/src
     entrypoint: tail -f /dev/null
     volumes: 
       - ./services/crawler:/go/src
+      - ./services/crawler/pkg:/go/pkg
+      - ./services/crawler/bin:/go/bin
   

@@ -2,20 +2,20 @@ package ikebe
 
 import (
 	"fmt"
-	"regexp"
+	"io"
 	URL "net/url"
-	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	
+
 	"crawler/models"
 )
 
 
-func parseProducts(r *http.Response) ([]*models.IkebeProduct, string) {
-	doc, err := goquery.NewDocumentFromResponse(r)
+func parseProducts(r io.ReadCloser) ([]*models.IkebeProduct, string) {
+	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)
 		return nil, ""
@@ -31,14 +31,14 @@ func parseProducts(r *http.Response) ([]*models.IkebeProduct, string) {
 		}
 
 		productId, exist := s.Find("input[name=staffStartSkuCode]").Attr("value")
-		if exist == false {
+		if !exist {
 			logger.Info("Not Found productId")
 			return
 		}
 
 		path, exist := s.Find(".fs-c-productListItem__image.fs-c-productImage a[href]").Attr("href")
 		url, err := URL.Parse(path)
-		if exist == false || err != nil {
+		if !exist || err != nil {
 			logger.Info("Not Found url")
 			return
 		}
@@ -64,7 +64,7 @@ func parseProducts(r *http.Response) ([]*models.IkebeProduct, string) {
 
 	nextPath, exist := doc.Find(".fs-c-pagination__item.fs-c-pagination__item--next[href]").First().Attr("href")
 	u, err := URL.Parse(nextPath)
-	if exist == false || err != nil || isSold == true {
+	if !exist || err != nil || isSold {
 		logger.Info("Next Page URL is Not Found")
 		return products, ""
 	}
@@ -74,25 +74,22 @@ func parseProducts(r *http.Response) ([]*models.IkebeProduct, string) {
 	return products, u.String()
 }
 
-func parseProduct(r *http.Response) (string, error) {
-	doc, err := goquery.NewDocumentFromResponse(r)
+func parseProduct(r io.ReadCloser) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)
 		return "", err
 	}
 
-
 	jan := doc.Find(".janCode").Text()
 	if jan == "" {
-		err = fmt.Errorf("Not Found jan code")
-		return "", err
+		return "", fmt.Errorf("not found jan code")
 	}
 
 	rex := regexp.MustCompile("[0-9]{13}")
 	janCode := rex.FindString(jan)
 	if janCode == "" {
-		err = fmt.Errorf("Not Found jan code")
-		return "", err
+		return "", fmt.Errorf("not found jan code")
 	}
 
 	return janCode, nil

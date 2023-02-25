@@ -2,16 +2,14 @@ package ikebe
 
 import (
 	"context"
-	"crawler/models"
-	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
+
+	"crawler/models"
 )
 
 const (
@@ -37,8 +35,8 @@ func (s ScrapeService) StartScrape(url string) {
 	wg.Wait()
 }
 
-func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []*models.IkebeProduct{
-	c := make(chan []*models.IkebeProduct, 10)
+func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan ikebeProducts{
+	c := make(chan ikebeProducts, 10)
 	go func() {
 		defer close(c)
 		for url != "" {
@@ -48,16 +46,17 @@ func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan []
 				logger.Error("http request error", err)
 				break
 			}
-			var products []*models.IkebeProduct
-			products, url = parseProducts(res)
+			var products ikebeProducts
+			products, url = parseProducts(res.Body)
+			res.Body.Close()
 			c <- products
 		}
 	}()
 	return c
 }
 
-func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct, dsn string) chan []*models.IkebeProduct{
-	send := make(chan []*models.IkebeProduct, 10)
+func (s ScrapeService) getIkebeProduct(c chan ikebeProducts, dsn string) chan ikebeProducts{
+	send := make(chan ikebeProducts, 10)
 	go func() {
 		defer close(send)
 		ctx := context.Background()
@@ -78,7 +77,7 @@ func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct, dsn string
 				logger.Error("db get product error", err)
 				continue
 			}
-			products := mappingIkebeProducts(p, dbProduct)
+			products := NewIkebeProducts(p...).mappingIkebeProducts(dbProduct)
 			send <- products
 		}
 	}()
@@ -86,7 +85,7 @@ func (s ScrapeService) getIkebeProduct(c chan []*models.IkebeProduct, dsn string
 }
 
 func (s ScrapeService) scrapeProduct(
-	ch chan []*models.IkebeProduct, client httpClient)(
+	ch chan ikebeProducts, client httpClient)(
 	chan *models.IkebeProduct){
 
 		send := make(chan *models.IkebeProduct)
@@ -105,9 +104,10 @@ func (s ScrapeService) scrapeProduct(
 						logger.Error("http request error", err, "action", "scrapeProduct")
 						continue
 					}
-					jan, err := parseProduct(res)
+					jan, err := parseProduct(res.Body)
+					res.Body.Close()
 					if err != nil {
-						logger.Error("jan code isn't valid", err)
+						logger.Error("jan code isn't valid", err, "url", res.Request.URL)
 						continue
 					}
 					product.Jan = null.StringFrom(jan)
@@ -162,68 +162,3 @@ func (s ScrapeService) sendMessage(
 		}
 	}()
 }
-
-type httpClient interface {
-	request(string, string, io.Reader) (*http.Response, error)
-}
-
-type Client struct {
-	httpClient *http.Client
-}
-
-func (c Client) request(method, url string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 0; i < 3; i++ {
-		res, err := c.httpClient.Do(req)
-		time.Sleep(time.Second * 2)
-		if err != nil && res.StatusCode > 200 {
-			logger.Error("http request error", err)
-			continue
-		}
-		return res, err
-	}
-	return nil, err
-}
-
-func mappingIkebeProducts(products, productsInDB []*models.IkebeProduct) []*models.IkebeProduct{
-	inDB := map[string]*models.IkebeProduct{}
-	for _, p := range productsInDB {
-		inDB[p.ProductCode] = p
-	}
-
-	for _, product := range products {
-		p := inDB[product.ProductCode]
-		if p == nil {
-			continue
-		}
-		product.Jan = p.Jan
-	}
-	return products
-}
-
-func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
-	if !p.Jan.Valid {
-		return nil, fmt.Errorf("Jan code isn't valid %s", p.ProductCode)
-	}
-	if !p.Price.Valid {
-		return nil, fmt.Errorf("price isn't valid %s", p.ProductCode)
-	}
-	if !p.URL.Valid {
-		return nil, fmt.Errorf("url isn't valid %s", p.ProductCode)
-	}
-	m := NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
-	message, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-	return message, err
-}
-
-func timeToStr(t time.Time) string {
-	return t.Format("20060102_150405")
-}
-

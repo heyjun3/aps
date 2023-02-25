@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"net/http"
 	"sync"
 	"testing"
@@ -20,7 +20,7 @@ import (
 func TestMappingIkebeProducts(t *testing.T) {
 
 	t.Run("happy path", func(t *testing.T) {
-		p := []*models.IkebeProduct{
+		p := ikebeProducts{
 			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
 			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
@@ -32,7 +32,7 @@ func TestMappingIkebeProducts(t *testing.T) {
 			NewIkebeProduct("test", "test2", "test2", "7777", 4000),
 		}
 
-		result := mappingIkebeProducts(p, dbp)
+		result := p.mappingIkebeProducts(dbp)
 
 		assert.Equal(t, 3, len(result))
 		assert.Equal(t, NewIkebeProduct("test", "test", "http://test.jp", "4444", 1111), result[0])
@@ -41,27 +41,27 @@ func TestMappingIkebeProducts(t *testing.T) {
 	})
 
 	t.Run("product is empty", func(t *testing.T) {
-		p := []*models.IkebeProduct{}
+		p := ikebeProducts{}
 		dbp := []*models.IkebeProduct{
 			NewIkebeProduct("test",  "test", "test", "11111", 4000),
 			NewIkebeProduct("test", "test", "test1", "55555", 4000),
 		}
 
-		result := mappingIkebeProducts(p, dbp)
+		result := p.mappingIkebeProducts(dbp)
 
 		assert.Equal(t, 0, len(result))
 		assert.Equal(t, p, result)
 	})
 
 	t.Run("db product is empty", func(t *testing.T) {
-		p := []*models.IkebeProduct{
+		p := ikebeProducts{
 			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
 			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
 		}
 		db := []*models.IkebeProduct{}
 
-		result := mappingIkebeProducts(p, db)
+		result := p.mappingIkebeProducts(db)
 
 		assert.Equal(t, 3, len(result))
 		assert.Equal(t, p, result)
@@ -129,13 +129,13 @@ type clientMock struct {
 }
 
 func (c clientMock) request(method, url string, body io.Reader) (*http.Response, error) {
-	b, err := ioutil.ReadFile(c.path)
+	b, err := os.ReadFile(c.path)
 	if err != nil {
 		logger.Error("open file error", err)
 		return nil, err
 	}
 	res := &http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(b)),
+		Body: io.NopCloser(bytes.NewReader(b)),
 		Request: &http.Request{},
 	}
 	return res, nil
@@ -191,7 +191,7 @@ func TestGetIkebeProduct(t *testing.T) {
 			NewIkebeProduct("test2", "test2", "http://", "", 2222),
 			NewIkebeProduct("test3", "test3", "http://", "", 3333),
 		}
-		ch := make(chan []*models.IkebeProduct)
+		ch := make(chan ikebeProducts)
 		go func (){
 			defer close(ch)
 			ch <- p
@@ -200,7 +200,7 @@ func TestGetIkebeProduct(t *testing.T) {
 		c := s.getIkebeProduct(ch, conf.dsn())
 
 		for product := range c {
-			assert.Equal(t, ps, product)
+			assert.Equal(t, NewIkebeProducts(ps...), product)
 		}
 	})
 
@@ -212,7 +212,7 @@ func TestGetIkebeProduct(t *testing.T) {
 			NewIkebeProduct("test3", "test6", "http://", "", 3333),
 		}
 
-		ch := make(chan []*models.IkebeProduct)
+		ch := make(chan ikebeProducts)
 		go func() {
 			defer close(ch)
 			ch <- p
@@ -221,7 +221,7 @@ func TestGetIkebeProduct(t *testing.T) {
 		c := s.getIkebeProduct(ch, conf.dsn())
 
 		for product := range c {
-			assert.Equal(t, p, product)
+			assert.Equal(t, NewIkebeProducts(p...), product)
 			assert.Equal(t, "", product[0].Jan.String)
 		}
 	})
@@ -235,7 +235,7 @@ func TestScrapeProduct(t *testing.T) {
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test3", "test6", "http://", "", 3333),
 		}
-		ch := make(chan []*models.IkebeProduct)
+		ch := make(chan ikebeProducts)
 		go func() {
 			defer close(ch)
 			ch <- p
