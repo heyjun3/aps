@@ -14,10 +14,10 @@ import (
 
 const (
 	scheme = "https"
-	host = "www.ikebe-gakki.com"
+	host   = "www.ikebe-gakki.com"
 )
 
-type ScrapeService struct {}
+type ScrapeService struct{}
 
 func (s ScrapeService) StartScrape(url string) {
 
@@ -35,7 +35,7 @@ func (s ScrapeService) StartScrape(url string) {
 	wg.Wait()
 }
 
-func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan ikebeProducts{
+func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan ikebeProducts {
 	c := make(chan ikebeProducts, 10)
 	go func() {
 		defer close(c)
@@ -55,7 +55,7 @@ func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan ik
 	return c
 }
 
-func (s ScrapeService) getIkebeProduct(c chan ikebeProducts, dsn string) chan ikebeProducts{
+func (s ScrapeService) getIkebeProduct(c chan ikebeProducts, dsn string) chan ikebeProducts {
 	send := make(chan ikebeProducts, 10)
 	go func() {
 		defer close(send)
@@ -85,42 +85,40 @@ func (s ScrapeService) getIkebeProduct(c chan ikebeProducts, dsn string) chan ik
 }
 
 func (s ScrapeService) scrapeProduct(
-	ch chan ikebeProducts, client httpClient)(
-	chan *models.IkebeProduct){
+	ch chan ikebeProducts, client httpClient) chan *models.IkebeProduct {
 
-		send := make(chan *models.IkebeProduct)
-		go func() {
-			defer close(send)
-			for products := range ch {
-				for _, product := range products {
-					if product.Jan.Valid {
-						send <- product
-						continue
-					}
-					
-					logger.Info("product request url", "url", product.URL.String)
-					res, err := client.request("GET", product.URL.String, nil)
-					if err != nil {
-						logger.Error("http request error", err, "action", "scrapeProduct")
-						continue
-					}
-					jan, err := parseProduct(res.Body)
-					res.Body.Close()
-					if err != nil {
-						logger.Error("jan code isn't valid", err, "url", res.Request.URL)
-						continue
-					}
-					product.Jan = null.StringFrom(jan)
+	send := make(chan *models.IkebeProduct)
+	go func() {
+		defer close(send)
+		for products := range ch {
+			for _, product := range products {
+				if product.Jan.Valid {
 					send <- product
+					continue
 				}
-			}
-		}()
-		return send
-	}
 
-func (s ScrapeService) saveProduct(ch chan *models.IkebeProduct, dsn string) (
-	chan *models.IkebeProduct) {
-	
+				logger.Info("product request url", "url", product.URL.String)
+				res, err := client.request("GET", product.URL.String, nil)
+				if err != nil {
+					logger.Error("http request error", err, "action", "scrapeProduct")
+					continue
+				}
+				jan, err := parseProduct(res.Body)
+				res.Body.Close()
+				if err != nil {
+					logger.Error("jan code isn't valid", err, "url", res.Request.URL)
+					continue
+				}
+				product.Jan = null.StringFrom(jan)
+				send <- product
+			}
+		}
+	}()
+	return send
+}
+
+func (s ScrapeService) saveProduct(ch chan *models.IkebeProduct, dsn string) chan *models.IkebeProduct {
+
 	send := make(chan *models.IkebeProduct)
 	go func() {
 		defer close(send)
@@ -147,7 +145,7 @@ func (s ScrapeService) sendMessage(
 	shop_name string, wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()
-		filename := shop_name+ "_" + timeToStr(time.Now())
+		filename := shop_name + "_" + timeToStr(time.Now())
 		for p := range ch {
 			m, err := generateMessage(p, filename)
 			if err != nil {

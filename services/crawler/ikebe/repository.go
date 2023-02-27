@@ -29,18 +29,18 @@ func NewIkebeProduct(name, productCode, url, jan string, price int64) *models.Ik
 		isJan = false
 	}
 	return &models.IkebeProduct{
-		Name: null.StringFrom(name),
-		Jan: null.NewString(jan, isJan),
-		Price: null.Int64From(price),
-		ShopCode: "ikebe",
+		Name:        null.StringFrom(name),
+		Jan:         null.NewString(jan, isJan),
+		Price:       null.Int64From(price),
+		ShopCode:    "ikebe",
 		ProductCode: productCode,
-		URL: null.StringFrom(url),
+		URL:         null.StringFrom(url),
 	}
 }
 
-type IkebeProductRepository struct {}
+type IkebeProductRepository struct{}
 
-func (r IkebeProductRepository) getByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) ([]*models.IkebeProduct, error){
+func (r IkebeProductRepository) getByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) ([]*models.IkebeProduct, error) {
 	var i []interface{}
 	for _, code := range codes {
 		i = append(i, code)
@@ -50,7 +50,7 @@ func (r IkebeProductRepository) getByProductCodes(ctx context.Context, conn boil
 	).All(ctx, conn)
 }
 
-func (r IkebeProductRepository) bulkUpsert(conn *sql.DB, products ...*models.IkebeProduct) error{
+func (r IkebeProductRepository) bulkUpsert(conn *sql.DB, products ...*models.IkebeProduct) error {
 	strs := []string{}
 	args := []interface{}{}
 	for i, p := range products {
@@ -68,7 +68,7 @@ func (r IkebeProductRepository) bulkUpsert(conn *sql.DB, products ...*models.Ike
 	stmt := fmt.Sprintf(`INSERT INTO ikebe_product (name, jan, price, shop_code, product_code, url) 
 						VALUES %s ON CONFLICT (shop_code, product_code) DO UPDATE SET 
 						name = excluded.name, jan = excluded.jan, price = excluded.price, 
-						url = excluded.url RETURNING url, name;`, strings.Join(strs, ",") )
+						url = excluded.url RETURNING url, name;`, strings.Join(strs, ","))
 	_, err := conn.Exec(stmt, args...)
 	if err != nil {
 		return err
