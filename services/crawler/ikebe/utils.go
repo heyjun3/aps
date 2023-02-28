@@ -10,13 +10,13 @@ import (
 
 type ikebeProducts []*models.IkebeProduct
 
-func NewIkebeProducts(products ...*models.IkebeProduct) ikebeProducts{
+func NewIkebeProducts(products ...*models.IkebeProduct) ikebeProducts {
 	p := make(ikebeProducts, len(products))
 	copy(p, products)
 	return p
 }
 
-func (p ikebeProducts) mappingIkebeProducts(productsInDB ikebeProducts) ikebeProducts{
+func (p ikebeProducts) mappingIkebeProducts(productsInDB ikebeProducts) ikebeProducts {
 	inDB := map[string]*models.IkebeProduct{}
 	for _, v := range productsInDB {
 		inDB[v.ProductCode] = v

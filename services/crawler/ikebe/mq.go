@@ -12,15 +12,15 @@ type RabbitMQClient interface {
 }
 
 type MQClient struct {
-	dsn string
+	dsn       string
 	queueName string
 }
 
-func NewMQClient(dsn, name string) MQClient{
+func NewMQClient(dsn, name string) MQClient {
 	return MQClient{dsn: dsn, queueName: name}
 }
 
-func (mq MQClient) createMQConnection() (*amqp.Channel, error){
+func (mq MQClient) createMQConnection() (*amqp.Channel, error) {
 	conn, err := amqp.Dial(mq.dsn)
 	if err != nil {
 		logger.Error("Failed to connect to RabbitMQ", err)
@@ -48,7 +48,7 @@ func (mq MQClient) publish(message []byte) error {
 		logger.Error("create connection error", err)
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	err = ch.PublishWithContext(ctx, "", mq.queueName, false, false, amqp.Publishing{ContentType: "text/plain", Body: message})
@@ -72,16 +72,16 @@ func (mq MQClient) batchPublish(messages ...[]byte) error {
 
 type MWSSchema struct {
 	Filename string `json:"filename"`
-	Jan string `json:"jan"`
-	Price int64 `json:"cost"`
-	URL string `json:"url"`
+	Jan      string `json:"jan"`
+	Price    int64  `json:"cost"`
+	URL      string `json:"url"`
 }
 
-func NewMWSSchema(filename, jan, url string, price int64) *MWSSchema{
+func NewMWSSchema(filename, jan, url string, price int64) *MWSSchema {
 	return &MWSSchema{
 		Filename: filename,
-		Jan: jan,
-		URL: url,
-		Price: price,
+		Jan:      jan,
+		URL:      url,
+		Price:    price,
 	}
 }

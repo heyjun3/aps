@@ -13,7 +13,6 @@ import (
 	"crawler/models"
 )
 
-
 func parseProducts(r io.ReadCloser) ([]*models.IkebeProduct, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
