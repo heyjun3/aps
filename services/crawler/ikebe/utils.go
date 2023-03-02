@@ -32,6 +32,12 @@ func (p ikebeProducts) mappingIkebeProducts(productsInDB ikebeProducts) ikebePro
 	return p
 }
 
+type TestProduct models.IkebeProduct
+
+func (t *TestProduct) message(filename string) {
+	
+}
+
 func generateMessage(p *models.IkebeProduct, filename string) ([]byte, error) {
 	if !p.Jan.Valid {
 		return nil, fmt.Errorf("jan code isn't valid %s", p.ProductCode)
