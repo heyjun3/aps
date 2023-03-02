@@ -10,7 +10,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
-func IkebeProductTableFactory(conn boil.ContextExecutor) error{
+func IkebeProductTableFactory(conn boil.ContextExecutor) error {
 	_, err := conn.Exec(`
 		CREATE TABLE IF NOT EXISTS ikebe_product (
         name VARCHAR, 
@@ -73,8 +73,8 @@ func TestBulkUpsertIkebeProducts(t *testing.T) {
 	t.Run("upsert ikebe products", func(t *testing.T) {
 		p := []*models.IkebeProduct{
 			NewIkebeProduct("test", "test", "https://test.jp", "1111", 9000),
-			NewIkebeProduct("test",  "test1", "https://test.jp", "1111", 9000),
-			NewIkebeProduct("test",  "test2", "https://test.jp", "1111", 9000),
+			NewIkebeProduct("test", "test1", "https://test.jp", "1111", 9000),
+			NewIkebeProduct("test", "test2", "https://test.jp", "1111", 9000),
 		}
 		r := IkebeProductRepository{}
 

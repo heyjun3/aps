@@ -3,9 +3,9 @@ package ikebe
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
-	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,7 +19,7 @@ func TestParseProducts(t *testing.T) {
 			return
 		}
 		res := &http.Response{
-			Body: io.NopCloser(bytes.NewReader(b)),
+			Body:    io.NopCloser(bytes.NewReader(b)),
 			Request: &http.Request{},
 		}
 		defer res.Body.Close()
@@ -53,7 +53,7 @@ func TestParseProducts(t *testing.T) {
 			return
 		}
 		res := &http.Response{
-			Body: io.NopCloser(bytes.NewReader(b)),
+			Body:    io.NopCloser(bytes.NewReader(b)),
 			Request: &http.Request{},
 		}
 
@@ -90,7 +90,7 @@ func TestParseProduct(t *testing.T) {
 			return
 		}
 		res := &http.Response{
-			Body: io.NopCloser(bytes.NewReader(f)),
+			Body:    io.NopCloser(bytes.NewReader(f)),
 			Request: &http.Request{},
 		}
 		defer res.Body.Close()

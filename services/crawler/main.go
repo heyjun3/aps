@@ -7,11 +7,10 @@ import (
 	"crawler/ikebe"
 )
 
-
 func main() {
 	var (
 		shop string
-		url string
+		url  string
 	)
 	flag.StringVar(&shop, "s", "", "expect crawle shop")
 	flag.StringVar(&url, "u", "", "expect crawle url")

@@ -9,20 +9,18 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-
-
 type Config struct {
-	Psql Psql
+	Psql     Psql
 	RabbitMQ RabbitMQ
 }
 
 type Psql struct {
-	DBname string `toml:"dbname"`
-	Host string `toml:"host"`
-	Port string `toml:"port"`
-	User string `toml:"user"`
-	Pass string `toml:"pass"`
-	SSLmode string `toml:"sslmode"`
+	DBname    string   `toml:"dbname"`
+	Host      string   `toml:"host"`
+	Port      string   `toml:"port"`
+	User      string   `toml:"user"`
+	Pass      string   `toml:"pass"`
+	SSLmode   string   `toml:"sslmode"`
 	Blacklist []string `toml:"blacklist"`
 }
 
@@ -35,6 +33,7 @@ type RabbitMQ struct {
 
 var cfg Config
 var logger *slog.Logger
+
 func init() {
 	logger = slog.New(slog.NewJSONHandler(os.Stdout))
 	path := os.Getenv("ROOT_PATH")

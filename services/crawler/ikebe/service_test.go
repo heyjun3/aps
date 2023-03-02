@@ -5,8 +5,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"net/http"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -43,7 +43,7 @@ func TestMappingIkebeProducts(t *testing.T) {
 	t.Run("product is empty", func(t *testing.T) {
 		p := ikebeProducts{}
 		dbp := []*models.IkebeProduct{
-			NewIkebeProduct("test",  "test", "test", "11111", 4000),
+			NewIkebeProduct("test", "test", "test", "11111", 4000),
 			NewIkebeProduct("test", "test", "test1", "55555", 4000),
 		}
 
@@ -135,7 +135,7 @@ func (c clientMock) request(method, url string, body io.Reader) (*http.Response,
 		return nil, err
 	}
 	res := &http.Response{
-		Body: io.NopCloser(bytes.NewReader(b)),
+		Body:    io.NopCloser(bytes.NewReader(b)),
 		Request: &http.Request{},
 	}
 	return res, nil
@@ -192,7 +192,7 @@ func TestGetIkebeProduct(t *testing.T) {
 			NewIkebeProduct("test3", "test3", "http://", "", 3333),
 		}
 		ch := make(chan ikebeProducts)
-		go func (){
+		go func() {
 			defer close(ch)
 			ch <- p
 		}()
@@ -242,7 +242,7 @@ func TestScrapeProduct(t *testing.T) {
 		}()
 
 		channel := s.scrapeProduct(ch, c)
-			
+
 		expectProduct := []*models.IkebeProduct{
 			NewIkebeProduct("test1", "test4", "http://", "2500140008600", 1111),
 			NewIkebeProduct("test3", "test6", "http://", "2500140008600", 3333),
@@ -285,7 +285,7 @@ func TestSaveProduct(t *testing.T) {
 	})
 }
 
-type MQMock struct {}
+type MQMock struct{}
 
 func (m MQMock) publish(message []byte) error {
 	fmt.Println(string(message))
