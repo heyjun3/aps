@@ -2,6 +2,7 @@ package ikebe
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -23,18 +24,20 @@ func NewDBconnection(dsn string) (*sql.DB, error) {
 	return conn, nil
 }
 
-func NewIkebeProduct(name, productCode, url, jan string, price int64) *models.IkebeProduct {
+func NewIkebeProduct(name, productCode, url, jan string, price int64) *IkebeProduct {
 	isJan := true
 	if jan == "" {
 		isJan = false
 	}
-	return &models.IkebeProduct{
-		Name:        null.StringFrom(name),
-		Jan:         null.NewString(jan, isJan),
-		Price:       null.Int64From(price),
-		ShopCode:    "ikebe",
-		ProductCode: productCode,
-		URL:         null.StringFrom(url),
+	return &IkebeProduct{
+		models.IkebeProduct{
+			Name:        null.StringFrom(name),
+			Jan:         null.NewString(jan, isJan),
+			Price:       null.Int64From(price),
+			ShopCode:    "ikebe",
+			ProductCode: productCode,
+			URL:         null.StringFrom(url),
+		},
 	}
 }
 
@@ -50,7 +53,7 @@ func (r IkebeProductRepository) getByProductCodes(ctx context.Context, conn boil
 	).All(ctx, conn)
 }
 
-func (r IkebeProductRepository) bulkUpsert(conn *sql.DB, products ...*models.IkebeProduct) error {
+func (products IkebeProducts) bulkUpsert(conn *sql.DB) error {
 	strs := []string{}
 	args := []interface{}{}
 	for i, p := range products {
@@ -74,4 +77,52 @@ func (r IkebeProductRepository) bulkUpsert(conn *sql.DB, products ...*models.Ike
 		return err
 	}
 	return err
+}
+
+func (products IkebeProducts) cast(pros ...*models.IkebeProduct) IkebeProducts{
+	var ikebeProducts IkebeProducts
+	for _, p := range pros {
+		pro := IkebeProduct(*p)
+		ikebeProducts = append(ikebeProducts, &pro)
+	}
+	return ikebeProducts
+}
+
+type IkebeProduct struct {
+	models.IkebeProduct
+}
+type IkebeProducts []*IkebeProduct
+
+func (p *IkebeProduct) generateMessage(filename string) ([]byte, error) {
+	if !p.Jan.Valid {
+		return nil, fmt.Errorf("jan code isn't valid %s", p.ProductCode)
+	}
+	if !p.Price.Valid {
+		return nil, fmt.Errorf("price isn't valid %s", p.ProductCode)
+	}
+	if !p.URL.Valid {
+		return nil, fmt.Errorf("url isn't valid %s", p.ProductCode)
+	}
+	m := NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
+	message, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return message, err
+}
+
+func (p IkebeProducts) mappingIkebeProducts(productsInDB IkebeProducts) IkebeProducts {
+	inDB := map[string]*IkebeProduct{}
+	for _, v := range productsInDB {
+		inDB[v.ProductCode] = v
+	}
+
+	for _, v := range p {
+		product := inDB[v.ProductCode]
+		if product == nil {
+			continue
+		}
+		v.Jan = product.Jan
+	}
+	return p
 }

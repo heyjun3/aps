@@ -41,7 +41,8 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 	}
 	models.IkebeProducts().DeleteAll(ctx, conn)
 	p := NewIkebeProduct("test", "test_code", "https://test.com", "", 1111)
-	p.Insert(ctx, conn, boil.Infer())
+	pro := models.IkebeProduct(*p)
+	pro.Insert(ctx, conn, boil.Infer())
 
 	t.Run("get products", func(t *testing.T) {
 		r := IkebeProductRepository{}
@@ -71,14 +72,13 @@ func TestBulkUpsertIkebeProducts(t *testing.T) {
 	models.IkebeProducts().DeleteAll(ctx, conn)
 
 	t.Run("upsert ikebe products", func(t *testing.T) {
-		p := []*models.IkebeProduct{
+		p := IkebeProducts{
 			NewIkebeProduct("test", "test", "https://test.jp", "1111", 9000),
 			NewIkebeProduct("test", "test1", "https://test.jp", "1111", 9000),
 			NewIkebeProduct("test", "test2", "https://test.jp", "1111", 9000),
 		}
-		r := IkebeProductRepository{}
 
-		err = r.bulkUpsert(conn, p...)
+		err = p.bulkUpsert(conn)
 
 		assert.Equal(t, nil, err)
 		i, _ := models.FindIkebeProduct(ctx, conn, "ikebe", "test1")

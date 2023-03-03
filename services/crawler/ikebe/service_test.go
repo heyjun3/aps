@@ -74,7 +74,7 @@ func TestGenerateMessage(t *testing.T) {
 		p.Jan = null.StringFrom("4444")
 		f := "ikebe_20220301_120303"
 
-		m, err := generateMessage(p, f)
+		m, err := IkebeProduct{p}.generateMessage(f)
 
 		assert.Equal(t, nil, err)
 		ex := `{"filename":"ikebe_20220301_120303","jan":"4444","cost":6000,"url":"https://test.com"}`
