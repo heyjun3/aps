@@ -20,13 +20,13 @@ import (
 func TestMappingIkebeProducts(t *testing.T) {
 
 	t.Run("happy path", func(t *testing.T) {
-		p := ikebeProducts{
+		p := IkebeProducts{
 			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
 			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
 		}
 
-		dbp := []*models.IkebeProduct{
+		dbp := IkebeProducts{
 			NewIkebeProduct("test", "test", "test", "4444", 4000),
 			NewIkebeProduct("test", "test1", "test1", "555", 4000),
 			NewIkebeProduct("test", "test2", "test2", "7777", 4000),
@@ -41,8 +41,8 @@ func TestMappingIkebeProducts(t *testing.T) {
 	})
 
 	t.Run("product is empty", func(t *testing.T) {
-		p := ikebeProducts{}
-		dbp := []*models.IkebeProduct{
+		p := IkebeProducts{}
+		dbp := IkebeProducts{
 			NewIkebeProduct("test", "test", "test", "11111", 4000),
 			NewIkebeProduct("test", "test", "test1", "55555", 4000),
 		}
@@ -54,12 +54,12 @@ func TestMappingIkebeProducts(t *testing.T) {
 	})
 
 	t.Run("db product is empty", func(t *testing.T) {
-		p := ikebeProducts{
+		p := IkebeProducts{
 			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
 			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
 		}
-		db := []*models.IkebeProduct{}
+		db := IkebeProducts{}
 
 		result := p.mappingIkebeProducts(db)
 
@@ -74,7 +74,7 @@ func TestGenerateMessage(t *testing.T) {
 		p.Jan = null.StringFrom("4444")
 		f := "ikebe_20220301_120303"
 
-		m, err := IkebeProduct{p}.generateMessage(f)
+		m, err := p.generateMessage(f)
 
 		assert.Equal(t, nil, err)
 		ex := `{"filename":"ikebe_20220301_120303","jan":"4444","cost":6000,"url":"https://test.com"}`
@@ -85,7 +85,7 @@ func TestGenerateMessage(t *testing.T) {
 		p := NewIkebeProduct("TEST", "test", "https://test.com", "", 5000)
 		f := "ikebe_20220202_020222"
 
-		m, err := generateMessage(p, f)
+		m, err := p.generateMessage(f)
 
 		assert.Error(t, err)
 		assert.Equal(t, []byte(nil), m)
@@ -96,7 +96,7 @@ func TestGenerateMessage(t *testing.T) {
 		p.Price = null.Int64FromPtr(nil)
 		f := "ikebe_20220202_020222"
 
-		m, err := generateMessage(p, f)
+		m, err := p.generateMessage(f)
 
 		assert.Error(t, err)
 		assert.Equal(t, []byte(nil), m)
@@ -107,7 +107,7 @@ func TestGenerateMessage(t *testing.T) {
 		p.URL = null.StringFromPtr(nil)
 		f := "ikebe_20220202_020222"
 
-		m, err := generateMessage(p, f)
+		m, err := p.generateMessage(f)
 
 		assert.Error(t, err)
 		assert.Equal(t, []byte(nil), m)
@@ -176,22 +176,21 @@ func TestGetIkebeProduct(t *testing.T) {
 	conf.Psql.DBname = "test"
 	conn, _ := NewDBconnection(conf.dsn())
 	models.IkebeProducts().DeleteAll(ctx, conn)
-	ps := []*models.IkebeProduct{
+	ps := IkebeProducts{
 		NewIkebeProduct("test1", "test1", "http://", "1111", 1111),
 		NewIkebeProduct("test2", "test2", "http://", "2222", 2222),
 		NewIkebeProduct("test3", "test3", "http://", "3333", 3333),
 	}
-	r := IkebeProductRepository{}
-	r.bulkUpsert(conn, ps...)
+	ps.bulkUpsert(conn)
 
 	t.Run("happy path", func(t *testing.T) {
 		s := ScrapeService{}
-		p := []*models.IkebeProduct{
+		p := IkebeProducts{
 			NewIkebeProduct("test1", "test1", "http://", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://", "", 2222),
 			NewIkebeProduct("test3", "test3", "http://", "", 3333),
 		}
-		ch := make(chan ikebeProducts)
+		ch := make(chan IkebeProducts)
 		go func() {
 			defer close(ch)
 			ch <- p
@@ -200,19 +199,19 @@ func TestGetIkebeProduct(t *testing.T) {
 		c := s.getIkebeProduct(ch, conf.dsn())
 
 		for product := range c {
-			assert.Equal(t, NewIkebeProducts(ps...), product)
+			assert.Equal(t, ps, product)
 		}
 	})
 
 	t.Run("get products return null", func(t *testing.T) {
 		s := ScrapeService{}
-		p := []*models.IkebeProduct{
+		p := IkebeProducts{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "", 2222),
 			NewIkebeProduct("test3", "test6", "http://", "", 3333),
 		}
 
-		ch := make(chan ikebeProducts)
+		ch := make(chan IkebeProducts)
 		go func() {
 			defer close(ch)
 			ch <- p
@@ -221,7 +220,7 @@ func TestGetIkebeProduct(t *testing.T) {
 		c := s.getIkebeProduct(ch, conf.dsn())
 
 		for product := range c {
-			assert.Equal(t, NewIkebeProducts(p...), product)
+			assert.Equal(t, p, product)
 			assert.Equal(t, "", product[0].Jan.String)
 		}
 	})
@@ -231,11 +230,11 @@ func TestScrapeProduct(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		s := ScrapeService{}
 		c := clientMock{"html/test_product.html"}
-		p := []*models.IkebeProduct{
+		p := IkebeProducts{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test3", "test6", "http://", "", 3333),
 		}
-		ch := make(chan ikebeProducts)
+		ch := make(chan IkebeProducts)
 		go func() {
 			defer close(ch)
 			ch <- p
@@ -243,11 +242,11 @@ func TestScrapeProduct(t *testing.T) {
 
 		channel := s.scrapeProduct(ch, c)
 
-		expectProduct := []*models.IkebeProduct{
+		expectProduct := IkebeProducts{
 			NewIkebeProduct("test1", "test4", "http://", "2500140008600", 1111),
 			NewIkebeProduct("test3", "test6", "http://", "2500140008600", 3333),
 		}
-		var products []*models.IkebeProduct
+		var products IkebeProducts
 		for product := range channel {
 			products = append(products, product)
 		}
@@ -260,8 +259,8 @@ func TestSaveProduct(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		conf, _ := NewConfig("../sqlboiler.toml")
 		conf.Psql.DBname = "test"
-		ch := make(chan *models.IkebeProduct)
-		p := []*models.IkebeProduct{
+		ch := make(chan *IkebeProduct)
+		p := IkebeProducts{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "", 2222),
 			NewIkebeProduct("test3", "test6", "http://", "", 3333),
@@ -276,7 +275,7 @@ func TestSaveProduct(t *testing.T) {
 
 		channel := s.saveProduct(ch, conf.dsn())
 
-		var ps []*models.IkebeProduct
+		var ps IkebeProducts
 		for p := range channel {
 			ps = append(ps, p)
 			fmt.Println(p)
@@ -294,8 +293,8 @@ func (m MQMock) publish(message []byte) error {
 
 func TestSendMessage(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		ch := make(chan *models.IkebeProduct)
-		p := []*models.IkebeProduct{
+		ch := make(chan *IkebeProduct)
+		p := IkebeProducts{
 			NewIkebeProduct("test1", "test4", "http://", "1111", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "2222", 2222),
 			NewIkebeProduct("test3", "test6", "http://", "3333", 3333),

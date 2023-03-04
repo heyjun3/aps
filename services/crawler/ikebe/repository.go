@@ -43,14 +43,24 @@ func NewIkebeProduct(name, productCode, url, jan string, price int64) *IkebeProd
 
 type IkebeProductRepository struct{}
 
-func (r IkebeProductRepository) getByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) ([]*models.IkebeProduct, error) {
+func (r IkebeProductRepository) getByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) (IkebeProducts, error) {
 	var i []interface{}
 	for _, code := range codes {
 		i = append(i, code)
 	}
-	return models.IkebeProducts(
+	products, err := models.IkebeProducts(
 		qm.WhereIn("product_code in ?", i...),
 	).All(ctx, conn)
+
+	if err != nil {
+		return nil, fmt.Errorf("getByProductCodes is failed")
+	}
+
+	var ikebeProducts IkebeProducts
+	for _, p := range products {
+		ikebeProducts = append(ikebeProducts, &IkebeProduct{*p})
+	}
+	return ikebeProducts, nil
 }
 
 func (products IkebeProducts) bulkUpsert(conn *sql.DB) error {
@@ -77,15 +87,6 @@ func (products IkebeProducts) bulkUpsert(conn *sql.DB) error {
 		return err
 	}
 	return err
-}
-
-func (products IkebeProducts) cast(pros ...*models.IkebeProduct) IkebeProducts{
-	var ikebeProducts IkebeProducts
-	for _, p := range pros {
-		pro := IkebeProduct(*p)
-		ikebeProducts = append(ikebeProducts, &pro)
-	}
-	return ikebeProducts
 }
 
 type IkebeProduct struct {
@@ -118,8 +119,8 @@ func (p IkebeProducts) mappingIkebeProducts(productsInDB IkebeProducts) IkebePro
 	}
 
 	for _, v := range p {
-		product := inDB[v.ProductCode]
-		if product == nil {
+		product, exist := inDB[v.ProductCode]
+		if !exist {
 			continue
 		}
 		v.Jan = product.Jan

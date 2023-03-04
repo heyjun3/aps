@@ -8,8 +8,6 @@ import (
 
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
-
-	"crawler/models"
 )
 
 const (
@@ -77,7 +75,7 @@ func (s ScrapeService) getIkebeProduct(c chan IkebeProducts, dsn string) chan Ik
 				logger.Error("db get product error", err)
 				continue
 			}
-			products := p.mappingIkebeProducts(IkebeProducts.cast(nil, dbProduct...))
+			products := p.mappingIkebeProducts(dbProduct)
 			send <- products
 		}
 	}()
@@ -117,9 +115,9 @@ func (s ScrapeService) scrapeProduct(
 	return send
 }
 
-func (s ScrapeService) saveProduct(ch chan *IkebeProduct, dsn string) chan *models.IkebeProduct {
+func (s ScrapeService) saveProduct(ch chan *IkebeProduct, dsn string) chan *IkebeProduct {
 
-	send := make(chan *models.IkebeProduct)
+	send := make(chan *IkebeProduct)
 	go func() {
 		defer close(send)
 		ctx := context.Background()
@@ -140,12 +138,8 @@ func (s ScrapeService) saveProduct(ch chan *IkebeProduct, dsn string) chan *mode
 	return send
 }
 
-type Product interface {
-	generateMessage(string) ([]byte, error)
-}
-
 func (s ScrapeService) sendMessage(
-	ch chan Product, client RabbitMQClient,
+	ch chan *IkebeProduct, client RabbitMQClient,
 	shop_name string, wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()

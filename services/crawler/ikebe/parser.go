@@ -11,7 +11,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-func parseProducts(r io.ReadCloser) ([]*IkebeProduct, string) {
+func parseProducts(r io.ReadCloser) (IkebeProducts, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)
@@ -19,7 +19,7 @@ func parseProducts(r io.ReadCloser) ([]*IkebeProduct, string) {
 	}
 
 	isSold := false
-	var products []*IkebeProduct
+	var products IkebeProducts
 	doc.Find(".fs-c-productList__list__item.fs-c-productListItem").Each(func(i int, s *goquery.Selection) {
 		name := s.Find(".fs-c-productName__name").Text()
 		if name == "" {
