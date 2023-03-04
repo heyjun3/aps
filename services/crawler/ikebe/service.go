@@ -15,6 +15,17 @@ const (
 	host   = "www.ikebe-gakki.com"
 )
 
+type Product interface {
+	Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns boil.Columns, insertColumns boil.Columns) error
+	generateMessage(filename string) ([]byte, error)
+}
+
+type Products interface {
+	getProductCodes() []string
+	mappingIkebeProducts(IkebeProducts) IkebeProducts
+	slice() IkebeProducts
+}
+
 type ScrapeService struct{}
 
 func (s ScrapeService) StartScrape(url string) {
@@ -33,8 +44,8 @@ func (s ScrapeService) StartScrape(url string) {
 	wg.Wait()
 }
 
-func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan IkebeProducts {
-	c := make(chan IkebeProducts, 10)
+func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan Products {
+	c := make(chan Products, 10)
 	go func() {
 		defer close(c)
 		for url != "" {
@@ -53,8 +64,8 @@ func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan Ik
 	return c
 }
 
-func (s ScrapeService) getIkebeProduct(c chan IkebeProducts, dsn string) chan IkebeProducts {
-	send := make(chan IkebeProducts, 10)
+func (s ScrapeService) getIkebeProduct(c chan Products, dsn string) chan Products {
+	send := make(chan Products, 10)
 	go func() {
 		defer close(send)
 		ctx := context.Background()
@@ -66,11 +77,7 @@ func (s ScrapeService) getIkebeProduct(c chan IkebeProducts, dsn string) chan Ik
 
 		repo := IkebeProductRepository{}
 		for p := range c {
-			var codes []string
-			for _, pro := range p {
-				codes = append(codes, pro.ProductCode)
-			}
-			dbProduct, err := repo.getByProductCodes(ctx, conn, codes...)
+			dbProduct, err := repo.getByProductCodes(ctx, conn, p.getProductCodes()...)
 			if err != nil {
 				logger.Error("db get product error", err)
 				continue
@@ -83,13 +90,13 @@ func (s ScrapeService) getIkebeProduct(c chan IkebeProducts, dsn string) chan Ik
 }
 
 func (s ScrapeService) scrapeProduct(
-	ch chan IkebeProducts, client httpClient) chan *IkebeProduct {
+	ch chan Products, client httpClient) chan Product {
 
-	send := make(chan *IkebeProduct)
+	send := make(chan Product)
 	go func() {
 		defer close(send)
 		for products := range ch {
-			for _, product := range products {
+			for _, product := range products.slice() {
 				if product.Jan.Valid {
 					send <- product
 					continue
@@ -115,9 +122,9 @@ func (s ScrapeService) scrapeProduct(
 	return send
 }
 
-func (s ScrapeService) saveProduct(ch chan *IkebeProduct, dsn string) chan *IkebeProduct {
+func (s ScrapeService) saveProduct(ch chan Product, dsn string) chan Product {
 
-	send := make(chan *IkebeProduct)
+	send := make(chan Product)
 	go func() {
 		defer close(send)
 		ctx := context.Background()
@@ -139,7 +146,7 @@ func (s ScrapeService) saveProduct(ch chan *IkebeProduct, dsn string) chan *Ikeb
 }
 
 func (s ScrapeService) sendMessage(
-	ch chan *IkebeProduct, client RabbitMQClient,
+	ch chan Product, client RabbitMQClient,
 	shop_name string, wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()

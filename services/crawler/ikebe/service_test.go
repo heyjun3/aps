@@ -163,9 +163,9 @@ func TestScrapeProductsList(t *testing.T) {
 			6050,
 		)
 		for p := range ch {
-			assert.Equal(t, 17, len(p))
-			assert.Equal(t, p1, p[0])
-			assert.Equal(t, p17, p[len(p)-1])
+			assert.Equal(t, 17, len(p.slice()))
+			assert.Equal(t, p1, p.slice()[0])
+			assert.Equal(t, p17, p.slice()[len(p.slice())-1])
 		}
 	})
 }
@@ -190,7 +190,7 @@ func TestGetIkebeProduct(t *testing.T) {
 			NewIkebeProduct("test2", "test2", "http://", "", 2222),
 			NewIkebeProduct("test3", "test3", "http://", "", 3333),
 		}
-		ch := make(chan IkebeProducts)
+		ch := make(chan Products)
 		go func() {
 			defer close(ch)
 			ch <- p
@@ -211,7 +211,7 @@ func TestGetIkebeProduct(t *testing.T) {
 			NewIkebeProduct("test3", "test6", "http://", "", 3333),
 		}
 
-		ch := make(chan IkebeProducts)
+		ch := make(chan Products)
 		go func() {
 			defer close(ch)
 			ch <- p
@@ -221,7 +221,7 @@ func TestGetIkebeProduct(t *testing.T) {
 
 		for product := range c {
 			assert.Equal(t, p, product)
-			assert.Equal(t, "", product[0].Jan.String)
+			assert.Equal(t, "", product.slice()[0].Jan.String)
 		}
 	})
 }
@@ -234,7 +234,7 @@ func TestScrapeProduct(t *testing.T) {
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test3", "test6", "http://", "", 3333),
 		}
-		ch := make(chan IkebeProducts)
+		ch := make(chan Products)
 		go func() {
 			defer close(ch)
 			ch <- p
@@ -242,11 +242,11 @@ func TestScrapeProduct(t *testing.T) {
 
 		channel := s.scrapeProduct(ch, c)
 
-		expectProduct := IkebeProducts{
+		expectProduct := []Product{
 			NewIkebeProduct("test1", "test4", "http://", "2500140008600", 1111),
 			NewIkebeProduct("test3", "test6", "http://", "2500140008600", 3333),
 		}
-		var products IkebeProducts
+		var products []Product
 		for product := range channel {
 			products = append(products, product)
 		}
@@ -259,7 +259,7 @@ func TestSaveProduct(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		conf, _ := NewConfig("../sqlboiler.toml")
 		conf.Psql.DBname = "test"
-		ch := make(chan *IkebeProduct)
+		ch := make(chan Product)
 		p := IkebeProducts{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "", 2222),
@@ -275,12 +275,16 @@ func TestSaveProduct(t *testing.T) {
 
 		channel := s.saveProduct(ch, conf.dsn())
 
-		var ps IkebeProducts
+		var ps []Product
 		for p := range channel {
 			ps = append(ps, p)
 			fmt.Println(p)
 		}
-		assert.Equal(t, p, ps)
+		var extProducts []Product
+		for _, pro := range p {
+			extProducts = append(extProducts, Product(pro))
+		}
+		assert.Equal(t, extProducts, ps)
 	})
 }
 
@@ -293,7 +297,7 @@ func (m MQMock) publish(message []byte) error {
 
 func TestSendMessage(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		ch := make(chan *IkebeProduct)
+		ch := make(chan Product)
 		p := IkebeProducts{
 			NewIkebeProduct("test1", "test4", "http://", "1111", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "2222", 2222),

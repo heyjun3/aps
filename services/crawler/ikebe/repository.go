@@ -127,3 +127,15 @@ func (p IkebeProducts) mappingIkebeProducts(productsInDB IkebeProducts) IkebePro
 	}
 	return p
 }
+
+func (p IkebeProducts) getProductCodes() []string {
+	var codes []string
+	for _, pro := range p {
+		codes = append(codes, pro.ProductCode)
+	}
+	return codes
+}
+
+func (p IkebeProducts) slice() IkebeProducts {
+	return p
+}
