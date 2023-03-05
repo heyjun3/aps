@@ -16,8 +16,11 @@ const (
 )
 
 type Product interface {
-	Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns boil.Columns, insertColumns boil.Columns) error
 	generateMessage(filename string) ([]byte, error)
+	getProductCode() string
+	getJan() string
+	setJan(string)
+	Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns boil.Columns, insertColumns boil.Columns) error
 }
 
 type Products interface {

@@ -19,6 +19,33 @@ import (
 
 func TestMappingIkebeProducts(t *testing.T) {
 
+	t.Run("map products", func(t *testing.T) {
+		p := []*IkebeProduct{
+			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
+			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
+			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
+		}
+
+		dbp := []IkebeProduct{
+			*NewIkebeProduct("test", "test", "test", "4444", 4000),
+			*NewIkebeProduct("test", "test1", "test1", "555", 4000),
+			*NewIkebeProduct("test", "test2", "test2", "7777", 4000),
+		}
+
+		var p1 []Product
+		for _, v := range p {
+			p1 = append(p1, v)
+		}
+
+		result := mapProducts(p1, &dbp)
+		result := p.mappingIkebeProducts(dbp)
+
+		assert.Equal(t, 3, len(result))
+		assert.Equal(t, NewIkebeProduct("test", "test", "http://test.jp", "4444", 1111), result[0])
+		assert.Equal(t, NewIkebeProduct("test1", "test1", "http://test.jp", "555", 1111), result[1])
+		assert.Equal(t, NewIkebeProduct("test2", "test2", "http://test.jp", "7777", 1111), result[2])
+	})
+
 	t.Run("happy path", func(t *testing.T) {
 		p := IkebeProducts{
 			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),

@@ -112,6 +112,18 @@ func (p *IkebeProduct) generateMessage(filename string) ([]byte, error) {
 	return message, err
 }
 
+func (p *IkebeProduct) getProductCode() string {
+	return p.ProductCode
+}
+
+func (p *IkebeProduct) setJan(jan string) {
+	p.Jan.String = jan
+}
+
+func (p *IkebeProduct) getJan() string {
+	return p.Jan.String
+}
+
 func (p IkebeProducts) mappingIkebeProducts(productsInDB IkebeProducts) IkebeProducts {
 	inDB := map[string]*IkebeProduct{}
 	for _, v := range productsInDB {
@@ -126,6 +138,27 @@ func (p IkebeProducts) mappingIkebeProducts(productsInDB IkebeProducts) IkebePro
 		v.Jan = product.Jan
 	}
 	return p
+}
+
+func test(p []Product) {
+	fmt.Println(p)
+}
+
+func mapProducts(p1, p2 []Product) []Product{
+	mapped := map[string]*Product{}
+	for _, v := range p2 {
+		code := v.getProductCode()
+		mapped[code] = &v
+	}
+
+	for _, v := range p1 {
+		product, exist := mapped[v.getProductCode()]
+		if !exist {
+			continue
+		}
+		v.setJan((*product).getJan())
+	}
+	return p1
 }
 
 func (p IkebeProducts) getProductCodes() []string {
