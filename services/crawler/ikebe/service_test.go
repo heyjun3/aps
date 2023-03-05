@@ -19,47 +19,20 @@ import (
 
 func TestMappingIkebeProducts(t *testing.T) {
 
-	t.Run("map products", func(t *testing.T) {
-		p := []*IkebeProduct{
-			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
-			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
-			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
-		}
-
-		dbp := []IkebeProduct{
-			*NewIkebeProduct("test", "test", "test", "4444", 4000),
-			*NewIkebeProduct("test", "test1", "test1", "555", 4000),
-			*NewIkebeProduct("test", "test2", "test2", "7777", 4000),
-		}
-
-		var p1 []Product
-		for _, v := range p {
-			p1 = append(p1, v)
-		}
-
-		result := mapProducts(p1, &dbp)
-		result := p.mappingIkebeProducts(dbp)
-
-		assert.Equal(t, 3, len(result))
-		assert.Equal(t, NewIkebeProduct("test", "test", "http://test.jp", "4444", 1111), result[0])
-		assert.Equal(t, NewIkebeProduct("test1", "test1", "http://test.jp", "555", 1111), result[1])
-		assert.Equal(t, NewIkebeProduct("test2", "test2", "http://test.jp", "7777", 1111), result[2])
-	})
-
 	t.Run("happy path", func(t *testing.T) {
-		p := IkebeProducts{
+		p := Products{
 			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
 			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
 		}
 
-		dbp := IkebeProducts{
+		dbp := Products{
 			NewIkebeProduct("test", "test", "test", "4444", 4000),
 			NewIkebeProduct("test", "test1", "test1", "555", 4000),
 			NewIkebeProduct("test", "test2", "test2", "7777", 4000),
 		}
 
-		result := p.mappingIkebeProducts(dbp)
+		result := p.mapProducts(dbp)
 
 		assert.Equal(t, 3, len(result))
 		assert.Equal(t, NewIkebeProduct("test", "test", "http://test.jp", "4444", 1111), result[0])
@@ -68,27 +41,27 @@ func TestMappingIkebeProducts(t *testing.T) {
 	})
 
 	t.Run("product is empty", func(t *testing.T) {
-		p := IkebeProducts{}
-		dbp := IkebeProducts{
+		p := Products{}
+		dbp := Products{
 			NewIkebeProduct("test", "test", "test", "11111", 4000),
 			NewIkebeProduct("test", "test", "test1", "55555", 4000),
 		}
 
-		result := p.mappingIkebeProducts(dbp)
+		result := p.mapProducts(dbp)
 
 		assert.Equal(t, 0, len(result))
 		assert.Equal(t, p, result)
 	})
 
 	t.Run("db product is empty", func(t *testing.T) {
-		p := IkebeProducts{
+		p := Products{
 			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
 			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
 		}
-		db := IkebeProducts{}
+		db := Products{}
 
-		result := p.mappingIkebeProducts(db)
+		result := p.mapProducts(db)
 
 		assert.Equal(t, 3, len(result))
 		assert.Equal(t, p, result)
@@ -190,9 +163,9 @@ func TestScrapeProductsList(t *testing.T) {
 			6050,
 		)
 		for p := range ch {
-			assert.Equal(t, 17, len(p.slice()))
-			assert.Equal(t, p1, p.slice()[0])
-			assert.Equal(t, p17, p.slice()[len(p.slice())-1])
+			assert.Equal(t, 17, len(p))
+			assert.Equal(t, p1, p[0])
+			assert.Equal(t, p17, p[len(p)-1])
 		}
 	})
 }
@@ -212,7 +185,7 @@ func TestGetIkebeProduct(t *testing.T) {
 
 	t.Run("happy path", func(t *testing.T) {
 		s := ScrapeService{}
-		p := IkebeProducts{
+		p := Products{
 			NewIkebeProduct("test1", "test1", "http://", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://", "", 2222),
 			NewIkebeProduct("test3", "test3", "http://", "", 3333),
@@ -225,14 +198,18 @@ func TestGetIkebeProduct(t *testing.T) {
 
 		c := s.getIkebeProduct(ch, conf.dsn())
 
+		var expected Products
+		for _, p := range ps {
+			expected = append(expected, p)
+		}
 		for product := range c {
-			assert.Equal(t, ps, product)
+			assert.Equal(t, expected, product)
 		}
 	})
 
 	t.Run("get products return null", func(t *testing.T) {
 		s := ScrapeService{}
-		p := IkebeProducts{
+		p := Products{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "", 2222),
 			NewIkebeProduct("test3", "test6", "http://", "", 3333),
@@ -248,7 +225,7 @@ func TestGetIkebeProduct(t *testing.T) {
 
 		for product := range c {
 			assert.Equal(t, p, product)
-			assert.Equal(t, "", product.slice()[0].Jan.String)
+			assert.Equal(t, "", product[0].getJan())
 		}
 	})
 }
@@ -257,7 +234,7 @@ func TestScrapeProduct(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		s := ScrapeService{}
 		c := clientMock{"html/test_product.html"}
-		p := IkebeProducts{
+		p := Products{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test3", "test6", "http://", "", 3333),
 		}

@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
@@ -14,20 +13,6 @@ const (
 	scheme = "https"
 	host   = "www.ikebe-gakki.com"
 )
-
-type Product interface {
-	generateMessage(filename string) ([]byte, error)
-	getProductCode() string
-	getJan() string
-	setJan(string)
-	Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns boil.Columns, insertColumns boil.Columns) error
-}
-
-type Products interface {
-	getProductCodes() []string
-	mappingIkebeProducts(IkebeProducts) IkebeProducts
-	slice() IkebeProducts
-}
 
 type ScrapeService struct{}
 
@@ -61,7 +46,12 @@ func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan Pr
 			var products IkebeProducts
 			products, url = parseProducts(res.Body)
 			res.Body.Close()
-			c <- products
+
+			var product Products
+			for _, p := range products {
+				product = append(product, p)
+			}
+			c <- product
 		}
 	}()
 	return c
@@ -85,7 +75,11 @@ func (s ScrapeService) getIkebeProduct(c chan Products, dsn string) chan Product
 				logger.Error("db get product error", err)
 				continue
 			}
-			products := p.mappingIkebeProducts(dbProduct)
+			var product Products
+			for _, v := range dbProduct {
+				product = append(product, v)
+			}
+			products := p.mapProducts(product)
 			send <- products
 		}
 	}()
@@ -99,14 +93,14 @@ func (s ScrapeService) scrapeProduct(
 	go func() {
 		defer close(send)
 		for products := range ch {
-			for _, product := range products.slice() {
-				if product.Jan.Valid {
+			for _, product := range products {
+				if product.isValidJan() {
 					send <- product
 					continue
 				}
 
-				logger.Info("product request url", "url", product.URL.String)
-				res, err := client.request("GET", product.URL.String, nil)
+				logger.Info("product request url", "url", product.getURL())
+				res, err := client.request("GET", product.getURL(), nil)
 				if err != nil {
 					logger.Error("http request error", err, "action", "scrapeProduct")
 					continue
@@ -117,7 +111,7 @@ func (s ScrapeService) scrapeProduct(
 					logger.Error("jan code isn't valid", err, "url", res.Request.URL)
 					continue
 				}
-				product.Jan = null.StringFrom(jan)
+				product.setJan(jan)
 				send <- product
 			}
 		}

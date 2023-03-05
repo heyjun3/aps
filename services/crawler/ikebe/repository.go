@@ -116,59 +116,55 @@ func (p *IkebeProduct) getProductCode() string {
 	return p.ProductCode
 }
 
-func (p *IkebeProduct) setJan(jan string) {
-	p.Jan.String = jan
-}
-
 func (p *IkebeProduct) getJan() string {
 	return p.Jan.String
 }
 
-func (p IkebeProducts) mappingIkebeProducts(productsInDB IkebeProducts) IkebeProducts {
-	inDB := map[string]*IkebeProduct{}
-	for _, v := range productsInDB {
-		inDB[v.ProductCode] = v
-	}
-
-	for _, v := range p {
-		product, exist := inDB[v.ProductCode]
-		if !exist {
-			continue
-		}
-		v.Jan = product.Jan
-	}
-	return p
+func (p *IkebeProduct) getURL() string {
+	return p.URL.String
 }
 
-func test(p []Product) {
-	fmt.Println(p)
+func (p *IkebeProduct) isValidJan() bool {
+	return p.Jan.Valid
 }
 
-func mapProducts(p1, p2 []Product) []Product{
-	mapped := map[string]*Product{}
-	for _, v := range p2 {
-		code := v.getProductCode()
-		mapped[code] = &v
-	}
-
-	for _, v := range p1 {
-		product, exist := mapped[v.getProductCode()]
-		if !exist {
-			continue
-		}
-		v.setJan((*product).getJan())
-	}
-	return p1
+func (p *IkebeProduct) setJan(jan string) {
+	p.Jan = null.StringFrom(jan)
 }
 
-func (p IkebeProducts) getProductCodes() []string {
+type Product interface {
+	generateMessage(filename string) ([]byte, error)
+	getProductCode() string
+	getJan() string
+	getURL() string
+	isValidJan() bool
+	setJan(string)
+	Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns boil.Columns, insertColumns boil.Columns) error
+}
+
+type Products []Product
+
+func (p Products) getProductCodes() []string {
 	var codes []string
 	for _, pro := range p {
-		codes = append(codes, pro.ProductCode)
+		codes = append(codes, pro.getProductCode())
 	}
 	return codes
 }
 
-func (p IkebeProducts) slice() IkebeProducts {
+func (p Products) mapProducts(products Products) Products{
+	mapped := map[string]Product{}
+	for _, v := range products {
+		code := v.getProductCode()
+		mapped[code] = v
+	}
+
+	for _, v := range p {
+		product, exist := mapped[v.getProductCode()]
+		if !exist {
+			continue
+		}
+		v.setJan((product).getJan())
+	}
 	return p
 }
