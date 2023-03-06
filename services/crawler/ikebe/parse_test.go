@@ -13,6 +13,7 @@ import (
 
 func TestParseProducts(t *testing.T) {
 	t.Run("parse product list page", func(t *testing.T) {
+		parser := IkebeParser{}
 		b, err := os.ReadFile("html/test_product_list.html")
 		if err != nil {
 			fmt.Println("file open error")
@@ -23,7 +24,7 @@ func TestParseProducts(t *testing.T) {
 			Request: &http.Request{},
 		}
 		defer res.Body.Close()
-		products, url := parseProducts(res.Body)
+		products, url := parser.productList(res.Body)
 
 		assert.Equal(t, 40, len(products))
 		assert.Equal(t, "https://www.ikebe-gakki.com/p/search?maxprice=100000&tag=%E6%96%B0%E5%93%81&page=2&sort=latest", url)
@@ -47,6 +48,7 @@ func TestParseProducts(t *testing.T) {
 	})
 
 	t.Run("parse last product list page", func(t *testing.T) {
+		parser := IkebeParser{}
 		b, err := os.ReadFile("html/test_last_product_list.html")
 		if err != nil {
 			fmt.Println("file open err")
@@ -58,7 +60,7 @@ func TestParseProducts(t *testing.T) {
 		}
 
 		defer res.Body.Close()
-		products, url := parseProducts(res.Body)
+		products, url := parser.productList(res.Body)
 
 		assert.Equal(t, 17, len(products))
 		assert.Equal(t, "", url)
@@ -84,6 +86,7 @@ func TestParseProducts(t *testing.T) {
 
 func TestParseProduct(t *testing.T) {
 	t.Run("parse product page", func(t *testing.T) {
+		parser := IkebeParser{}
 		f, err := os.ReadFile("html/test_product.html")
 		if err != nil {
 			fmt.Println(err)
@@ -94,7 +97,7 @@ func TestParseProduct(t *testing.T) {
 			Request: &http.Request{},
 		}
 		defer res.Body.Close()
-		jan, err := parseProduct(res.Body)
+		jan, err := parser.product(res.Body)
 
 		assert.Equal(t, nil, err)
 		assert.Equal(t, "2500140008600", jan)

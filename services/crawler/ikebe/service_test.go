@@ -144,7 +144,7 @@ func (c clientMock) request(method, url string, body io.Reader) (*http.Response,
 func TestScrapeProductsList(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		c := clientMock{"html/test_last_product_list.html"}
-		s := ScrapeService{}
+		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
 
 		ch := s.scrapeProductsList(c, "https://google.com")
 
@@ -184,7 +184,7 @@ func TestGetIkebeProduct(t *testing.T) {
 	ps.bulkUpsert(conn)
 
 	t.Run("happy path", func(t *testing.T) {
-		s := ScrapeService{}
+		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
 		p := Products{
 			NewIkebeProduct("test1", "test1", "http://", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://", "", 2222),
@@ -208,7 +208,7 @@ func TestGetIkebeProduct(t *testing.T) {
 	})
 
 	t.Run("get products return null", func(t *testing.T) {
-		s := ScrapeService{}
+		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
 		p := Products{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "", 2222),
@@ -232,7 +232,7 @@ func TestGetIkebeProduct(t *testing.T) {
 
 func TestScrapeProduct(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		s := ScrapeService{}
+		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
 		c := clientMock{"html/test_product.html"}
 		p := Products{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
@@ -275,7 +275,7 @@ func TestSaveProduct(t *testing.T) {
 				ch <- pro
 			}
 		}()
-		s := ScrapeService{}
+		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
 
 		channel := s.saveProduct(ch, conf.dsn())
 
@@ -314,7 +314,7 @@ func TestSendMessage(t *testing.T) {
 			}
 		}()
 		c := MQMock{}
-		s := ScrapeService{}
+		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 

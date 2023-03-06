@@ -2,6 +2,7 @@ package ikebe
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -14,9 +15,28 @@ const (
 	host   = "www.ikebe-gakki.com"
 )
 
-type ScrapeService struct{}
+type ScrapeService struct{
+	repo Repository
+	parser Parser
+}
 
-func (s ScrapeService) StartScrape(url string) {
+func NewScrapeService(repo Repository, parser Parser) *ScrapeService{
+	return &ScrapeService{
+		repo: repo,
+		parser: parser,
+	}
+}
+
+type Repository interface {
+	getByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) (Products, error)
+}
+
+type Parser interface {
+	productList(io.ReadCloser) (Products, string)
+	product(io.ReadCloser) (string, error)
+}
+
+func (s ScrapeService) StartScrape(url, shopName string) {
 
 	client := Client{&http.Client{}}
 	mqClient := NewMQClient(cfg.MQDsn(), "mws")
@@ -27,12 +47,13 @@ func (s ScrapeService) StartScrape(url string) {
 	c2 := s.getIkebeProduct(c1, cfg.dsn())
 	c3 := s.scrapeProduct(c2, client)
 	c4 := s.saveProduct(c3, cfg.dsn())
-	s.sendMessage(c4, mqClient, "ikebe", &wg)
+	s.sendMessage(c4, mqClient, shopName, &wg)
 
 	wg.Wait()
 }
 
-func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan Products {
+func (s ScrapeService) scrapeProductsList(
+	client httpClient, url string) chan Products {
 	c := make(chan Products, 10)
 	go func() {
 		defer close(c)
@@ -43,15 +64,11 @@ func (s ScrapeService) scrapeProductsList(client httpClient, url string) chan Pr
 				logger.Error("http request error", err)
 				break
 			}
-			var products IkebeProducts
-			products, url = parseProducts(res.Body)
+			var products Products
+			products, url = s.parser.productList(res.Body)
 			res.Body.Close()
 
-			var product Products
-			for _, p := range products {
-				product = append(product, p)
-			}
-			c <- product
+			c <- products
 		}
 	}()
 	return c
@@ -68,18 +85,13 @@ func (s ScrapeService) getIkebeProduct(c chan Products, dsn string) chan Product
 			return
 		}
 
-		repo := IkebeProductRepository{}
 		for p := range c {
-			dbProduct, err := repo.getByProductCodes(ctx, conn, p.getProductCodes()...)
+			dbProduct, err := s.repo.getByProductCodes(ctx, conn, p.getProductCodes()...)
 			if err != nil {
 				logger.Error("db get product error", err)
 				continue
 			}
-			var product Products
-			for _, v := range dbProduct {
-				product = append(product, v)
-			}
-			products := p.mapProducts(product)
+			products := p.mapProducts(dbProduct)
 			send <- products
 		}
 	}()
@@ -105,7 +117,7 @@ func (s ScrapeService) scrapeProduct(
 					logger.Error("http request error", err, "action", "scrapeProduct")
 					continue
 				}
-				jan, err := parseProduct(res.Body)
+				jan, err := s.parser.product(res.Body)
 				res.Body.Close()
 				if err != nil {
 					logger.Error("jan code isn't valid", err, "url", res.Request.URL)
