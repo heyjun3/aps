@@ -44,7 +44,7 @@ func (s ScrapeService) StartScrape(url, shopName string) {
 	wg.Add(1)
 
 	c1 := s.scrapeProductsList(client, url)
-	c2 := s.getIkebeProduct(c1, cfg.dsn())
+	c2 := s.getProducts(c1, cfg.dsn())
 	c3 := s.scrapeProduct(c2, client)
 	c4 := s.saveProduct(c3, cfg.dsn())
 	s.sendMessage(c4, mqClient, shopName, &wg)
@@ -74,7 +74,7 @@ func (s ScrapeService) scrapeProductsList(
 	return c
 }
 
-func (s ScrapeService) getIkebeProduct(c chan Products, dsn string) chan Products {
+func (s ScrapeService) getProducts(c chan Products, dsn string) chan Products {
 	send := make(chan Products, 10)
 	go func() {
 		defer close(send)
@@ -145,7 +145,7 @@ func (s ScrapeService) saveProduct(ch chan Product, dsn string) chan Product {
 		for p := range ch {
 			err := p.Upsert(ctx, conn, true, []string{"shop_code", "product_code"}, boil.Infer(), boil.Infer())
 			if err != nil {
-				logger.Error("ikebe product upsert error", err)
+				logger.Error("product upsert error", err)
 				continue
 			}
 			send <- p

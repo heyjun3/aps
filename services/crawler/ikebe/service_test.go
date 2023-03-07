@@ -196,7 +196,7 @@ func TestGetIkebeProduct(t *testing.T) {
 			ch <- p
 		}()
 
-		c := s.getIkebeProduct(ch, conf.dsn())
+		c := s.getProducts(ch, conf.dsn())
 
 		var expected Products
 		for _, p := range ps {
@@ -221,7 +221,7 @@ func TestGetIkebeProduct(t *testing.T) {
 			ch <- p
 		}()
 
-		c := s.getIkebeProduct(ch, conf.dsn())
+		c := s.getProducts(ch, conf.dsn())
 
 		for product := range c {
 			assert.Equal(t, p, product)
