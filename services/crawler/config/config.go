@@ -1,4 +1,4 @@
-package ikebe
+package config
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-type Config struct {
+type config struct {
 	Psql     Psql
 	RabbitMQ RabbitMQ
 }
@@ -31,32 +31,36 @@ type RabbitMQ struct {
 	Port string `toml:"port"`
 }
 
-var cfg Config
-var logger *slog.Logger
+var Config config
+var DBDsn string
+var MQDsn string
+var Logger *slog.Logger
 
 func init() {
-	logger = slog.New(slog.NewJSONHandler(os.Stdout))
+	Logger = slog.New(slog.NewJSONHandler(os.Stdout))
 	path := os.Getenv("ROOT_PATH")
 	if path == "" {
 		panic("Not set env ROOT_PATH")
 	}
 	var err error
-	cfg, err = NewConfig(filepath.Join(path, "sqlboiler.toml"))
+	Config, err = NewConfig(filepath.Join(path, "sqlboiler.toml"))
 	if err != nil {
 		panic(err)
 	}
+	DBDsn = Config.Dsn()
+	MQDsn = Config.MQDsn()
 }
 
-func NewConfig(path string) (Config, error) {
-	var cfg Config
-	_, err := toml.DecodeFile(path, &cfg)
+func NewConfig(path string) (config, error) {
+	var Config config
+	_, err := toml.DecodeFile(path, &Config)
 	if err != nil {
-		return cfg, err
+		return Config, err
 	}
-	return cfg, nil
+	return Config, nil
 }
 
-func (c Config) dsn() string {
+func (c config) Dsn() string {
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		c.Psql.User,
@@ -68,7 +72,7 @@ func (c Config) dsn() string {
 	)
 }
 
-func (c Config) MQDsn() string {
+func (c config) MQDsn() string {
 	return fmt.Sprintf(
 		"amqp://%s:%s@%s:%s/",
 		c.RabbitMQ.User,

@@ -8,7 +8,11 @@ import (
 	"time"
 
 	"github.com/volatiletech/sqlboiler/v4/boil"
+
+	"crawler/config"
 )
+
+var logger = config.Logger
 
 const (
 	scheme = "https"
@@ -20,10 +24,10 @@ type ScrapeService struct{
 	parser Parser
 }
 
-func NewScrapeService(repo Repository, parser Parser) *ScrapeService{
+func NewScrapeService() *ScrapeService{
 	return &ScrapeService{
-		repo: repo,
-		parser: parser,
+		repo: IkebeProductRepository{},
+		parser: IkebeParser{},
 	}
 }
 
@@ -37,16 +41,15 @@ type Parser interface {
 }
 
 func (s ScrapeService) StartScrape(url, shopName string) {
-
 	client := Client{&http.Client{}}
-	mqClient := NewMQClient(cfg.MQDsn(), "mws")
+	mqClient := NewMQClient(config.MQDsn, "mws")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
 	c1 := s.scrapeProductsList(client, url)
-	c2 := s.getProducts(c1, cfg.dsn())
+	c2 := s.getProducts(c1, config.DBDsn)
 	c3 := s.scrapeProduct(c2, client)
-	c4 := s.saveProduct(c3, cfg.dsn())
+	c4 := s.saveProduct(c3, config.DBDsn)
 	s.sendMessage(c4, mqClient, shopName, &wg)
 
 	wg.Wait()

@@ -1,118 +1,17 @@
 package ikebe
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/volatiletech/null/v8"
 
 	"crawler/models"
+	"crawler/config"
 )
-
-func TestMappingIkebeProducts(t *testing.T) {
-
-	t.Run("happy path", func(t *testing.T) {
-		p := Products{
-			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
-			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
-			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
-		}
-
-		dbp := Products{
-			NewIkebeProduct("test", "test", "test", "4444", 4000),
-			NewIkebeProduct("test", "test1", "test1", "555", 4000),
-			NewIkebeProduct("test", "test2", "test2", "7777", 4000),
-		}
-
-		result := p.mapProducts(dbp)
-
-		assert.Equal(t, 3, len(result))
-		assert.Equal(t, NewIkebeProduct("test", "test", "http://test.jp", "4444", 1111), result[0])
-		assert.Equal(t, NewIkebeProduct("test1", "test1", "http://test.jp", "555", 1111), result[1])
-		assert.Equal(t, NewIkebeProduct("test2", "test2", "http://test.jp", "7777", 1111), result[2])
-	})
-
-	t.Run("product is empty", func(t *testing.T) {
-		p := Products{}
-		dbp := Products{
-			NewIkebeProduct("test", "test", "test", "11111", 4000),
-			NewIkebeProduct("test", "test", "test1", "55555", 4000),
-		}
-
-		result := p.mapProducts(dbp)
-
-		assert.Equal(t, 0, len(result))
-		assert.Equal(t, p, result)
-	})
-
-	t.Run("db product is empty", func(t *testing.T) {
-		p := Products{
-			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
-			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
-			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
-		}
-		db := Products{}
-
-		result := p.mapProducts(db)
-
-		assert.Equal(t, 3, len(result))
-		assert.Equal(t, p, result)
-	})
-}
-
-func TestGenerateMessage(t *testing.T) {
-	t.Run("happy path", func(t *testing.T) {
-		p := NewIkebeProduct("test", "test", "https://test.com", "", 6000)
-		p.Jan = null.StringFrom("4444")
-		f := "ikebe_20220301_120303"
-
-		m, err := p.generateMessage(f)
-
-		assert.Equal(t, nil, err)
-		ex := `{"filename":"ikebe_20220301_120303","jan":"4444","cost":6000,"url":"https://test.com"}`
-		assert.Equal(t, ex, string(m))
-	})
-
-	t.Run("Jan code isn't Valid", func(t *testing.T) {
-		p := NewIkebeProduct("TEST", "test", "https://test.com", "", 5000)
-		f := "ikebe_20220202_020222"
-
-		m, err := p.generateMessage(f)
-
-		assert.Error(t, err)
-		assert.Equal(t, []byte(nil), m)
-	})
-
-	t.Run("Price isn't valid", func(t *testing.T) {
-		p := NewIkebeProduct("TEST", "test", "https://test.com", "", 5000)
-		p.Price = null.Int64FromPtr(nil)
-		f := "ikebe_20220202_020222"
-
-		m, err := p.generateMessage(f)
-
-		assert.Error(t, err)
-		assert.Equal(t, []byte(nil), m)
-	})
-
-	t.Run("URL isn't valid", func(t *testing.T) {
-		p := NewIkebeProduct("TEST", "test", "https://test.com", "", 5000)
-		p.URL = null.StringFromPtr(nil)
-		f := "ikebe_20220202_020222"
-
-		m, err := p.generateMessage(f)
-
-		assert.Error(t, err)
-		assert.Equal(t, []byte(nil), m)
-	})
-}
 
 func TestTimeToStr(t *testing.T) {
 	t.Run("format time to str", func(t *testing.T) {
@@ -124,27 +23,10 @@ func TestTimeToStr(t *testing.T) {
 	})
 }
 
-type clientMock struct {
-	path string
-}
-
-func (c clientMock) request(method, url string, body io.Reader) (*http.Response, error) {
-	b, err := os.ReadFile(c.path)
-	if err != nil {
-		logger.Error("open file error", err)
-		return nil, err
-	}
-	res := &http.Response{
-		Body:    io.NopCloser(bytes.NewReader(b)),
-		Request: &http.Request{},
-	}
-	return res, nil
-}
-
 func TestScrapeProductsList(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		c := clientMock{"html/test_last_product_list.html"}
-		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
+		s := NewScrapeService()
 
 		ch := s.scrapeProductsList(c, "https://google.com")
 
@@ -172,9 +54,9 @@ func TestScrapeProductsList(t *testing.T) {
 
 func TestGetIkebeProduct(t *testing.T) {
 	ctx := context.Background()
-	conf, _ := NewConfig("../sqlboiler.toml")
+	conf, _ := config.NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
-	conn, _ := NewDBconnection(conf.dsn())
+	conn, _ := NewDBconnection(conf.Dsn())
 	models.IkebeProducts().DeleteAll(ctx, conn)
 	ps := IkebeProducts{
 		NewIkebeProduct("test1", "test1", "http://", "1111", 1111),
@@ -184,7 +66,7 @@ func TestGetIkebeProduct(t *testing.T) {
 	ps.bulkUpsert(conn)
 
 	t.Run("happy path", func(t *testing.T) {
-		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
+		s := NewScrapeService()
 		p := Products{
 			NewIkebeProduct("test1", "test1", "http://", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://", "", 2222),
@@ -196,7 +78,7 @@ func TestGetIkebeProduct(t *testing.T) {
 			ch <- p
 		}()
 
-		c := s.getProducts(ch, conf.dsn())
+		c := s.getProducts(ch, conf.Dsn())
 
 		var expected Products
 		for _, p := range ps {
@@ -208,7 +90,7 @@ func TestGetIkebeProduct(t *testing.T) {
 	})
 
 	t.Run("get products return null", func(t *testing.T) {
-		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
+		s := NewScrapeService()
 		p := Products{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "", 2222),
@@ -221,7 +103,7 @@ func TestGetIkebeProduct(t *testing.T) {
 			ch <- p
 		}()
 
-		c := s.getProducts(ch, conf.dsn())
+		c := s.getProducts(ch, conf.Dsn())
 
 		for product := range c {
 			assert.Equal(t, p, product)
@@ -232,7 +114,7 @@ func TestGetIkebeProduct(t *testing.T) {
 
 func TestScrapeProduct(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
+		s := NewScrapeService()
 		c := clientMock{"html/test_product.html"}
 		p := Products{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
@@ -261,7 +143,7 @@ func TestScrapeProduct(t *testing.T) {
 
 func TestSaveProduct(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		conf, _ := NewConfig("../sqlboiler.toml")
+		conf, _ := config.NewConfig("../sqlboiler.toml")
 		conf.Psql.DBname = "test"
 		ch := make(chan Product)
 		p := IkebeProducts{
@@ -275,9 +157,9 @@ func TestSaveProduct(t *testing.T) {
 				ch <- pro
 			}
 		}()
-		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
+		s := NewScrapeService()
 
-		channel := s.saveProduct(ch, conf.dsn())
+		channel := s.saveProduct(ch, conf.Dsn())
 
 		var ps []Product
 		for p := range channel {
@@ -314,7 +196,7 @@ func TestSendMessage(t *testing.T) {
 			}
 		}()
 		c := MQMock{}
-		s := NewScrapeService(IkebeProductRepository{}, IkebeParser{})
+		s := NewScrapeService()
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
