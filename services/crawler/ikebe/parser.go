@@ -9,11 +9,13 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+
+	"crawler/scrape"
 )
 
 type IkebeParser struct {}
 
-func (parser IkebeParser) productList(r io.ReadCloser) (Products, string) {
+func (parser IkebeParser) ProductList(r io.ReadCloser)(scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)
@@ -21,7 +23,7 @@ func (parser IkebeParser) productList(r io.ReadCloser) (Products, string) {
 	}
 
 	isSold := false
-	var products Products
+	var products scrape.Products
 	doc.Find(".fs-c-productList__list__item.fs-c-productListItem").Each(func(i int, s *goquery.Selection) {
 		name := s.Find(".fs-c-productName__name").Text()
 		if name == "" {
@@ -73,7 +75,7 @@ func (parser IkebeParser) productList(r io.ReadCloser) (Products, string) {
 	return products, u.String()
 }
 
-func (parser IkebeParser) product(r io.ReadCloser) (string, error) {
+func (parser IkebeParser) Product(r io.ReadCloser) (string, error) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)

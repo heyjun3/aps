@@ -11,6 +11,7 @@ import (
 	"github.com/volatiletech/null/v8"
 
 	"crawler/config"
+	"crawler/scrape"
 )
 
 func IkebeProductTableFactory(conn boil.ContextExecutor) error {
@@ -33,7 +34,7 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 	ctx := context.Background()
 	conf, _ := config.NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
-	conn, err := NewDBconnection(conf.Dsn())
+	conn, err := scrape.NewDBconnection(conf.Dsn())
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -51,7 +52,7 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 	t.Run("get products", func(t *testing.T) {
 		r := IkebeProductRepository{}
 
-		products, err := r.getByProductCodes(ctx, conn, "test_code")
+		products, err := r.GetByProductCodes(ctx, conn, "test_code")
 
 		assert.Equal(t, nil, err)
 		assert.Equal(t, 1, len(products))
@@ -62,7 +63,7 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 func TestBulkUpsertIkebeProducts(t *testing.T) {
 	conf, _ := config.NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
-	conn, err := NewDBconnection(conf.Dsn())
+	conn, err := scrape.NewDBconnection(conf.Dsn())
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -93,19 +94,19 @@ func TestBulkUpsertIkebeProducts(t *testing.T) {
 func TestMappingIkebeProducts(t *testing.T) {
 
 	t.Run("happy path", func(t *testing.T) {
-		p := Products{
+		p := scrape.Products{
 			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
 			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
 		}
 
-		dbp := Products{
+		dbp := scrape.Products{
 			NewIkebeProduct("test", "test", "test", "4444", 4000),
 			NewIkebeProduct("test", "test1", "test1", "555", 4000),
 			NewIkebeProduct("test", "test2", "test2", "7777", 4000),
 		}
 
-		result := p.mapProducts(dbp)
+		result := p.MapProducts(dbp)
 
 		assert.Equal(t, 3, len(result))
 		assert.Equal(t, NewIkebeProduct("test", "test", "http://test.jp", "4444", 1111), result[0])
@@ -114,27 +115,27 @@ func TestMappingIkebeProducts(t *testing.T) {
 	})
 
 	t.Run("product is empty", func(t *testing.T) {
-		p := Products{}
-		dbp := Products{
+		p := scrape.Products{}
+		dbp := scrape.Products{
 			NewIkebeProduct("test", "test", "test", "11111", 4000),
 			NewIkebeProduct("test", "test", "test1", "55555", 4000),
 		}
 
-		result := p.mapProducts(dbp)
+		result := p.MapProducts(dbp)
 
 		assert.Equal(t, 0, len(result))
 		assert.Equal(t, p, result)
 	})
 
 	t.Run("db product is empty", func(t *testing.T) {
-		p := Products{
+		p := scrape.Products{
 			NewIkebeProduct("test", "test", "http://test.jp", "", 1111),
 			NewIkebeProduct("test1", "test1", "http://test.jp", "", 1111),
 			NewIkebeProduct("test2", "test2", "http://test.jp", "", 1111),
 		}
-		db := Products{}
+		db := scrape.Products{}
 
-		result := p.mapProducts(db)
+		result := p.MapProducts(db)
 
 		assert.Equal(t, 3, len(result))
 		assert.Equal(t, p, result)
@@ -147,7 +148,7 @@ func TestGenerateMessage(t *testing.T) {
 		p.Jan = null.StringFrom("4444")
 		f := "ikebe_20220301_120303"
 
-		m, err := p.generateMessage(f)
+		m, err := p.GenerateMessage(f)
 
 		assert.Equal(t, nil, err)
 		ex := `{"filename":"ikebe_20220301_120303","jan":"4444","cost":6000,"url":"https://test.com"}`
@@ -158,7 +159,7 @@ func TestGenerateMessage(t *testing.T) {
 		p := NewIkebeProduct("TEST", "test", "https://test.com", "", 5000)
 		f := "ikebe_20220202_020222"
 
-		m, err := p.generateMessage(f)
+		m, err := p.GenerateMessage(f)
 
 		assert.Error(t, err)
 		assert.Equal(t, []byte(nil), m)
@@ -169,7 +170,7 @@ func TestGenerateMessage(t *testing.T) {
 		p.Price = null.Int64FromPtr(nil)
 		f := "ikebe_20220202_020222"
 
-		m, err := p.generateMessage(f)
+		m, err := p.GenerateMessage(f)
 
 		assert.Error(t, err)
 		assert.Equal(t, []byte(nil), m)
@@ -180,7 +181,7 @@ func TestGenerateMessage(t *testing.T) {
 		p.URL = null.StringFromPtr(nil)
 		f := "ikebe_20220202_020222"
 
-		m, err := p.generateMessage(f)
+		m, err := p.GenerateMessage(f)
 
 		assert.Error(t, err)
 		assert.Equal(t, []byte(nil), m)

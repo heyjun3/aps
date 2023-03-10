@@ -13,16 +13,10 @@ import (
 	"golang.org/x/net/context"
 
 	"crawler/models"
+	"crawler/scrape"
 )
 
-func NewDBconnection(dsn string) (*sql.DB, error) {
-	conn, err := sql.Open("postgres", dsn)
-	if err != nil {
-		logger.Error("open error", err)
-		return nil, err
-	}
-	return conn, nil
-}
+
 
 func NewIkebeProduct(name, productCode, url, jan string, price int64) *IkebeProduct {
 	isJan := true
@@ -43,7 +37,7 @@ func NewIkebeProduct(name, productCode, url, jan string, price int64) *IkebeProd
 
 type IkebeProductRepository struct{}
 
-func (r IkebeProductRepository) getByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) (Products, error) {
+func (r IkebeProductRepository) GetByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) (scrape.Products, error) {
 	var i []interface{}
 	for _, code := range codes {
 		i = append(i, code)
@@ -56,7 +50,7 @@ func (r IkebeProductRepository) getByProductCodes(ctx context.Context, conn boil
 		return nil, fmt.Errorf("getByProductCodes is failed")
 	}
 
-	var products Products
+	var products scrape.Products
 	for _, p := range ikebeProducts {
 		products = append(products, &IkebeProduct{*p})
 	}
@@ -94,7 +88,7 @@ type IkebeProduct struct {
 }
 type IkebeProducts []*IkebeProduct
 
-func (p *IkebeProduct) generateMessage(filename string) ([]byte, error) {
+func (p *IkebeProduct) GenerateMessage(filename string) ([]byte, error) {
 	if !p.Jan.Valid {
 		return nil, fmt.Errorf("jan code isn't valid %s", p.ProductCode)
 	}
@@ -104,7 +98,7 @@ func (p *IkebeProduct) generateMessage(filename string) ([]byte, error) {
 	if !p.URL.Valid {
 		return nil, fmt.Errorf("url isn't valid %s", p.ProductCode)
 	}
-	m := NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
+	m := scrape.NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
 	message, err := json.Marshal(m)
 	if err != nil {
 		return nil, err
@@ -112,59 +106,22 @@ func (p *IkebeProduct) generateMessage(filename string) ([]byte, error) {
 	return message, err
 }
 
-func (p *IkebeProduct) getProductCode() string {
+func (p *IkebeProduct) GetProductCode() string {
 	return p.ProductCode
 }
 
-func (p *IkebeProduct) getJan() string {
+func (p *IkebeProduct) GetJan() string {
 	return p.Jan.String
 }
 
-func (p *IkebeProduct) getURL() string {
+func (p *IkebeProduct) GetURL() string {
 	return p.URL.String
 }
 
-func (p *IkebeProduct) isValidJan() bool {
+func (p *IkebeProduct) IsValidJan() bool {
 	return p.Jan.Valid
 }
 
-func (p *IkebeProduct) setJan(jan string) {
+func (p *IkebeProduct) SetJan(jan string) {
 	p.Jan = null.StringFrom(jan)
-}
-
-type Product interface {
-	generateMessage(filename string) ([]byte, error)
-	getProductCode() string
-	getJan() string
-	getURL() string
-	isValidJan() bool
-	setJan(string)
-	Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns boil.Columns, insertColumns boil.Columns) error
-}
-
-type Products []Product
-
-func (p Products) getProductCodes() []string {
-	var codes []string
-	for _, pro := range p {
-		codes = append(codes, pro.getProductCode())
-	}
-	return codes
-}
-
-func (p Products) mapProducts(products Products) Products{
-	mapped := map[string]Product{}
-	for _, v := range products {
-		code := v.getProductCode()
-		mapped[code] = v
-	}
-
-	for _, v := range p {
-		product, exist := mapped[v.getProductCode()]
-		if !exist {
-			continue
-		}
-		v.setJan((product).getJan())
-	}
-	return p
 }

@@ -24,7 +24,7 @@ func TestParseProducts(t *testing.T) {
 			Request: &http.Request{},
 		}
 		defer res.Body.Close()
-		products, url := parser.productList(res.Body)
+		products, url := parser.ProductList(res.Body)
 
 		assert.Equal(t, 40, len(products))
 		assert.Equal(t, "https://www.ikebe-gakki.com/p/search?maxprice=100000&tag=%E6%96%B0%E5%93%81&page=2&sort=latest", url)
@@ -60,7 +60,7 @@ func TestParseProducts(t *testing.T) {
 		}
 
 		defer res.Body.Close()
-		products, url := parser.productList(res.Body)
+		products, url := parser.ProductList(res.Body)
 
 		assert.Equal(t, 17, len(products))
 		assert.Equal(t, "", url)
@@ -97,7 +97,7 @@ func TestParseProduct(t *testing.T) {
 			Request: &http.Request{},
 		}
 		defer res.Body.Close()
-		jan, err := parser.product(res.Body)
+		jan, err := parser.Product(res.Body)
 
 		assert.Equal(t, nil, err)
 		assert.Equal(t, "2500140008600", jan)
