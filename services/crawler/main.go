@@ -18,8 +18,7 @@ func main() {
 
 	switch {
 	case shop == "ikebe" && url != "":
-		s := ikebe.ScrapeService{}
-		s.StartScrape(url)
+		ikebe.NewScrapeService().StartScrape(url, shop)
 	default:
 		fmt.Printf("argument error: s=%s, u=%s", shop, url)
 	}
