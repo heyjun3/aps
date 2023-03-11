@@ -57,7 +57,7 @@ func (r IkebeProductRepository) GetByProductCodes(ctx context.Context, conn boil
 	return products, nil
 }
 
-func (products IkebeProducts) bulkUpsert(conn *sql.DB) error {
+func (repo IkebeProductRepository) bulkUpsert(conn *sql.DB, products ...*IkebeProduct) error {
 	strs := []string{}
 	args := []interface{}{}
 	for i, p := range products {
@@ -86,7 +86,6 @@ func (products IkebeProducts) bulkUpsert(conn *sql.DB) error {
 type IkebeProduct struct {
 	models.IkebeProduct
 }
-type IkebeProducts []*IkebeProduct
 
 func (p *IkebeProduct) GenerateMessage(filename string) ([]byte, error) {
 	if !p.Jan.Valid {

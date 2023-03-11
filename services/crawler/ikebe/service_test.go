@@ -72,12 +72,13 @@ func TestGetIkebeProduct(t *testing.T) {
 	conf.Psql.DBname = "test"
 	conn, _ := scrape.NewDBconnection(conf.Dsn())
 	models.IkebeProducts().DeleteAll(ctx, conn)
-	ps := IkebeProducts{
+	ps := []*IkebeProduct{
 		NewIkebeProduct("test1", "test1", "http://", "1111", 1111),
 		NewIkebeProduct("test2", "test2", "http://", "2222", 2222),
 		NewIkebeProduct("test3", "test3", "http://", "3333", 3333),
 	}
-	ps.bulkUpsert(conn)
+	repo := IkebeProductRepository{}
+	repo.bulkUpsert(conn, ps...)
 
 	t.Run("happy path", func(t *testing.T) {
 		s := NewScrapeService()
@@ -160,7 +161,7 @@ func TestSaveProduct(t *testing.T) {
 		conf, _ := config.NewConfig("../sqlboiler.toml")
 		conf.Psql.DBname = "test"
 		ch := make(chan scrape.Product)
-		p := IkebeProducts{
+		p := []*IkebeProduct{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "", 2222),
 			NewIkebeProduct("test3", "test6", "http://", "", 3333),
@@ -198,7 +199,7 @@ func (m MQMock) Publish(message []byte) error {
 func TestSendMessage(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		ch := make(chan scrape.Product)
-		p := IkebeProducts{
+		p := []*IkebeProduct{
 			NewIkebeProduct("test1", "test4", "http://", "1111", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "2222", 2222),
 			NewIkebeProduct("test3", "test6", "http://", "3333", 3333),

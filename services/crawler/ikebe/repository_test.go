@@ -77,13 +77,13 @@ func TestBulkUpsertIkebeProducts(t *testing.T) {
 	models.IkebeProducts().DeleteAll(ctx, conn)
 
 	t.Run("upsert ikebe products", func(t *testing.T) {
-		p := IkebeProducts{
+		p := []*IkebeProduct{
 			NewIkebeProduct("test", "test", "https://test.jp", "1111", 9000),
 			NewIkebeProduct("test", "test1", "https://test.jp", "1111", 9000),
 			NewIkebeProduct("test", "test2", "https://test.jp", "1111", 9000),
 		}
-
-		err = p.bulkUpsert(conn)
+		repo := IkebeProductRepository{}
+		repo.bulkUpsert(conn, p...)
 
 		assert.Equal(t, nil, err)
 		i, _ := models.FindIkebeProduct(ctx, conn, "ikebe", "test1")
