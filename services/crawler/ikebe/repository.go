@@ -2,6 +2,7 @@ package ikebe
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -12,45 +13,51 @@ import (
 	"golang.org/x/net/context"
 
 	"crawler/models"
+	"crawler/scrape"
 )
 
-func NewDBconnection(dsn string) (*sql.DB, error) {
-	conn, err := sql.Open("postgres", dsn)
-	if err != nil {
-		logger.Error("open error", err)
-		return nil, err
-	}
-	return conn, nil
-}
 
-func NewIkebeProduct(name, productCode, url, jan string, price int64) *models.IkebeProduct {
+
+func NewIkebeProduct(name, productCode, url, jan string, price int64) *IkebeProduct {
 	isJan := true
 	if jan == "" {
 		isJan = false
 	}
-	return &models.IkebeProduct{
-		Name:        null.StringFrom(name),
-		Jan:         null.NewString(jan, isJan),
-		Price:       null.Int64From(price),
-		ShopCode:    "ikebe",
-		ProductCode: productCode,
-		URL:         null.StringFrom(url),
+	return &IkebeProduct{
+		models.IkebeProduct{
+			Name:        null.StringFrom(name),
+			Jan:         null.NewString(jan, isJan),
+			Price:       null.Int64From(price),
+			ShopCode:    "ikebe",
+			ProductCode: productCode,
+			URL:         null.StringFrom(url),
+		},
 	}
 }
 
 type IkebeProductRepository struct{}
 
-func (r IkebeProductRepository) getByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) ([]*models.IkebeProduct, error) {
+func (r IkebeProductRepository) GetByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) (scrape.Products, error) {
 	var i []interface{}
 	for _, code := range codes {
 		i = append(i, code)
 	}
-	return models.IkebeProducts(
+	ikebeProducts, err := models.IkebeProducts(
 		qm.WhereIn("product_code in ?", i...),
 	).All(ctx, conn)
+
+	if err != nil {
+		return nil, fmt.Errorf("getByProductCodes is failed")
+	}
+
+	var products scrape.Products
+	for _, p := range ikebeProducts {
+		products = append(products, &IkebeProduct{*p})
+	}
+	return products, nil
 }
 
-func (r IkebeProductRepository) bulkUpsert(conn *sql.DB, products ...*models.IkebeProduct) error {
+func (repo IkebeProductRepository) bulkUpsert(conn *sql.DB, products ...*IkebeProduct) error {
 	strs := []string{}
 	args := []interface{}{}
 	for i, p := range products {
@@ -74,4 +81,46 @@ func (r IkebeProductRepository) bulkUpsert(conn *sql.DB, products ...*models.Ike
 		return err
 	}
 	return err
+}
+
+type IkebeProduct struct {
+	models.IkebeProduct
+}
+
+func (p *IkebeProduct) GenerateMessage(filename string) ([]byte, error) {
+	if !p.Jan.Valid {
+		return nil, fmt.Errorf("jan code isn't valid %s", p.ProductCode)
+	}
+	if !p.Price.Valid {
+		return nil, fmt.Errorf("price isn't valid %s", p.ProductCode)
+	}
+	if !p.URL.Valid {
+		return nil, fmt.Errorf("url isn't valid %s", p.ProductCode)
+	}
+	m := scrape.NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
+	message, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return message, err
+}
+
+func (p *IkebeProduct) GetProductCode() string {
+	return p.ProductCode
+}
+
+func (p *IkebeProduct) GetJan() string {
+	return p.Jan.String
+}
+
+func (p *IkebeProduct) GetURL() string {
+	return p.URL.String
+}
+
+func (p *IkebeProduct) IsValidJan() bool {
+	return p.Jan.Valid
+}
+
+func (p *IkebeProduct) SetJan(jan string) {
+	p.Jan = null.StringFrom(jan)
 }
