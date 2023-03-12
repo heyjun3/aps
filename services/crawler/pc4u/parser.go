@@ -48,14 +48,15 @@ func (p Pc4uParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		paths := strings.Split(URL.Path, "/")
 		productId := paths[len(paths)-1]
 
-		priceText := s.Find("big-item-list__price").Text()
+		priceText := s.Find(".big-item-list__price").Text()
 		price, err := pullOutPrice(priceText)
 		if err != nil {
 			logger.Info("Not Found price", "value", priceText)
 			return
 		}
 
-		sold := s.Find(".bit-item-list__soldout").Text()
+		sold := s.Find(".big-item-list__soldout").Text()
+		logger.Info(sold)
 		if sold != "" {
 			logger.Info("product is sold out")
 			isSold = true
