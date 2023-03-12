@@ -65,6 +65,21 @@ func (p Pc4uParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		products = append(products, NewPc4uProduct(name, productId, URL.String(), "", price))
 	})
 
+	if isSold {
+		logger.Info("products contain sold out product")
+		return products, ""
+	}
+
+	nextURL, err := p.nextPageURL(doc)
+	if err != nil {
+		logger.Error("not found next page url", err)
+		return products, ""
+	}
+
+	return products, nextURL
+}
+
+func (p Pc4uParser) nextPageURL(doc *goquery.Document) (string, error) {
 	var nextPath = ""
 	var current = false
 	doc.Find(".pager__item a").EachWithBreak(func(i int, s *goquery.Selection) bool {
@@ -81,14 +96,13 @@ func (p Pc4uParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 	})
 
 	nextURL, err := url.Parse(nextPath)
-	if err != nil || nextPath == "" || isSold {
-		logger.Info("Not Found Next page URL")
-		return products, ""
+	if err != nil || nextPath == "" {
+		return "", fmt.Errorf("not found next page URL: %s", nextPath)
 	}
 	nextURL.Scheme = scheme
 	nextURL.Host = host
 
-	return products, nextURL.String()
+	return nextURL.String(), nil
 }
 
 func pullOutPrice(s string) (int64, error) {
