@@ -10,18 +10,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createHttpResponse(path string) (*http.Response, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	res := &http.Response{
+		Body: io.NopCloser(bytes.NewReader(b)),
+		Request: &http.Request{},
+	}
+	return res, nil
+}
+
 func TestParseProducts(t *testing.T) {
 	parser := Pc4uParser{}
 
 	t.Run("parse product list page", func(t *testing.T) {
-		b, err := os.ReadFile("html/test_product_list.html")
+		res, err := createHttpResponse("html/test_product_list.html")
 		if err != nil {
-			logger.Error("file open error", err)
+			logger.Error("error", err)
 			return
-		}
-		res := &http.Response{
-			Body: io.NopCloser(bytes.NewReader(b)),
-			Request: &http.Request{},
 		}
 		defer res.Body.Close()
 
@@ -49,14 +57,10 @@ func TestParseProducts(t *testing.T) {
 	})
 
 	t.Run("parse last page", func(t *testing.T) {
-		b, err := os.ReadFile("html/test_product_list_last_page.html")	
+		res, err := createHttpResponse("html/test_product_list_last_page.html")	
 		if err != nil {
-			logger.Error("file open error", err)
+			logger.Error("error", err)
 			return
-		}
-		res := &http.Response{
-			Body: io.NopCloser(bytes.NewReader(b)),
-			Request: &http.Request{},
 		}
 		defer res.Body.Close()
 
@@ -81,6 +85,75 @@ func TestParseProducts(t *testing.T) {
 		)
 		assert.Equal(t, first, products[0])
 		assert.Equal(t, last, products[len(products)-1])
+	})
+	t.Run("parse next page url", func(t *testing.T) {
+		res, err := createHttpResponse("html/test_product_list_next_URL.html")
+		if err != nil {
+			logger.Error("error", err)
+			return
+		}
+		defer res.Body.Close()
+
+		_, url := parser.ProductList(res.Body)
+
+		assert.Equal(t, "https://www.pc4u.co.jp/view/search?page=6", url)
+	})
+	t.Run("parse sold page url", func(t *testing.T) {
+		res, err := createHttpResponse("html/test_product_list_soldout_next_URL.html")
+		if err != nil {
+			logger.Error("error", err)
+			return
+		}
+		defer res.Body.Close()
+
+		_, url := parser.ProductList(res.Body)
+
+		assert.Equal(t, "", url)
+	})
+}
+
+func TestProduct(t *testing.T) {
+	parser := Pc4uParser{}
+	t.Run("parse product", func(t *testing.T) {
+		res, err := createHttpResponse("html/test_product.html")
+		if err != nil {
+			logger.Error("error", err)
+			return
+		}
+		defer res.Body.Close()
+
+		jan, err := parser.Product(res.Body)
+
+		assert.Equal(t, nil, err)
+		assert.Equal(t, "4719331990053", jan)
+	})
+
+	t.Run("parser product no contain table", func(t *testing.T) {
+		res, err := createHttpResponse("html/test_product_no_table.html")
+		if err != nil {
+			logger.Error("error", err)
+			return
+		}
+		defer res.Body.Close()
+
+		jan, err := parser.Product(res.Body)
+
+		assert.Equal(t, nil, err)
+		assert.Equal(t, "4537694092371", jan)
+	})
+
+	t.Run("parser product on table", func(t *testing.T) {
+		res, err := createHttpResponse("html/test_product_on_table.html")
+		if err != nil {
+			logger.Error("error", err)
+			return
+		}
+		defer res.Body.Close()
+
+		jan, err := parser.Product(res.Body)
+
+		assert.Equal(t, nil, err)
+		assert.Equal(t, "4719512135716", jan)
 	})
 }
 

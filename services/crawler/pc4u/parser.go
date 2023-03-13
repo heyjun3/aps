@@ -56,7 +56,6 @@ func (p Pc4uParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		}
 
 		sold := s.Find(".big-item-list__soldout").Text()
-		logger.Info(sold)
 		if sold != "" {
 			logger.Info("product is sold out")
 			isSold = true
@@ -77,6 +76,21 @@ func (p Pc4uParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 	}
 
 	return products, nextURL
+}
+
+func (p Pc4uParser) Product(r io.ReadCloser) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		return "", err
+	}
+	re := regexp.MustCompile(`[0-9]{13}`)
+	itemDescription := doc.Find(".item-description__content").Text()
+	strs := re.FindAllString(itemDescription, -1)
+	if len(strs) == 0 {
+		return "", fmt.Errorf("not found jan")
+	}
+
+	return strs[0], nil
 }
 
 func (p Pc4uParser) nextPageURL(doc *goquery.Document) (string, error) {
