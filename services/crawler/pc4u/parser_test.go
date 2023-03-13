@@ -3,8 +3,8 @@ package pc4u
 import (
 	"bytes"
 	"io"
-	"os"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +16,7 @@ func createHttpResponse(path string) (*http.Response, error) {
 		return nil, err
 	}
 	res := &http.Response{
-		Body: io.NopCloser(bytes.NewReader(b)),
+		Body:    io.NopCloser(bytes.NewReader(b)),
 		Request: &http.Request{},
 	}
 	return res, nil
@@ -57,7 +57,7 @@ func TestParseProducts(t *testing.T) {
 	})
 
 	t.Run("parse last page", func(t *testing.T) {
-		res, err := createHttpResponse("html/test_product_list_last_page.html")	
+		res, err := createHttpResponse("html/test_product_list_last_page.html")
 		if err != nil {
 			logger.Error("error", err)
 			return
@@ -65,7 +65,7 @@ func TestParseProducts(t *testing.T) {
 		defer res.Body.Close()
 
 		products, url := parser.ProductList(res.Body)
-		
+
 		assert.Equal(t, 17, len(products))
 		assert.Equal(t, "", url)
 

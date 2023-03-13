@@ -73,12 +73,11 @@ func (p *Pc4uProduct) SetJan(jan string) {
 	p.Jan = null.StringFrom(jan)
 }
 
-
-type Pc4uProductRepository struct {}
+type Pc4uProductRepository struct{}
 
 func (r Pc4uProductRepository) GetByProductCodes(ctx context.Context,
 	conn boil.ContextExecutor, codes ...string) (scrape.Products, error) {
-	
+
 	var i []interface{}
 	for _, code := range codes {
 		i = append(i, code)

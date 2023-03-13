@@ -7,9 +7,9 @@ import (
 
 var logger = config.Logger
 
-func NewScrapeService() *scrape.Service{
+func NewScrapeService() *scrape.Service {
 	return &scrape.Service{
-		Repo: Pc4uProductRepository{},
+		Repo:   Pc4uProductRepository{},
 		Parser: Pc4uParser{},
 	}
 }

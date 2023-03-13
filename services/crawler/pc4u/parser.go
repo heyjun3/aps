@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/url"
 	"regexp"
-	"strings"
 	"strconv"
+	"strings"
 
 	"crawler/scrape"
 
@@ -15,10 +15,10 @@ import (
 
 const (
 	scheme = "https"
-	host = "www.pc4u.co.jp"
+	host   = "www.pc4u.co.jp"
 )
 
-type Pc4uParser struct {}
+type Pc4uParser struct{}
 
 func (p Pc4uParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
@@ -29,7 +29,7 @@ func (p Pc4uParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 
 	isSold := false
 	var products scrape.Products
-	doc.Find(".big-item-list__item").Each(func(i int, s *goquery.Selection){
+	doc.Find(".big-item-list__item").Each(func(i int, s *goquery.Selection) {
 		name := s.Find(".big-item-list__name a").Text()
 		if name == "" {
 			logger.Info("Not Found product name", "value", name)
@@ -40,7 +40,7 @@ func (p Pc4uParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		URL, err := url.Parse(path)
 		if !exist || err != nil {
 			logger.Info("Not Found url", "value", path)
-			return 
+			return
 		}
 		URL.Scheme = scheme
 		URL.Host = host
