@@ -16,7 +16,9 @@ import (
 	"crawler/scrape"
 )
 
-
+type IkebeProduct struct {
+	models.IkebeProduct
+}
 
 func NewIkebeProduct(name, productCode, url, jan string, price int64) *IkebeProduct {
 	isJan := true
@@ -35,9 +37,48 @@ func NewIkebeProduct(name, productCode, url, jan string, price int64) *IkebeProd
 	}
 }
 
+func (p *IkebeProduct) GenerateMessage(filename string) ([]byte, error) {
+	if !p.Jan.Valid {
+		return nil, fmt.Errorf("jan code isn't valid %s", p.ProductCode)
+	}
+	if !p.Price.Valid {
+		return nil, fmt.Errorf("price isn't valid %s", p.ProductCode)
+	}
+	if !p.URL.Valid {
+		return nil, fmt.Errorf("url isn't valid %s", p.ProductCode)
+	}
+	m := scrape.NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
+	message, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return message, err
+}
+
+func (p *IkebeProduct) GetProductCode() string {
+	return p.ProductCode
+}
+
+func (p *IkebeProduct) GetJan() string {
+	return p.Jan.String
+}
+
+func (p *IkebeProduct) GetURL() string {
+	return p.URL.String
+}
+
+func (p *IkebeProduct) IsValidJan() bool {
+	return p.Jan.Valid
+}
+
+func (p *IkebeProduct) SetJan(jan string) {
+	p.Jan = null.StringFrom(jan)
+}
+
 type IkebeProductRepository struct{}
 
-func (r IkebeProductRepository) GetByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) (scrape.Products, error) {
+func (r IkebeProductRepository) GetByProductCodes(ctx context.Context,
+	conn boil.ContextExecutor, codes ...string) (scrape.Products, error) {
 	var i []interface{}
 	for _, code := range codes {
 		i = append(i, code)
@@ -83,44 +124,3 @@ func (repo IkebeProductRepository) bulkUpsert(conn *sql.DB, products ...*IkebePr
 	return err
 }
 
-type IkebeProduct struct {
-	models.IkebeProduct
-}
-
-func (p *IkebeProduct) GenerateMessage(filename string) ([]byte, error) {
-	if !p.Jan.Valid {
-		return nil, fmt.Errorf("jan code isn't valid %s", p.ProductCode)
-	}
-	if !p.Price.Valid {
-		return nil, fmt.Errorf("price isn't valid %s", p.ProductCode)
-	}
-	if !p.URL.Valid {
-		return nil, fmt.Errorf("url isn't valid %s", p.ProductCode)
-	}
-	m := scrape.NewMWSSchema(filename, p.Jan.String, p.URL.String, p.Price.Int64)
-	message, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-	return message, err
-}
-
-func (p *IkebeProduct) GetProductCode() string {
-	return p.ProductCode
-}
-
-func (p *IkebeProduct) GetJan() string {
-	return p.Jan.String
-}
-
-func (p *IkebeProduct) GetURL() string {
-	return p.URL.String
-}
-
-func (p *IkebeProduct) IsValidJan() bool {
-	return p.Jan.Valid
-}
-
-func (p *IkebeProduct) SetJan(jan string) {
-	p.Jan = null.StringFrom(jan)
-}
