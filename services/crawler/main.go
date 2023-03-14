@@ -23,6 +23,7 @@ func main() {
 	case shop == "pc4u" && url != "":
 		pc4u.NewScrapeService().StartScrape(url, shop)
 	default:
+		ikebe.CreateTable()
 		fmt.Printf("argument error: s=%s, u=%s", shop, url)
 	}
 }
