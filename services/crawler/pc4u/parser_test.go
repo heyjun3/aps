@@ -155,6 +155,20 @@ func TestProduct(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, "4719512135716", jan)
 	})
+
+	t.Run("code is EAN", func(t *testing.T) {
+		res, err := createHttpResponse("html/test_product_ean.html")
+		if err != nil {
+			logger.Error("error", err)
+			return
+		}
+		defer res.Body.Close()
+
+		ean, err := parser.Product(res.Body)
+
+		assert.Equal(t, nil, err)
+		assert.Equal(t, "195553843515", ean)
+	})
 }
 
 func TestPullOutPrice(t *testing.T) {
