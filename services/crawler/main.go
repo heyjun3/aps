@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"crawler/ikebe"
+	"crawler/pc4u"
 )
 
 func main() {
@@ -19,6 +20,8 @@ func main() {
 	switch {
 	case shop == "ikebe" && url != "":
 		ikebe.NewScrapeService().StartScrape(url, shop)
+	case shop == "pc4u" && url != "":
+		pc4u.NewScrapeService().StartScrape(url, shop)
 	default:
 		fmt.Printf("argument error: s=%s, u=%s", shop, url)
 	}
