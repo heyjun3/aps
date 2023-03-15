@@ -18,12 +18,43 @@ type User struct {
 	Name string
 }
 
-func CreateTable() {
-	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(config.DBDsn)))
+func Tmp() {
+	conn := createDBConnection(config.DBDsn)
+	ctx := context.Background()
+	u := &User{
+		Name: "test",
+	}
+	err := u.Upsert(conn, ctx)
+	if err != nil {
+		logger.Error("error", err)
+	}
+}
+
+func createDBConnection(dsn string) *bun.DB{
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 	db := bun.NewDB(sqldb, pgdialect.New())
+	return db
+}
+
+func CreateTable() {
+	db := createDBConnection(config.DBDsn)
 	ctx := context.Background()
 	_, err := db.NewCreateTable().Model((*User)(nil)).Exec(ctx)
 	if err != nil {
 		logger.Info("erro")
 	}
+}
+
+func (u *User) Insert(conn *bun.DB, ctx context.Context) error {
+	_, err := conn.NewInsert().Model(u).Exec(ctx)
+	return err
+}
+
+func (u *User) Upsert(conn *bun.DB, ctx context.Context) error {
+	_, err := conn.NewInsert().
+		Model(u).
+		On("CONFLICT (id) DO UPDATE").
+		Set("? = EXCLUDED.?", bun.Ident("name"), "name").
+		Exec(ctx)
+	return err
 }
