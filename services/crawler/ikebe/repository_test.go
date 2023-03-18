@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/null/v8"
 
 	"crawler/config"
 	"crawler/scrape"
@@ -34,25 +33,23 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 	ctx := context.Background()
 	conf, _ := config.NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
-	conn, err := scrape.NewDBconnection(conf.Dsn())
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = IkebeProductTableFactory(conn)
+	conn := scrape.CreateDBConnection(conf.Dsn())
+	err := IkebeProductTableFactory(conn)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	models.IkebeProducts().DeleteAll(ctx, conn)
 	p := NewIkebeProduct("test", "test_code", "https://test.com", "", 1111)
-	if err := p.Insert(ctx, conn, boil.Infer()); err != nil {
+	repo := IkebeProductRepository{}
+	if err := repo.Upsert(conn, ctx, p); err != nil {
 		logger.Error("insert error", err)
 	}
 
 	t.Run("get products", func(t *testing.T) {
 		r := IkebeProductRepository{}
 
-		products, err := r.GetByProductCodes(ctx, conn, "test_code")
+		products, err := r.GetByProductCodes(conn, ctx, "test_code")
 
 		assert.Equal(t, nil, err)
 		assert.Equal(t, 1, len(products))
@@ -63,12 +60,8 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 func TestBulkUpsertIkebeProducts(t *testing.T) {
 	conf, _ := config.NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
-	conn, err := scrape.NewDBconnection(conf.Dsn())
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	err = IkebeProductTableFactory(conn)
+	conn := scrape.CreateDBConnection(conf.Dsn())
+	err := IkebeProductTableFactory(conn)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -83,11 +76,14 @@ func TestBulkUpsertIkebeProducts(t *testing.T) {
 			NewIkebeProduct("test", "test2", "https://test.jp", "1111", 9000),
 		}
 		repo := IkebeProductRepository{}
-		repo.bulkUpsert(conn, p...)
+		for _, product := range p {
+			repo.Upsert(conn, ctx, product)
+		}
 
 		assert.Equal(t, nil, err)
-		i, _ := models.FindIkebeProduct(ctx, conn, "ikebe", "test1")
-		assert.Equal(t, *p[1], IkebeProduct{*i})
+		var i IkebeProduct
+		conn.NewSelect().Model(&i).Where("product_code = ? and shop_code = ?", "ikebe", "test1").Scan(ctx)
+		assert.Equal(t, *p[1], i)
 	})
 }
 
@@ -145,7 +141,7 @@ func TestMappingIkebeProducts(t *testing.T) {
 func TestGenerateMessage(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		p := NewIkebeProduct("test", "test", "https://test.com", "", 6000)
-		p.Jan = null.StringFrom("4444")
+		p.Jan = "4444"
 		f := "ikebe_20220301_120303"
 
 		m, err := p.GenerateMessage(f)
@@ -167,7 +163,7 @@ func TestGenerateMessage(t *testing.T) {
 
 	t.Run("Price isn't valid", func(t *testing.T) {
 		p := NewIkebeProduct("TEST", "test", "https://test.com", "", 5000)
-		p.Price = null.Int64FromPtr(nil)
+		p.Price = 0
 		f := "ikebe_20220202_020222"
 
 		m, err := p.GenerateMessage(f)
@@ -178,7 +174,7 @@ func TestGenerateMessage(t *testing.T) {
 
 	t.Run("URL isn't valid", func(t *testing.T) {
 		p := NewIkebeProduct("TEST", "test", "https://test.com", "", 5000)
-		p.URL = null.StringFromPtr(nil)
+		p.URL = ""
 		f := "ikebe_20220202_020222"
 
 		m, err := p.GenerateMessage(f)

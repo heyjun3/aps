@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/volatiletech/sqlboiler/v4/boil"
-
 	"crawler/config"
 )
 
@@ -24,10 +22,6 @@ func NewService(repo Repository, parser Parser) *Service {
 		Repo: repo,
 		Parser: parser,
 	}
-}
-
-type Repository interface {
-	GetByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) (Products, error)
 }
 
 type Parser interface {
@@ -77,14 +71,10 @@ func (s Service) GetProducts(c chan Products, dsn string) chan Products {
 	go func() {
 		defer close(send)
 		ctx := context.Background()
-		conn, err := NewDBconnection(dsn)
-		if err != nil {
-			logger.Error("db open error", err)
-			return
-		}
+		conn := CreateDBConnection(dsn)
 
 		for p := range c {
-			dbProduct, err := s.Repo.GetByProductCodes(ctx, conn, p.getProductCodes()...)
+			dbProduct, err := s.Repo.GetByProductCodes(conn, ctx, p.getProductCodes()...)
 			if err != nil {
 				logger.Error("db get product error", err)
 				continue
@@ -135,13 +125,9 @@ func (s Service) SaveProduct(ch chan Product, dsn string) chan Product {
 	go func() {
 		defer close(send)
 		ctx := context.Background()
-		conn, err := NewDBconnection(dsn)
-		if err != nil {
-			logger.Error("db open error", err)
-			return
-		}
+		conn := CreateDBConnection(dsn)
 		for p := range ch {
-			err := p.Upsert(ctx, conn, true, []string{"shop_code", "product_code"}, boil.Infer(), boil.Infer())
+			err := s.Repo.Upsert(conn, ctx, p)
 			if err != nil {
 				logger.Error("product upsert error", err)
 				continue
