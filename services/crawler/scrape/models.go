@@ -3,6 +3,7 @@ package scrape
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -62,6 +63,26 @@ func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Base
 	}
 }
 
+type message struct {
+	Filename string `json:"filename"`
+	Jan      string `json:"jan"`
+	Price    int64  `json:"cost"`
+	URL      string `json:"url"`
+}
+
+func (m *message) validation() error {
+	if m.Jan == "" {
+		return fmt.Errorf("jan is zero value")
+	}
+	if m.Price == 0 {
+		return fmt.Errorf("price is zero value")
+	}
+	if m.URL == "" {
+		return fmt.Errorf("url is zero value")
+	}
+	return nil
+}
+
 type BaseProduct struct {
 	Name        string
 	Jan         string
@@ -71,19 +92,15 @@ type BaseProduct struct {
 	URL         string
 }
 
-type message struct {
-	Filename string `json:"filename"`
-	Jan      string `json:"jan"`
-	Price    int64  `json:"cost"`
-	URL      string `json:"url"`
-}
-
 func (i *BaseProduct) GenerateMessage(filename string) ([]byte, error) {
 	message := message{
 		Filename: filename,
 		Jan:      i.Jan,
 		Price:    i.Price,
 		URL:      i.URL,
+	}
+	if err := message.validation(); err != nil {
+		return nil, err
 	}
 	return json.Marshal(message)
 }

@@ -77,6 +77,7 @@ func TestGetIkebeProduct(t *testing.T) {
 	repo := IkebeProductRepository{}
 	for _, p := range ps {
 		repo.Upsert(conn, ctx, p)
+		logger.Info(p.Name)
 	}
 
 	t.Run("happy path", func(t *testing.T) {

@@ -82,7 +82,7 @@ func TestBulkUpsertIkebeProducts(t *testing.T) {
 
 		assert.Equal(t, nil, err)
 		var i IkebeProduct
-		conn.NewSelect().Model(&i).Where("product_code = ? and shop_code = ?", "ikebe", "test1").Scan(ctx)
+		conn.NewSelect().Model(&i).Where("product_code = ? and shop_code = ?", "test1", "ikebe").Scan(ctx)
 		assert.Equal(t, *p[1], i)
 	})
 }
@@ -156,7 +156,6 @@ func TestGenerateMessage(t *testing.T) {
 		f := "ikebe_20220202_020222"
 
 		m, err := p.GenerateMessage(f)
-
 		assert.Error(t, err)
 		assert.Equal(t, []byte(nil), m)
 	})

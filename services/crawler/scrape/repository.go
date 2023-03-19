@@ -15,7 +15,7 @@ type ProductRepository struct {}
 
 func (i ProductRepository) Upsert(conn *bun.DB, ctx context.Context, p Product) error {
 	_, err := conn.NewInsert().
-		Model(&p).
+		Model(p).
 		On("CONFLICT (shop_code, product_code) DO UPDATE").
 		Set(`
 		name = EXCLUDED.name,

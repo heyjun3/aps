@@ -95,8 +95,8 @@ func (r IkebeProductRepository) GetByProductCodes(conn *bun.DB,
 	// }
 
 	var products scrape.Products
-	for _, p := range ikebeProducts {
-		products = append(products, &p)
+	for i := 0; i < len(ikebeProducts); i++ {
+		products = append(products, &ikebeProducts[i])
 	}
 	return products, nil
 }
