@@ -46,7 +46,7 @@ func (s Service) StartScrape(url, shopName string) {
 
 func (s Service) ScrapeProductsList(
 	client httpClient, url string) chan Products {
-	c := make(chan Products, 10)
+	c := make(chan Products, 100)
 	go func() {
 		defer close(c)
 		for url != "" {
@@ -67,7 +67,7 @@ func (s Service) ScrapeProductsList(
 }
 
 func (s Service) GetProducts(c chan Products, dsn string) chan Products {
-	send := make(chan Products, 10)
+	send := make(chan Products, 100)
 	go func() {
 		defer close(send)
 		ctx := context.Background()
@@ -89,7 +89,7 @@ func (s Service) GetProducts(c chan Products, dsn string) chan Products {
 func (s Service) ScrapeProduct(
 	ch chan Products, client httpClient) chan Product {
 
-	send := make(chan Product)
+	send := make(chan Product, 100)
 	go func() {
 		defer close(send)
 		for products := range ch {
@@ -121,7 +121,7 @@ func (s Service) ScrapeProduct(
 
 func (s Service) SaveProduct(ch chan Product, dsn string) chan Product {
 
-	send := make(chan Product)
+	send := make(chan Product, 100)
 	go func() {
 		defer close(send)
 		ctx := context.Background()

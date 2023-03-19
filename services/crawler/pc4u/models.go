@@ -84,7 +84,7 @@ type Pc4uProductRepository struct{
 
 func (r Pc4uProductRepository) GetByProductCodes(conn *bun.DB,
 	ctx context.Context, codes ...string) (scrape.Products, error) {
-	
+
 	var pc4uProducts []Pc4uProduct
 	err := conn.NewSelect().
 		Model(&pc4uProducts).
@@ -104,8 +104,11 @@ func (r Pc4uProductRepository) GetByProductCodes(conn *bun.DB,
 	// 	return nil, err
 	// }
 	var products scrape.Products
-	for _, p := range pc4uProducts {
-		products = append(products, &p)
+	for i := 0; i < len(pc4uProducts); i++ {
+		products = append(products, &pc4uProducts[i])
 	}
+	// for _, p := range pc4uProducts {
+		// products = append(products, &p)
+	// }
 	return products, nil
 }

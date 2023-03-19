@@ -47,7 +47,7 @@ func (p Products) MapProducts(products Products) Products{
 		if !exist {
 			continue
 		}
-		v.SetJan((product).GetJan())
+		v.SetJan(product.GetJan())
 	}
 	return p
 }
