@@ -1,8 +1,7 @@
-package ikebe
+package pc4u
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,33 +11,32 @@ import (
 	"crawler/scrape"
 )
 
-func IkebeDatabaseFactory() (*bun.DB, context.Context, error) {
+func Pc4uDatabaseFactory() (*bun.DB, context.Context, error){
 	ctx := context.Background()
 	conf, _ := config.NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
 	conn := scrape.CreateDBConnection(conf.Dsn())
-	_, err := conn.NewCreateTable().Model((*IkebeProduct)(nil)).Exec(ctx)
+	_, err := conn.NewCreateTable().Model((*Pc4uProduct)(nil)).Exec(ctx)
 	if err != nil {
-		fmt.Println(err)
 		return nil, nil, err
 	}
-	conn.NewDelete().Model((*IkebeProduct)(nil)).Exec(ctx)
+	conn.NewDelete().Model((*Pc4uProduct)(nil)).Exec(ctx)
 	return conn, ctx, nil
 }
 
-func TestGetIkebeProductsByProductCode(t *testing.T) {
-	conn, ctx, err := IkebeDatabaseFactory()
+func TestGetPc4uProductsByProductCode(t *testing.T) {
+	conn, ctx, err := Pc4uDatabaseFactory()
 	if err != nil {
 		return
 	}
-	p := NewIkebeProduct("test", "test_code", "https://test.com", "", 1111)
-	repo := IkebeProductRepository{}
+	p := NewPc4uProduct("test", "test_code", "https://google.com", "", 7777)
+	repo := Pc4uProductRepository{}
 	if err := repo.Upsert(conn, ctx, p); err != nil {
 		logger.Error("insert error", err)
 	}
 
 	t.Run("get products", func(t *testing.T) {
-
+		
 		products, err := repo.GetByProductCodes(conn, ctx, "test_code")
 
 		assert.Equal(t, nil, err)
@@ -48,19 +46,18 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 }
 
 func TestUpsert(t *testing.T) {
-	conn, ctx, err := IkebeDatabaseFactory()
+	conn, ctx, err := Pc4uDatabaseFactory()
 	if err != nil {
-		return
+		return 
 	}
-	repo := IkebeProductRepository{}
-
-	t.Run("upsert ikebe product", func(t *testing.T) {
-		p := NewIkebeProduct("test", "test", "test url", "1111", 9000)
+	repo := Pc4uProductRepository{}
+	t.Run("upsert pc4u product", func(t *testing.T) {
+		p := NewPc4uProduct("test", "test", "test url", "1111", 9000)
 
 		err := repo.Upsert(conn, ctx, p)
 
 		assert.Equal(t, nil, err)
 		expectd, _ := repo.GetByProductCodes(conn, ctx, "test")
-		assert.Equal(t, (expectd[0]).(*IkebeProduct), p)
+		assert.Equal(t, (expectd[0]).(*Pc4uProduct), p)
 	})
 }

@@ -86,19 +86,3 @@ func MoveMessages(srcQueue, dstQueue string) {
 		}
 	}
 }
-
-// type MWSSchema struct {
-// 	Filename string `json:"filename"`
-// 	Jan      string `json:"jan"`
-// 	Price    int64  `json:"cost"`
-// 	URL      string `json:"url"`
-// }
-
-// func NewMWSSchema(filename, jan, url string, price int64) *MWSSchema {
-// 	return &MWSSchema{
-// 		Filename: filename,
-// 		Jan:      jan,
-// 		URL:      url,
-// 		Price:    price,
-// 	}
-// }
