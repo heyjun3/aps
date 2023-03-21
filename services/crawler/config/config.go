@@ -34,6 +34,7 @@ type RabbitMQ struct {
 var Config config
 var DBDsn string
 var MQDsn string
+var DstMQDsn string
 var Logger *slog.Logger
 
 func init() {
@@ -49,6 +50,9 @@ func init() {
 	}
 	DBDsn = Config.Dsn()
 	MQDsn = Config.MQDsn()
+
+	Config.RabbitMQ.Host = "192.168.0.5"
+	DstMQDsn = Config.MQDsn()
 }
 
 func NewConfig(path string) (config, error) {
