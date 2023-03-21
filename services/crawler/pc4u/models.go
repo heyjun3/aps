@@ -93,22 +93,10 @@ func (r Pc4uProductRepository) GetByProductCodes(conn *bun.DB,
 	if err != nil {
 		return nil, err
 	}
-	// var i []interface{}
-	// for _, code := range codes {
-	// 	i = append(i, code)
-	// }
-	// pc4uProducts, err := models.Pc4uProducts(
-	// 	qm.WhereIn("product_code in ?", i...)).All(ctx, conn)
 
-	// if err != nil {
-	// 	return nil, err
-	// }
 	var products scrape.Products
 	for i := 0; i < len(pc4uProducts); i++ {
 		products = append(products, &pc4uProducts[i])
 	}
-	// for _, p := range pc4uProducts {
-		// products = append(products, &p)
-	// }
 	return products, nil
 }

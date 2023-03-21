@@ -53,9 +53,13 @@ func (p Products) MapProducts(products Products) Products{
 }
 
 func NewProduct(name, productCode, url, jan, shopCode string, price int64) *BaseProduct {
+	janPtr := &jan
+	if jan == "" {
+		janPtr = nil
+	}
 	return &BaseProduct{
 		Name:        name,
-		Jan:         jan,
+		Jan:         janPtr,
 		Price:       price,
 		ShopCode:    shopCode,
 		ProductCode: productCode,
@@ -65,13 +69,13 @@ func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Base
 
 type message struct {
 	Filename string `json:"filename"`
-	Jan      string `json:"jan"`
+	Jan      *string `json:"jan"`
 	Price    int64  `json:"cost"`
 	URL      string `json:"url"`
 }
 
 func (m *message) validation() error {
-	if m.Jan == "" {
+	if m.Jan == nil || *m.Jan == "" {
 		return fmt.Errorf("jan is zero value")
 	}
 	if m.Price == 0 {
@@ -85,7 +89,7 @@ func (m *message) validation() error {
 
 type BaseProduct struct {
 	Name        string
-	Jan         string
+	Jan         *string
 	Price       int64
 	ShopCode    string `bun:"shop_code,pk"`
 	ProductCode string `bun:"product_code,pk"`
@@ -110,7 +114,10 @@ func (i *BaseProduct) GetProductCode() string {
 }
 
 func (i *BaseProduct) GetJan() string {
-	return i.Jan
+	if i.Jan == nil {
+		return ""
+	}
+	return *i.Jan
 }
 
 func (i *BaseProduct) GetURL() string {
@@ -118,9 +125,9 @@ func (i *BaseProduct) GetURL() string {
 }
 
 func (i *BaseProduct) IsValidJan() bool {
-	return i.Jan != ""
+	return i.Jan != nil
 }
 
 func (i *BaseProduct) SetJan(jan string) {
-	i.Jan = jan
+	i.Jan = &jan
 }

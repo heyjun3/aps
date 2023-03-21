@@ -13,7 +13,7 @@ type Repository interface {
 
 type ProductRepository struct {}
 
-func (i ProductRepository) Upsert(conn *bun.DB, ctx context.Context, p Product) error {
+func (r ProductRepository) Upsert(conn *bun.DB, ctx context.Context, p Product) error {
 	_, err := conn.NewInsert().
 		Model(p).
 		On("CONFLICT (shop_code, product_code) DO UPDATE").

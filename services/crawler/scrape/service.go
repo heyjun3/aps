@@ -105,12 +105,8 @@ func (s Service) ScrapeProduct(
 					logger.Error("http request error", err, "action", "scrapeProduct")
 					continue
 				}
-				jan, err := s.Parser.Product(res.Body)
+				jan, _ := s.Parser.Product(res.Body)
 				res.Body.Close()
-				if err != nil {
-					logger.Error("jan code isn't valid", err, "url", res.Request.URL)
-					continue
-				}
 				product.SetJan(jan)
 				send <- product
 			}

@@ -140,8 +140,7 @@ func TestMappingIkebeProducts(t *testing.T) {
 
 func TestGenerateMessage(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		p := NewIkebeProduct("test", "test", "https://test.com", "", 6000)
-		p.Jan = "4444"
+		p := NewIkebeProduct("test", "test", "https://test.com", "4444", 6000)
 		f := "ikebe_20220301_120303"
 
 		m, err := p.GenerateMessage(f)

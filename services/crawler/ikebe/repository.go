@@ -82,17 +82,6 @@ func (r IkebeProductRepository) GetByProductCodes(conn *bun.DB,
 	if err != nil {
 		return nil, err
 	}
-	// var i []interface{}
-	// for _, code := range codes {
-	// 	i = append(i, code)
-	// }
-	// ikebeProducts, err := models.IkebeProducts(
-	// 	qm.WhereIn("product_code in ?", i...),
-	// ).All(ctx, conn)
-
-	// if err != nil {
-	// 	return nil, fmt.Errorf("getByProductCodes is failed")
-	// }
 
 	var products scrape.Products
 	for i := 0; i < len(ikebeProducts); i++ {
