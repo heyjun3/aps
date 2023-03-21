@@ -37,4 +37,6 @@
 0 3 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s ikebe -u "https://www.ikebe-gakki.com/p/search?sort=latest&keyword=&tag=\%E3\%82\%A2\%E3\%82\%A6\%E3\%83\%88\%E3\%83\%AC\%E3\%83\%83\%E3\%83\%88&detailRadio=\%E3\%82\%A2\%E3\%82\%A6\%E3\%83\%88\%E3\%83\%AC\%E3\%83\%83\%E3\%83\%88&tag=&tag=&tag=&cat1=&value2=&cat2=&value3=&cat3=&tag=&detailShop=&minprice=&maxprice="
 20 * * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py mws
 0 * * * * /usr/bin/docker container ls -a | grep -i 'exited (0)' | awk '{print $1}' | xargs /usr/bin/docker rm
+0 3 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spapi -i register
+0 4 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spapi -i check
 5 0 * * * PGPASSWORD=postgres pg_dump -d aps -h localhost -U postgres | pigz > /home/jun/backup/`date +\%Y\%m\%d`_dump.sql.gz

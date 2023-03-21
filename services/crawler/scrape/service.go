@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/volatiletech/sqlboiler/v4/boil"
-
 	"crawler/config"
 )
 
@@ -24,10 +22,6 @@ func NewService(repo Repository, parser Parser) *Service {
 		Repo: repo,
 		Parser: parser,
 	}
-}
-
-type Repository interface {
-	GetByProductCodes(ctx context.Context, conn boil.ContextExecutor, codes ...string) (Products, error)
 }
 
 type Parser interface {
@@ -52,7 +46,7 @@ func (s Service) StartScrape(url, shopName string) {
 
 func (s Service) ScrapeProductsList(
 	client httpClient, url string) chan Products {
-	c := make(chan Products, 10)
+	c := make(chan Products, 100)
 	go func() {
 		defer close(c)
 		for url != "" {
@@ -73,18 +67,14 @@ func (s Service) ScrapeProductsList(
 }
 
 func (s Service) GetProducts(c chan Products, dsn string) chan Products {
-	send := make(chan Products, 10)
+	send := make(chan Products, 100)
 	go func() {
 		defer close(send)
 		ctx := context.Background()
-		conn, err := NewDBconnection(dsn)
-		if err != nil {
-			logger.Error("db open error", err)
-			return
-		}
+		conn := CreateDBConnection(dsn)
 
 		for p := range c {
-			dbProduct, err := s.Repo.GetByProductCodes(ctx, conn, p.getProductCodes()...)
+			dbProduct, err := s.Repo.GetByProductCodes(conn, ctx, p.getProductCodes()...)
 			if err != nil {
 				logger.Error("db get product error", err)
 				continue
@@ -99,7 +89,7 @@ func (s Service) GetProducts(c chan Products, dsn string) chan Products {
 func (s Service) ScrapeProduct(
 	ch chan Products, client httpClient) chan Product {
 
-	send := make(chan Product)
+	send := make(chan Product, 100)
 	go func() {
 		defer close(send)
 		for products := range ch {
@@ -115,12 +105,8 @@ func (s Service) ScrapeProduct(
 					logger.Error("http request error", err, "action", "scrapeProduct")
 					continue
 				}
-				jan, err := s.Parser.Product(res.Body)
+				jan, _ := s.Parser.Product(res.Body)
 				res.Body.Close()
-				if err != nil {
-					logger.Error("jan code isn't valid", err, "url", res.Request.URL)
-					continue
-				}
 				product.SetJan(jan)
 				send <- product
 			}
@@ -131,17 +117,13 @@ func (s Service) ScrapeProduct(
 
 func (s Service) SaveProduct(ch chan Product, dsn string) chan Product {
 
-	send := make(chan Product)
+	send := make(chan Product, 100)
 	go func() {
 		defer close(send)
 		ctx := context.Background()
-		conn, err := NewDBconnection(dsn)
-		if err != nil {
-			logger.Error("db open error", err)
-			return
-		}
+		conn := CreateDBConnection(dsn)
 		for p := range ch {
-			err := p.Upsert(ctx, conn, true, []string{"shop_code", "product_code"}, boil.Infer(), boil.Infer())
+			err := s.Repo.Upsert(conn, ctx, p)
 			if err != nil {
 				logger.Error("product upsert error", err)
 				continue

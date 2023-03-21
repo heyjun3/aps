@@ -34,9 +34,6 @@ func (c ClientMock) Request(method, url string, body io.Reader) (*http.Response,
 	return res, nil
 }
 
-
-
-
 func TestScrapeProductsList(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		c := ClientMock{"html/test_last_product_list.html"}
@@ -70,7 +67,7 @@ func TestGetIkebeProduct(t *testing.T) {
 	ctx := context.Background()
 	conf, _ := config.NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
-	conn, _ := scrape.NewDBconnection(conf.Dsn())
+	conn := scrape.CreateDBConnection(conf.Dsn())
 	models.IkebeProducts().DeleteAll(ctx, conn)
 	ps := []*IkebeProduct{
 		NewIkebeProduct("test1", "test1", "http://", "1111", 1111),
@@ -78,7 +75,10 @@ func TestGetIkebeProduct(t *testing.T) {
 		NewIkebeProduct("test3", "test3", "http://", "3333", 3333),
 	}
 	repo := IkebeProductRepository{}
-	repo.bulkUpsert(conn, ps...)
+	for _, p := range ps {
+		repo.Upsert(conn, ctx, p)
+		logger.Info(p.Name)
+	}
 
 	t.Run("happy path", func(t *testing.T) {
 		s := NewScrapeService()

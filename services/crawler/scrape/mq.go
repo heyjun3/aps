@@ -5,6 +5,8 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+
+	"crawler/config"
 )
 
 type RabbitMQClient interface {
@@ -42,6 +44,19 @@ func (mq MQClient) createMQConnection() (*amqp.Channel, error) {
 	return ch, err
 }
 
+func (mq MQClient) CreateConsumer() (<-chan amqp.Delivery, error) {
+	ch, err := mq.createMQConnection()
+	if err != nil {
+		return nil, err
+	}
+	msgs, err := ch.Consume(mq.queueName, "", true, false, false, false, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return msgs, nil
+}
+
 func (mq MQClient) Publish(message []byte) error {
 	ch, err := mq.createMQConnection()
 	if err != nil {
@@ -55,33 +70,35 @@ func (mq MQClient) Publish(message []byte) error {
 	return err
 }
 
-func (mq MQClient) batchPublish(messages ...[]byte) error {
-	ch, err := mq.createMQConnection()
+func MoveMessages(srcQueue, dstQueue string) {
+	srcClient := NewMQClient(config.MQDsn, srcQueue)
+	msgs, err := srcClient.CreateConsumer()
 	if err != nil {
-		return err
+		logger.Error("error", err)
 	}
-	ctx := context.Background()
-	for _, message := range messages {
-		err = ch.PublishWithContext(ctx, "", mq.queueName, false, false, amqp.Publishing{ContentType: "text/plain", Body: message})
+
+	dstClient := NewMQClient(config.DstMQDsn, dstQueue)
+	for d := range msgs {
+		logger.Info(string(d.Body))
+		err := dstClient.Publish(d.Body)
 		if err != nil {
-			return err
+			return
 		}
 	}
-	return err
 }
 
-type MWSSchema struct {
-	Filename string `json:"filename"`
-	Jan      string `json:"jan"`
-	Price    int64  `json:"cost"`
-	URL      string `json:"url"`
-}
+// type MWSSchema struct {
+// 	Filename string `json:"filename"`
+// 	Jan      string `json:"jan"`
+// 	Price    int64  `json:"cost"`
+// 	URL      string `json:"url"`
+// }
 
-func NewMWSSchema(filename, jan, url string, price int64) *MWSSchema {
-	return &MWSSchema{
-		Filename: filename,
-		Jan:      jan,
-		URL:      url,
-		Price:    price,
-	}
-}
+// func NewMWSSchema(filename, jan, url string, price int64) *MWSSchema {
+// 	return &MWSSchema{
+// 		Filename: filename,
+// 		Jan:      jan,
+// 		URL:      url,
+// 		Price:    price,
+// 	}
+// }
