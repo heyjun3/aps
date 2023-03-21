@@ -1,4 +1,4 @@
-package ikebe
+package pc4u
 
 import (
 	"context"
@@ -8,16 +8,16 @@ import (
 	"crawler/scrape"
 )
 
-type IkebeProductRepository struct{
+type Pc4uProductRepository struct{
 	scrape.ProductRepository
 }
 
-func (r IkebeProductRepository) GetByProductCodes(conn *bun.DB,
+func (r Pc4uProductRepository) GetByProductCodes(conn *bun.DB,
 	ctx context.Context, codes ...string) (scrape.Products, error) {
 
-	var ikebeProducts []IkebeProduct
+	var pc4uProducts []Pc4uProduct
 	err := conn.NewSelect().
-		Model(&ikebeProducts).
+		Model(&pc4uProducts).
 		Where("product_code IN (?)", bun.In(codes)).
 		Scan(ctx)
 	if err != nil {
@@ -25,8 +25,8 @@ func (r IkebeProductRepository) GetByProductCodes(conn *bun.DB,
 	}
 
 	var products scrape.Products
-	for i := 0; i < len(ikebeProducts); i++ {
-		products = append(products, &ikebeProducts[i])
+	for i := 0; i < len(pc4uProducts); i++ {
+		products = append(products, &pc4uProducts[i])
 	}
 	return products, nil
 }
