@@ -74,9 +74,8 @@ func TestGetIkebeProduct(t *testing.T) {
 		NewIkebeProduct("test2", "test2", "http://", "2222", 2222),
 		NewIkebeProduct("test3", "test3", "http://", "3333", 3333),
 	}
-	repo := IkebeProductRepository{}
 	for _, p := range ps {
-		repo.Upsert(conn, ctx, p)
+		p.Upsert(conn, ctx)
 		logger.Info(p.Name)
 	}
 

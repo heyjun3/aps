@@ -24,6 +24,7 @@ type Product interface {
 	GetURL() string
 	IsValidJan() bool
 	SetJan(string)
+	Upsert(*bun.DB, context.Context) error
 }
 
 type Products []Product
@@ -36,7 +37,7 @@ func (p Products) getProductCodes() []string {
 	return codes
 }
 
-func (p Products) MapProducts(products Products) Products{
+func (p Products) MapProducts(products Products) Products {
 	mapped := map[string]Product{}
 	for _, v := range products {
 		code := v.GetProductCode()
@@ -69,10 +70,10 @@ func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Base
 }
 
 type message struct {
-	Filename string `json:"filename"`
+	Filename string  `json:"filename"`
 	Jan      *string `json:"jan"`
-	Price    int64  `json:"cost"`
-	URL      string `json:"url"`
+	Price    int64   `json:"cost"`
+	URL      string  `json:"url"`
 }
 
 func (m *message) validation() error {
@@ -133,19 +134,20 @@ func (i *BaseProduct) SetJan(jan string) {
 	i.Jan = &jan
 }
 
-func (i *BaseProduct) Upsert(tablename string) (func(*bun.DB, context.Context) error ){
-	return func(conn *bun.DB, ctx context.Context) error {
-		_, err := conn.NewInsert().
-			Model(i).
-			ModelTableExpr(tablename).
-			On("CONFLICT (shop_code, product_code) DO UPDATE").
-			Set(`
-				name = EXCLUDED.name,
-				jan = EXCLUDED.jan,
-				price = EXCLUDED.price,
-				url = EXCLUDED.url
-			`).
-			Exec(ctx)
-		return err
-	}
+func (i *BaseProduct) Upsert(conn *bun.DB, ctx context.Context) error {
+	return Upsert(conn, ctx, i)
+}
+
+func Upsert(conn *bun.DB, ctx context.Context, p Product) error {
+	_, err := conn.NewInsert().
+		Model(p).
+		On("CONFLICT (shop_code, product_code) DO UPDATE").
+		Set(`
+			name = EXCLUDED.name,
+			jan = EXCLUDED.jan,
+			price = EXCLUDED.price,
+			url = EXCLUDED.url
+		`).
+		Exec(ctx)
+	return err
 }

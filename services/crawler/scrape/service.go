@@ -123,7 +123,7 @@ func (s Service) SaveProduct(ch chan Product, dsn string) chan Product {
 		ctx := context.Background()
 		conn := CreateDBConnection(dsn)
 		for p := range ch {
-			err := s.Repo.Upsert(conn, ctx, p)
+			err := p.Upsert(conn, ctx)
 			if err != nil {
 				logger.Error("product upsert error", err)
 				continue
