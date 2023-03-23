@@ -1,6 +1,7 @@
 package scrape
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -130,4 +131,21 @@ func (i *BaseProduct) IsValidJan() bool {
 
 func (i *BaseProduct) SetJan(jan string) {
 	i.Jan = &jan
+}
+
+func (i *BaseProduct) Upsert(tablename string) (func(*bun.DB, context.Context) error ){
+	return func(conn *bun.DB, ctx context.Context) error {
+		_, err := conn.NewInsert().
+			Model(i).
+			ModelTableExpr(tablename).
+			On("CONFLICT (shop_code, product_code) DO UPDATE").
+			Set(`
+				name = EXCLUDED.name,
+				jan = EXCLUDED.jan,
+				price = EXCLUDED.price,
+				url = EXCLUDED.url
+			`).
+			Exec(ctx)
+		return err
+	}
 }
