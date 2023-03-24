@@ -3,7 +3,6 @@ package scrape
 import (
 	"context"
 	"io"
-	"net/http"
 	"sync"
 	"time"
 
@@ -30,7 +29,7 @@ type Parser interface {
 }
 
 func (s Service) StartScrape(url, shopName string) {
-	client := Client{&http.Client{}}
+	client := NewClient()
 	mqClient := NewMQClient(config.MQDsn, "mws")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
