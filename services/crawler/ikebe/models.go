@@ -22,3 +22,22 @@ type IkebeProduct struct {
 func (p *IkebeProduct) Upsert(conn *bun.DB, ctx context.Context) error {
 	return scrape.Upsert(conn, ctx, p)
 }
+
+func GetByProductCodes(
+	conn *bun.DB,ctx context.Context, codes ...string)(scrape.Products, error) {
+
+	var ikebeProducts []IkebeProduct
+	err := conn.NewSelect().
+		Model(&ikebeProducts).
+		Where("product_code IN (?)", bun.In(codes)).
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var products scrape.Products
+	for i := 0; i < len(ikebeProducts); i++ {
+		products = append(products, &ikebeProducts[i])
+	}
+	return products, nil
+}
