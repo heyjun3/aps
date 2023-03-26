@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"crawler/models"
 	"crawler/config"
 	"crawler/scrape"
 )
@@ -68,15 +67,14 @@ func TestGetIkebeProduct(t *testing.T) {
 	conf, _ := config.NewConfig("../sqlboiler.toml")
 	conf.Psql.DBname = "test"
 	conn := scrape.CreateDBConnection(conf.Dsn())
-	models.IkebeProducts().DeleteAll(ctx, conn)
+	conn.NewDelete().Model((*IkebeProduct)(nil)).Exec(ctx)
 	ps := []*IkebeProduct{
 		NewIkebeProduct("test1", "test1", "http://", "1111", 1111),
 		NewIkebeProduct("test2", "test2", "http://", "2222", 2222),
 		NewIkebeProduct("test3", "test3", "http://", "3333", 3333),
 	}
-	repo := IkebeProductRepository{}
 	for _, p := range ps {
-		repo.Upsert(conn, ctx, p)
+		p.Upsert(conn, ctx)
 		logger.Info(p.Name)
 	}
 

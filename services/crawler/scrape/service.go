@@ -3,9 +3,10 @@ package scrape
 import (
 	"context"
 	"io"
-	"net/http"
 	"sync"
 	"time"
+
+	"github.com/uptrace/bun"
 
 	"crawler/config"
 )
@@ -13,15 +14,8 @@ import (
 var logger = config.Logger
 
 type Service struct{
-	Repo Repository
 	Parser Parser
-}
-
-func NewService(repo Repository, parser Parser) *Service {
-	return &Service{
-		Repo: repo,
-		Parser: parser,
-	}
+	FetchProductByProductCodes func(*bun.DB, context.Context, ...string)(Products, error)
 }
 
 type Parser interface {
@@ -30,7 +24,7 @@ type Parser interface {
 }
 
 func (s Service) StartScrape(url, shopName string) {
-	client := Client{&http.Client{}}
+	client := NewClient()
 	mqClient := NewMQClient(config.MQDsn, "mws")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -74,7 +68,7 @@ func (s Service) GetProducts(c chan Products, dsn string) chan Products {
 		conn := CreateDBConnection(dsn)
 
 		for p := range c {
-			dbProduct, err := s.Repo.GetByProductCodes(conn, ctx, p.getProductCodes()...)
+			dbProduct, err := s.FetchProductByProductCodes(conn, ctx, p.getProductCodes()...)
 			if err != nil {
 				logger.Error("db get product error", err)
 				continue
@@ -123,7 +117,7 @@ func (s Service) SaveProduct(ch chan Product, dsn string) chan Product {
 		ctx := context.Background()
 		conn := CreateDBConnection(dsn)
 		for p := range ch {
-			err := s.Repo.Upsert(conn, ctx, p)
+			err := p.Upsert(conn, ctx)
 			if err != nil {
 				logger.Error("product upsert error", err)
 				continue

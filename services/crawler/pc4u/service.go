@@ -9,7 +9,7 @@ var logger = config.Logger
 
 func NewScrapeService() *scrape.Service {
 	return &scrape.Service{
-		Repo:   Pc4uProductRepository{},
+		FetchProductByProductCodes: GetByProductCodes,
 		Parser: Pc4uParser{},
 	}
 }
