@@ -40,21 +40,33 @@ func (p ArkParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		URL.Host = host
 
 		splitPath := strings.Split(path, "/")
-		productId := splitPath[len(splitPath)-1]
+		var paths []string
+		for _, v := range splitPath {
+			if v != "" {
+				paths = append(paths, v)
+			}
+		}
+		productId := paths[len(paths)-1]
 
 		price, err := scrape.PullOutNumber(s.Find(".itemprice .price").Text())
 		if err != nil {
 			logger.Info("Not Found price")
 			return
 		}
-		coupon, err := scrape.PullOutNumber(s.Find(".price_diff_2_coupon").Text())
-		if err != nil {
-			logger.Info("Not Found coupon")
-			return
-		}
+		coupon, _ := scrape.PullOutNumber(s.Find(".price_diff_2.auto_coupon").Text())
 		discountedPrice := price - coupon
-		
 
+		products = append(products, NewArkProduct(name, productId, URL.String(), "", discountedPrice))
 	})
 
+	path, exist := doc.Find("#listnavi_next a[href]").Attr("href")
+	nextURL, err := url.Parse(path)
+	if !exist || err != nil {
+		logger.Info("Not Found next page URL")
+		return products, ""
+	}
+	nextURL.Scheme = scheme
+	nextURL.Host = host
+
+	return products, nextURL.String()
 }

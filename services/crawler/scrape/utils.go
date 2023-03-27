@@ -1,8 +1,12 @@
 package scrape
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"regexp"
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -24,4 +28,17 @@ func PullOutNumber(s string) (int64, error) {
 		return 0, err
 	}
 	return int64(price), nil
+}
+
+// テスト時のみ使用している。
+func CreateHttpResponse(path string) (*http.Response, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	res := &http.Response{
+		Body:    io.NopCloser(bytes.NewReader(b)),
+		Request: &http.Request{},
+	}
+	return res, nil
 }

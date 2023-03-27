@@ -1,12 +1,13 @@
 package scrape
 
 import (
+	"fmt"
 	"testing"
 	"time"
-	"fmt"
 
 	"github.com/stretchr/testify/assert"
 )
+
 
 func TestTimeToStr(t *testing.T) {
 	t.Run("format time to str", func(t *testing.T) {
