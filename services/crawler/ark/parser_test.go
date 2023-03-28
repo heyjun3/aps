@@ -95,3 +95,21 @@ func TestProductList(t *testing.T) {
 		}
 	})
 }
+
+func TestProduct(t *testing.T) {
+	parser := ArkParser{}
+	
+	t.Run("parse product page", func(t *testing.T) {
+		res, err := scrape.CreateHttpResponse("html/test_product_page.html")
+		if err != nil {
+			logger.Error("file open error", err)
+			panic(err)
+		}
+		defer res.Body.Close()
+
+		jan, err := parser.Product(res.Body)
+
+		assert.Equal(t, nil, err)
+		assert.Equal(t, "0843591081313", jan)
+	})
+}

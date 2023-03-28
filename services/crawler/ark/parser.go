@@ -1,8 +1,10 @@
 package ark
 
 import (
+	"fmt"
 	"io"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"crawler/scrape"
@@ -69,4 +71,18 @@ func (p ArkParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 	nextURL.Host = host
 
 	return products, nextURL.String()
+}
+
+func (p ArkParser) Product(res io.ReadCloser) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(res)
+	if err != nil {
+		return "", err
+	}
+	re := regexp.MustCompile("[0-9]{12,13}")
+	jancodes := re.FindAllString(doc.Find(".jancode").Text(), -1)
+
+	if len(jancodes) > 0 {
+		return jancodes[0], nil
+	}
+	return "", fmt.Errorf("not found jan code")
 }

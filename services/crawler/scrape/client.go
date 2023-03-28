@@ -20,7 +20,7 @@ func NewClient() Client{
 			Transport: &crawlerRoundTripper{
 				base: http.DefaultTransport,
 				logger: logger,
-				attempts: 3,
+				attempts: 10,
 				waitTime: time.Second * 2,
 			},
 		},
@@ -54,9 +54,9 @@ func (t *crawlerRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 	)
 	for count := 0; count < t.attempts; count++ {
 		res, err = t.base.RoundTrip(req)
-		time.Sleep(t.waitTime)
 		if !t.shouldRetry(res, err) {
-			logger.Info("http request error", "statuCode", res.StatusCode, "url", req.URL.String())
+			logger.Info("http request", "statuCode", res.StatusCode, "url", req.URL.String())
+			time.Sleep(t.waitTime)
 			return res, err
 		}
 	}
@@ -67,12 +67,13 @@ func (t *crawlerRoundTripper) shouldRetry(res *http.Response, err error) bool {
 	if err != nil {
 		var netErr net.Error
 		if errors.As(err, &netErr) {
+			logger.Error("network error", err)
 			return true
 		}
 	}
 
 	if res != nil {
-		if res.StatusCode > http.StatusBadRequest {
+		if res.StatusCode >= http.StatusMultipleChoices {
 			return true
 		}
 	}
