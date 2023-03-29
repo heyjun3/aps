@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"crawler/ark"
 	"crawler/ikebe"
 	"crawler/pc4u"
 	"crawler/scrape"
@@ -19,6 +20,8 @@ func main() {
 	flag.Parse()
 
 	switch {
+	case shop == "ark" && url != "":
+		ark.NewScrapeService().StartScrape(url, shop)
 	case shop == "ikebe" && url != "":
 		ikebe.NewScrapeService().StartScrape(url, shop)
 	case shop == "pc4u" && url != "":
