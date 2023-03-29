@@ -82,17 +82,11 @@ func (p Pc4uParser) Product(r io.ReadCloser) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	re := regexp.MustCompile(`[0-9]{13}`)
+	re := regexp.MustCompile(`[0-9]{12,13}`)
 	itemDescription := doc.Find(".item-description__content").Text()
 	janCodes := re.FindAllString(itemDescription, -1)
 	if len(janCodes) > 0 {
 		return janCodes[0], nil
-	}
-
-	eanRe := regexp.MustCompile(`[0-9]{12}`)
-	eanCodes := eanRe.FindAllString(itemDescription, -1)
-	if len(eanCodes) > 0 {
-		return eanCodes[0], nil
 	}
 
 	return "", fmt.Errorf("not found jan")
