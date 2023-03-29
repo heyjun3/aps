@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"crawler/scrape"
@@ -49,7 +48,7 @@ func (p Pc4uParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		productId := paths[len(paths)-1]
 
 		priceText := s.Find(".big-item-list__price").Text()
-		price, err := pullOutPrice(priceText)
+		price, err := scrape.PullOutNumber(priceText)
 		if err != nil {
 			logger.Info("Not Found price", "value", priceText)
 			return
@@ -123,18 +122,4 @@ func (p Pc4uParser) nextPageURL(doc *goquery.Document) (string, error) {
 	nextURL.Host = host
 
 	return nextURL.String(), nil
-}
-
-func pullOutPrice(s string) (int64, error) {
-	r := regexp.MustCompile(`[0-9]+`)
-	strs := r.FindAllString(s, -1)
-	if len(strs) == 0 {
-		return 0, fmt.Errorf("pull out price error: %s", s)
-	}
-
-	price, err := strconv.Atoi(strings.Join(strs, ""))
-	if err != nil {
-		return 0, err
-	}
-	return int64(price), nil
 }
