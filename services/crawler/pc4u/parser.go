@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"crawler/scrape"
@@ -49,7 +48,7 @@ func (p Pc4uParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		productId := paths[len(paths)-1]
 
 		priceText := s.Find(".big-item-list__price").Text()
-		price, err := pullOutPrice(priceText)
+		price, err := scrape.PullOutNumber(priceText)
 		if err != nil {
 			logger.Info("Not Found price", "value", priceText)
 			return
@@ -83,17 +82,11 @@ func (p Pc4uParser) Product(r io.ReadCloser) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	re := regexp.MustCompile(`[0-9]{13}`)
+	re := regexp.MustCompile(`[0-9]{12,13}`)
 	itemDescription := doc.Find(".item-description__content").Text()
 	janCodes := re.FindAllString(itemDescription, -1)
 	if len(janCodes) > 0 {
 		return janCodes[0], nil
-	}
-
-	eanRe := regexp.MustCompile(`[0-9]{12}`)
-	eanCodes := eanRe.FindAllString(itemDescription, -1)
-	if len(eanCodes) > 0 {
-		return eanCodes[0], nil
 	}
 
 	return "", fmt.Errorf("not found jan")
@@ -123,18 +116,4 @@ func (p Pc4uParser) nextPageURL(doc *goquery.Document) (string, error) {
 	nextURL.Host = host
 
 	return nextURL.String(), nil
-}
-
-func pullOutPrice(s string) (int64, error) {
-	r := regexp.MustCompile(`[0-9]+`)
-	strs := r.FindAllString(s, -1)
-	if len(strs) == 0 {
-		return 0, fmt.Errorf("pull out price error: %s", s)
-	}
-
-	price, err := strconv.Atoi(strings.Join(strs, ""))
-	if err != nil {
-		return 0, err
-	}
-	return int64(price), nil
 }
