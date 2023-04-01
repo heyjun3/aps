@@ -30,6 +30,7 @@
 0 16 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py pcones
 0 17 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s pc4u -u "https://www.pc4u.co.jp/view/category/outlet"
 30 17 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s pc4u -u "https://www.pc4u.co.jp/view/search"
+0 18 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s ark -u "https://www.ark-pc.co.jp/search/?limit=50&nouki=1"
 0 18 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spread_sheet
 0 4 * * 6 /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py rakuten -i all
 0 1 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s ikebe -u "https://www.ikebe-gakki.com/p/search?sort=latest&keyword=\%E7\%89\%B9\%E4\%BE\%A1"
