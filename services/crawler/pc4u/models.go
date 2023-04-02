@@ -19,10 +19,6 @@ type Pc4uProduct struct {
 	scrape.Product
 }
 
-func (p *Pc4uProduct) Upsert(conn *bun.DB, ctx context.Context) error {
-	return scrape.Upsert(conn, ctx, p)
-}
-
 func GetByProductCodes(conn *bun.DB,
 	ctx context.Context, codes ...string) (scrape.Products, error) {
 

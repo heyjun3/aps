@@ -19,10 +19,6 @@ type IkebeProduct struct {
 	scrape.Product
 }
 
-func (p *IkebeProduct) Upsert(conn *bun.DB, ctx context.Context) error {
-	return scrape.Upsert(conn, ctx, p)
-}
-
 func GetByProductCodes(
 	conn *bun.DB,ctx context.Context, codes ...string)(scrape.Products, error) {
 

@@ -24,7 +24,6 @@ type IProduct interface {
 	GetURL() string
 	IsValidJan() bool
 	SetJan(string)
-	Upsert(*bun.DB, context.Context) error
 }
 
 type Product struct {
@@ -85,24 +84,6 @@ func (i Product) IsValidJan() bool {
 
 func (i *Product) SetJan(jan string) {
 	i.Jan = &jan
-}
-
-func (i Product) Upsert(conn *bun.DB, ctx context.Context) error {
-	return Upsert(conn, ctx, &i)
-}
-
-func Upsert(conn *bun.DB, ctx context.Context, p IProduct) error {
-	_, err := conn.NewInsert().
-		Model(p).
-		On("CONFLICT (shop_code, product_code) DO UPDATE").
-		Set(`
-			name = EXCLUDED.name,
-			jan = EXCLUDED.jan,
-			price = EXCLUDED.price,
-			url = EXCLUDED.url
-		`).
-		Exec(ctx)
-	return err
 }
 
 type Products []IProduct

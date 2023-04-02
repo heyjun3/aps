@@ -68,15 +68,12 @@ func TestGetIkebeProduct(t *testing.T) {
 	conf.Psql.DBname = "test"
 	conn := scrape.CreateDBConnection(conf.Dsn())
 	conn.NewDelete().Model((*IkebeProduct)(nil)).Exec(ctx)
-	ps := []*IkebeProduct{
+	ps := scrape.Products{
 		NewIkebeProduct("test1", "test1", "http://", "1111", 1111),
 		NewIkebeProduct("test2", "test2", "http://", "2222", 2222),
 		NewIkebeProduct("test3", "test3", "http://", "3333", 3333),
 	}
-	for _, p := range ps {
-		p.Upsert(conn, ctx)
-		logger.Info(p.Name)
-	}
+	ps.BulkUpsert(conn, ctx)
 
 	t.Run("happy path", func(t *testing.T) {
 		s := NewScrapeService()
@@ -93,12 +90,8 @@ func TestGetIkebeProduct(t *testing.T) {
 
 		c := s.GetProducts(ch, conf.Dsn())
 
-		var expected scrape.Products
-		for _, p := range ps {
-			expected = append(expected, p)
-		}
 		for product := range c {
-			assert.Equal(t, expected, product)
+			assert.Equal(t, ps, product)
 		}
 	})
 
@@ -141,13 +134,13 @@ func TestScrapeProduct(t *testing.T) {
 
 		channel := s.ScrapeProduct(ch, c)
 
-		expectProduct := []scrape.IProduct{
+		expectProduct := scrape.Products{
 			NewIkebeProduct("test1", "test4", "http://", "2500140008600", 1111),
 			NewIkebeProduct("test3", "test6", "http://", "2500140008600", 3333),
 		}
-		var products []scrape.IProduct
+		var products scrape.Products
 		for product := range channel {
-			products = append(products, product)
+			products = product
 		}
 
 		assert.Equal(t, expectProduct, products)
@@ -158,7 +151,7 @@ func TestSaveProduct(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		conf, _ := config.NewConfig("../sqlboiler.toml")
 		conf.Psql.DBname = "test"
-		ch := make(chan scrape.IProduct)
+		ch := make(chan scrape.Products)
 		p := []*IkebeProduct{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "", 2222),
@@ -166,9 +159,11 @@ func TestSaveProduct(t *testing.T) {
 		}
 		go func() {
 			defer close(ch)
+			var products scrape.Products
 			for _, pro := range p {
-				ch <- pro
+				products = append(products, pro)
 			}
+			ch <- products
 		}()
 		s := NewScrapeService()
 

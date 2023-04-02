@@ -81,15 +81,14 @@ func (s Service) GetProducts(c chan Products, dsn string) chan Products {
 }
 
 func (s Service) ScrapeProduct(
-	ch chan Products, client httpClient) chan IProduct {
+	ch chan Products, client httpClient) chan Products {
 
-	send := make(chan IProduct, 100)
+	send := make(chan Products, 100)
 	go func() {
 		defer close(send)
 		for products := range ch {
 			for _, product := range products {
 				if product.IsValidJan() {
-					send <- product
 					continue
 				}
 
@@ -102,14 +101,14 @@ func (s Service) ScrapeProduct(
 				jan, _ := s.Parser.Product(res.Body)
 				res.Body.Close()
 				product.SetJan(jan)
-				send <- product
 			}
+			send <- products
 		}
 	}()
 	return send
 }
 
-func (s Service) SaveProduct(ch chan IProduct, dsn string) chan IProduct {
+func (s Service) SaveProduct(ch chan Products, dsn string) chan IProduct {
 
 	send := make(chan IProduct, 100)
 	go func() {
@@ -117,12 +116,14 @@ func (s Service) SaveProduct(ch chan IProduct, dsn string) chan IProduct {
 		ctx := context.Background()
 		conn := CreateDBConnection(dsn)
 		for p := range ch {
-			err := p.Upsert(conn, ctx)
+			err := p.BulkUpsert(conn, ctx)
 			if err != nil {
 				logger.Error("product upsert error", err)
 				continue
 			}
-			send <- p
+			for _, product := range p {
+				send <- product
+			}
 		}
 	}()
 	return send

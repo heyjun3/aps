@@ -21,7 +21,7 @@ func ArkDatabaseFactory() (*bun.DB, context.Context, error) {
 
 func TestArkGetByProductCodes(t *testing.T) {
 	conn, ctx, _ := ArkDatabaseFactory()
-	p := NewArkProduct("test", "test_code", "https://google.com", "", 1111)
+	p := scrape.Products{NewArkProduct("test", "test_code", "https://google.com", "", 1111)}
 	type args struct {
 		conn *bun.DB
 		ctx context.Context
@@ -39,7 +39,7 @@ func TestArkGetByProductCodes(t *testing.T) {
 			ctx: ctx,
 			codes: []string{"test_code"},
 		},
-		want: scrape.Products{p},
+		want: p,
 		wantErr: false,
 	},{
 		name: "get products none",
@@ -52,7 +52,7 @@ func TestArkGetByProductCodes(t *testing.T) {
 		wantErr: false,
 	}}
 
-	p.Upsert(conn, ctx)
+	p.BulkUpsert(conn, ctx)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
