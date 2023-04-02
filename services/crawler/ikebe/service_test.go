@@ -141,11 +141,11 @@ func TestScrapeProduct(t *testing.T) {
 
 		channel := s.ScrapeProduct(ch, c)
 
-		expectProduct := []scrape.Product{
+		expectProduct := []scrape.IProduct{
 			NewIkebeProduct("test1", "test4", "http://", "2500140008600", 1111),
 			NewIkebeProduct("test3", "test6", "http://", "2500140008600", 3333),
 		}
-		var products []scrape.Product
+		var products []scrape.IProduct
 		for product := range channel {
 			products = append(products, product)
 		}
@@ -158,7 +158,7 @@ func TestSaveProduct(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		conf, _ := config.NewConfig("../sqlboiler.toml")
 		conf.Psql.DBname = "test"
-		ch := make(chan scrape.Product)
+		ch := make(chan scrape.IProduct)
 		p := []*IkebeProduct{
 			NewIkebeProduct("test1", "test4", "http://", "", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "", 2222),
@@ -174,14 +174,14 @@ func TestSaveProduct(t *testing.T) {
 
 		channel := s.SaveProduct(ch, conf.Dsn())
 
-		var ps []scrape.Product
+		var ps []scrape.IProduct
 		for p := range channel {
 			ps = append(ps, p)
 			fmt.Println(p)
 		}
-		var extProducts []scrape.Product
+		var extProducts []scrape.IProduct
 		for _, pro := range p {
-			extProducts = append(extProducts, scrape.Product(pro))
+			extProducts = append(extProducts, scrape.IProduct(pro))
 		}
 		assert.Equal(t, extProducts, ps)
 	})
@@ -196,7 +196,7 @@ func (m MQMock) Publish(message []byte) error {
 
 func TestSendMessage(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		ch := make(chan scrape.Product)
+		ch := make(chan scrape.IProduct)
 		p := []*IkebeProduct{
 			NewIkebeProduct("test1", "test4", "http://", "1111", 1111),
 			NewIkebeProduct("test2", "test5", "http://", "2222", 2222),

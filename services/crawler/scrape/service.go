@@ -81,9 +81,9 @@ func (s Service) GetProducts(c chan Products, dsn string) chan Products {
 }
 
 func (s Service) ScrapeProduct(
-	ch chan Products, client httpClient) chan Product {
+	ch chan Products, client httpClient) chan IProduct {
 
-	send := make(chan Product, 100)
+	send := make(chan IProduct, 100)
 	go func() {
 		defer close(send)
 		for products := range ch {
@@ -109,9 +109,9 @@ func (s Service) ScrapeProduct(
 	return send
 }
 
-func (s Service) SaveProduct(ch chan Product, dsn string) chan Product {
+func (s Service) SaveProduct(ch chan IProduct, dsn string) chan IProduct {
 
-	send := make(chan Product, 100)
+	send := make(chan IProduct, 100)
 	go func() {
 		defer close(send)
 		ctx := context.Background()
@@ -129,7 +129,7 @@ func (s Service) SaveProduct(ch chan Product, dsn string) chan Product {
 }
 
 func (s Service) SendMessage(
-	ch chan Product, client RabbitMQClient,
+	ch chan IProduct, client RabbitMQClient,
 	shop_name string, wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()

@@ -17,7 +17,7 @@ func CreateDBConnection(dsn string) *bun.DB {
 	return conn
 }
 
-type Product interface {
+type IProduct interface {
 	GenerateMessage(filename string) ([]byte, error)
 	GetProductCode() string
 	GetJan() string
@@ -27,10 +27,10 @@ type Product interface {
 	Upsert(*bun.DB, context.Context) error
 }
 
-type Products []Product
+type Products []IProduct
 
 func (p Products) BulkUpsert(conn *bun.DB, ctx context.Context) error {
-	mapProduct := map[string]Product{}
+	mapProduct := map[string]IProduct{}
 	for _, v := range p {
 		mapProduct[v.GetProductCode()] = v
 	}
@@ -63,7 +63,7 @@ func (p Products) getProductCodes() []string {
 }
 
 func (p Products) MapProducts(products Products) Products {
-	mapped := map[string]Product{}
+	mapped := map[string]IProduct{}
 	for _, v := range products {
 		code := v.GetProductCode()
 		mapped[code] = v
@@ -163,7 +163,7 @@ func (i *BaseProduct) Upsert(conn *bun.DB, ctx context.Context) error {
 	return Upsert(conn, ctx, i)
 }
 
-func Upsert(conn *bun.DB, ctx context.Context, p Product) error {
+func Upsert(conn *bun.DB, ctx context.Context, p IProduct) error {
 	_, err := conn.NewInsert().
 		Model(p).
 		On("CONFLICT (shop_code, product_code) DO UPDATE").
