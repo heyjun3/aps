@@ -10,13 +10,13 @@ import (
 
 func NewArkProduct(name, productCode, url, jan string, price int64) *ArkProduct {
 	return &ArkProduct{
-		BaseProduct: *scrape.NewProduct(name, productCode, url, jan, "ark", price),
+		Product: *scrape.NewProduct(name, productCode, url, jan, "ark", price),
 	}
 }
 
 type ArkProduct struct {
 	bun.BaseModel `bun:"table:ark_products"`
-	scrape.BaseProduct
+	scrape.Product
 }
 
 func (p *ArkProduct) Upsert(conn *bun.DB, ctx context.Context) error {

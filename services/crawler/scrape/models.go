@@ -79,12 +79,12 @@ func (p Products) MapProducts(products Products) Products {
 	return p
 }
 
-func NewProduct(name, productCode, url, jan, shopCode string, price int64) *BaseProduct {
+func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Product {
 	janPtr := &jan
 	if jan == "" {
 		janPtr = nil
 	}
-	return &BaseProduct{
+	return &Product{
 		Name:        name,
 		Jan:         janPtr,
 		Price:       price,
@@ -114,7 +114,7 @@ func (m *message) validation() error {
 	return nil
 }
 
-type BaseProduct struct {
+type Product struct {
 	Name        string
 	Jan         *string
 	Price       int64
@@ -123,7 +123,7 @@ type BaseProduct struct {
 	URL         string
 }
 
-func (i *BaseProduct) GenerateMessage(filename string) ([]byte, error) {
+func (i *Product) GenerateMessage(filename string) ([]byte, error) {
 	message := message{
 		Filename: filename,
 		Jan:      i.Jan,
@@ -136,30 +136,30 @@ func (i *BaseProduct) GenerateMessage(filename string) ([]byte, error) {
 	return json.Marshal(message)
 }
 
-func (i *BaseProduct) GetProductCode() string {
+func (i *Product) GetProductCode() string {
 	return i.ProductCode
 }
 
-func (i *BaseProduct) GetJan() string {
+func (i *Product) GetJan() string {
 	if i.Jan == nil {
 		return ""
 	}
 	return *i.Jan
 }
 
-func (i *BaseProduct) GetURL() string {
+func (i *Product) GetURL() string {
 	return i.URL
 }
 
-func (i *BaseProduct) IsValidJan() bool {
+func (i *Product) IsValidJan() bool {
 	return i.Jan != nil
 }
 
-func (i *BaseProduct) SetJan(jan string) {
+func (i *Product) SetJan(jan string) {
 	i.Jan = &jan
 }
 
-func (i *BaseProduct) Upsert(conn *bun.DB, ctx context.Context) error {
+func (i *Product) Upsert(conn *bun.DB, ctx context.Context) error {
 	return Upsert(conn, ctx, i)
 }
 
