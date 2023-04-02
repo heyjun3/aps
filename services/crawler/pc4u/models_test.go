@@ -26,7 +26,8 @@ func TestGetPc4uProductsByProductCode(t *testing.T) {
 		return
 	}
 	p := NewPc4uProduct("test", "test_code", "https://google.com", "", 7777)
-	if err := p.Upsert(conn, ctx); err != nil {
+	err = scrape.Products{p}.BulkUpsert(conn, ctx)
+	if err != nil {
 		logger.Error("insert error", err)
 	}
 
@@ -48,7 +49,7 @@ func TestUpsert(t *testing.T) {
 	t.Run("upsert pc4u product", func(t *testing.T) {
 		p := NewPc4uProduct("test", "test", "test url", "1111", 9000)
 
-		err := p.Upsert(conn, ctx)
+		err := scrape.Products{p}.BulkUpsert(conn, ctx)
 
 		assert.Equal(t, nil, err)
 		expectd, _ := GetByProductCodes(conn, ctx, "test")

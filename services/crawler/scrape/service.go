@@ -81,15 +81,14 @@ func (s Service) GetProducts(c chan Products, dsn string) chan Products {
 }
 
 func (s Service) ScrapeProduct(
-	ch chan Products, client httpClient) chan Product {
+	ch chan Products, client httpClient) chan Products {
 
-	send := make(chan Product, 100)
+	send := make(chan Products, 100)
 	go func() {
 		defer close(send)
 		for products := range ch {
 			for _, product := range products {
 				if product.IsValidJan() {
-					send <- product
 					continue
 				}
 
@@ -102,6 +101,27 @@ func (s Service) ScrapeProduct(
 				jan, _ := s.Parser.Product(res.Body)
 				res.Body.Close()
 				product.SetJan(jan)
+			}
+			send <- products
+		}
+	}()
+	return send
+}
+
+func (s Service) SaveProduct(ch chan Products, dsn string) chan IProduct {
+
+	send := make(chan IProduct, 100)
+	go func() {
+		defer close(send)
+		ctx := context.Background()
+		conn := CreateDBConnection(dsn)
+		for p := range ch {
+			err := p.BulkUpsert(conn, ctx)
+			if err != nil {
+				logger.Error("product upsert error", err)
+				continue
+			}
+			for _, product := range p {
 				send <- product
 			}
 		}
@@ -109,27 +129,8 @@ func (s Service) ScrapeProduct(
 	return send
 }
 
-func (s Service) SaveProduct(ch chan Product, dsn string) chan Product {
-
-	send := make(chan Product, 100)
-	go func() {
-		defer close(send)
-		ctx := context.Background()
-		conn := CreateDBConnection(dsn)
-		for p := range ch {
-			err := p.Upsert(conn, ctx)
-			if err != nil {
-				logger.Error("product upsert error", err)
-				continue
-			}
-			send <- p
-		}
-	}()
-	return send
-}
-
 func (s Service) SendMessage(
-	ch chan Product, client RabbitMQClient,
+	ch chan IProduct, client RabbitMQClient,
 	shop_name string, wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()

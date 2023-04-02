@@ -10,17 +10,13 @@ import (
 
 func NewIkebeProduct(name, productCode, url, jan string, price int64) *IkebeProduct {
 	return &IkebeProduct{
-		BaseProduct: *scrape.NewProduct(name, productCode, url, jan, "ikebe", price),
+		Product: *scrape.NewProduct(name, productCode, url, jan, "ikebe", price),
 	}
 }
 
 type IkebeProduct struct {
 	bun.BaseModel `bun:"table:ikebe_product"`
-	scrape.BaseProduct
-}
-
-func (p *IkebeProduct) Upsert(conn *bun.DB, ctx context.Context) error {
-	return scrape.Upsert(conn, ctx, p)
+	scrape.Product
 }
 
 func GetByProductCodes(

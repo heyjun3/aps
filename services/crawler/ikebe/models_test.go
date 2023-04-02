@@ -26,7 +26,8 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 		return
 	}
 	p := NewIkebeProduct("test", "test_code", "https://test.com", "", 1111)
-	if err := p.Upsert(conn, ctx); err != nil {
+	err = scrape.Products{p}.BulkUpsert(conn, ctx)
+	if err != nil {
 		logger.Error("insert error", err)
 	}
 
@@ -49,7 +50,7 @@ func TestUpsert(t *testing.T) {
 	t.Run("upsert ikebe product", func(t *testing.T) {
 		p := NewIkebeProduct("test", "test", "test url", "1111", 9000)
 
-		err := p.Upsert(conn, ctx)
+		err := scrape.Products{p}.BulkUpsert(conn, ctx)
 
 		assert.Equal(t, nil, err)
 		expectd, _ := GetByProductCodes(conn, ctx, "test")

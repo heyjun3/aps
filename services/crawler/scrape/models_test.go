@@ -1,10 +1,54 @@
 package scrape
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/uptrace/bun"
+
+	"crawler/testutils"
 )
+
+func TestBulkUpsert(t *testing.T) {
+	conn, ctx := testutils.DatabaseFactory()
+	conn.ResetModel(ctx, (*Product)(nil))
+	type args struct {
+		conn *bun.DB
+		ctx context.Context
+		products Products
+	}
+	tests := []struct{
+		name string
+		args args
+		wantErr bool
+	}{{
+		name: "success upsert",
+		args: args{
+			conn: conn,
+			ctx: ctx,
+			products: Products{
+				NewProduct("test", "test", "https://test.com", "1111", "test", 1111),
+				NewProduct("test", "test1", "https://test.com", "1111", "test", 1111),
+				NewProduct("test", "test2", "https://test.com", "1111", "test", 1111),
+				NewProduct("test", "test3", "https://test.com", "1111", "test", 1111),
+				NewProduct("test", "test4", "https://test.com", "1111", "test", 1111),
+			},
+		},
+		wantErr: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.args.products.BulkUpsert(tt.args.conn, tt.args.ctx)
+			if tt.wantErr{
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
 
 func TestMappingProducts(t *testing.T) {
 
