@@ -99,17 +99,17 @@ func (p Products) BulkUpsert(conn *bun.DB, ctx context.Context) error {
 	}
 
 	_, err := conn.NewInsert().
-	Model(&products).
-	On("CONFLICT (shop_code, product_code) DO UPDATE").
-	Set(`
-		name = EXCLUDED.name,
-		jan = EXCLUDED.jan,
-		price = EXCLUDED.price,
-		url = EXCLUDED.url
-	`).
-	Returning("NULL").
-	Exec(ctx)
-	logger.Error("error", err)
+		Model(&products).
+		On("CONFLICT (shop_code, product_code) DO UPDATE").
+		Set(`
+			name = EXCLUDED.name,
+			jan = EXCLUDED.jan,
+			price = EXCLUDED.price,
+			url = EXCLUDED.url
+		`).
+		Returning("NULL").
+		Exec(ctx)
+
 	return err
 }
 
