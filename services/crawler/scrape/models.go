@@ -27,6 +27,84 @@ type IProduct interface {
 	Upsert(*bun.DB, context.Context) error
 }
 
+type Product struct {
+	Name        string
+	Jan         *string
+	Price       int64
+	ShopCode    string `bun:"shop_code,pk"`
+	ProductCode string `bun:"product_code,pk"`
+	URL         string
+}
+
+func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Product {
+	janPtr := &jan
+	if jan == "" {
+		janPtr = nil
+	}
+	return &Product{
+		Name:        name,
+		Jan:         janPtr,
+		Price:       price,
+		ShopCode:    shopCode,
+		ProductCode: productCode,
+		URL:         url,
+	}
+}
+
+func (i Product) GenerateMessage(filename string) ([]byte, error) {
+	message := message{
+		Filename: filename,
+		Jan:      i.Jan,
+		Price:    i.Price,
+		URL:      i.URL,
+	}
+	if err := message.validation(); err != nil {
+		return nil, err
+	}
+	return json.Marshal(message)
+}
+
+func (i Product) GetProductCode() string {
+	return i.ProductCode
+}
+
+func (i Product) GetJan() string {
+	if i.Jan == nil {
+		return ""
+	}
+	return *i.Jan
+}
+
+func (i Product) GetURL() string {
+	return i.URL
+}
+
+func (i Product) IsValidJan() bool {
+	return i.Jan != nil
+}
+
+func (i *Product) SetJan(jan string) {
+	i.Jan = &jan
+}
+
+func (i Product) Upsert(conn *bun.DB, ctx context.Context) error {
+	return Upsert(conn, ctx, &i)
+}
+
+func Upsert(conn *bun.DB, ctx context.Context, p IProduct) error {
+	_, err := conn.NewInsert().
+		Model(p).
+		On("CONFLICT (shop_code, product_code) DO UPDATE").
+		Set(`
+			name = EXCLUDED.name,
+			jan = EXCLUDED.jan,
+			price = EXCLUDED.price,
+			url = EXCLUDED.url
+		`).
+		Exec(ctx)
+	return err
+}
+
 type Products []IProduct
 
 func (p Products) BulkUpsert(conn *bun.DB, ctx context.Context) error {
@@ -79,21 +157,6 @@ func (p Products) MapProducts(products Products) Products {
 	return p
 }
 
-func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Product {
-	janPtr := &jan
-	if jan == "" {
-		janPtr = nil
-	}
-	return &Product{
-		Name:        name,
-		Jan:         janPtr,
-		Price:       price,
-		ShopCode:    shopCode,
-		ProductCode: productCode,
-		URL:         url,
-	}
-}
-
 type message struct {
 	Filename string  `json:"filename"`
 	Jan      *string `json:"jan"`
@@ -112,67 +175,4 @@ func (m *message) validation() error {
 		return fmt.Errorf("url is zero value")
 	}
 	return nil
-}
-
-type Product struct {
-	Name        string
-	Jan         *string
-	Price       int64
-	ShopCode    string `bun:"shop_code,pk"`
-	ProductCode string `bun:"product_code,pk"`
-	URL         string
-}
-
-func (i *Product) GenerateMessage(filename string) ([]byte, error) {
-	message := message{
-		Filename: filename,
-		Jan:      i.Jan,
-		Price:    i.Price,
-		URL:      i.URL,
-	}
-	if err := message.validation(); err != nil {
-		return nil, err
-	}
-	return json.Marshal(message)
-}
-
-func (i *Product) GetProductCode() string {
-	return i.ProductCode
-}
-
-func (i *Product) GetJan() string {
-	if i.Jan == nil {
-		return ""
-	}
-	return *i.Jan
-}
-
-func (i *Product) GetURL() string {
-	return i.URL
-}
-
-func (i *Product) IsValidJan() bool {
-	return i.Jan != nil
-}
-
-func (i *Product) SetJan(jan string) {
-	i.Jan = &jan
-}
-
-func (i *Product) Upsert(conn *bun.DB, ctx context.Context) error {
-	return Upsert(conn, ctx, i)
-}
-
-func Upsert(conn *bun.DB, ctx context.Context, p IProduct) error {
-	_, err := conn.NewInsert().
-		Model(p).
-		On("CONFLICT (shop_code, product_code) DO UPDATE").
-		Set(`
-			name = EXCLUDED.name,
-			jan = EXCLUDED.jan,
-			price = EXCLUDED.price,
-			url = EXCLUDED.url
-		`).
-		Exec(ctx)
-	return err
 }
