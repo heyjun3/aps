@@ -65,3 +65,44 @@ func TestArkGetByProductCodes(t *testing.T) {
 		})
 	}
 }
+
+func TestBulkUpsert(t *testing.T) {
+	conn, ctx, _ := ArkDatabaseFactory()
+	type args struct {
+		conn *bun.DB
+		ctx context.Context
+		products scrape.Products
+	}
+	tests := []struct{
+		name string
+		args args
+		wantErr bool
+	}{{
+		name: "bulkupsert",
+		args: args{
+			conn: conn,
+			ctx: ctx,
+			products: scrape.Products{
+				NewArkProduct("test", "test_code", "https://google.com", "", 3333),
+				NewArkProduct("test", "test", "https://google.com", "", 11111),
+				NewArkProduct("test", "code", "https://google.com", "", 9999),
+				NewArkProduct("test1", "code1", "https://google.com", "", 9999),
+				NewArkProduct("test2", "code3", "https://google.com", "", 9999),
+				NewArkProduct("test3", "code4", "https://google.com", "", 9999),
+				NewArkProduct("test4", "code6", "https://google.com", "", 9999),
+			},
+		},
+		wantErr: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.args.products.BulkUpsert(tt.args.conn, tt.args.ctx)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

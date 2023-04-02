@@ -29,6 +29,31 @@ type Product interface {
 
 type Products []Product
 
+func (p Products) BulkUpsert(conn *bun.DB, ctx context.Context) error {
+	mapProduct := map[string]Product{}
+	for _, v := range p {
+		mapProduct[v.GetProductCode()] = v
+	}
+	var products Products
+	for _, v := range mapProduct {
+		products = append(products, v)
+	}
+
+	_, err := conn.NewInsert().
+	Model(&products).
+	On("CONFLICT (shop_code, product_code) DO UPDATE").
+	Set(`
+		name = EXCLUDED.name,
+		jan = EXCLUDED.jan,
+		price = EXCLUDED.price,
+		url = EXCLUDED.url
+	`).
+	Returning("NULL").
+	Exec(ctx)
+	logger.Error("error", err)
+	return err
+}
+
 func (p Products) getProductCodes() []string {
 	var codes []string
 	for _, pro := range p {
