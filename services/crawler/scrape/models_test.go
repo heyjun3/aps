@@ -91,6 +91,7 @@ func TestGet(t *testing.T) {
 		},
 		wantErr: false,
 	}}
+
 	pre := Products{
 		NewProduct("name", "test", "https://test.com", "1111", "shop", 1111),
 		NewProduct("name", "test1", "https://test.com", "2222", "shop", 11),
