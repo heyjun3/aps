@@ -93,11 +93,12 @@ type Products []IProduct
 
 func GetByProductCodes(p IProduct) (func(*bun.DB, context.Context, ...string)(Products, error)) {
 	return func(conn *bun.DB, ctx context.Context, codes ...string) (Products, error) {
-		var products Products
-		for i := 0; i < len(codes); i++ {
-			p := reflect.New(reflect.ValueOf(p).Elem().Type()).Interface().(IProduct)
-			products = append(products, p)
+		s := len(codes) * 2
+		products := make(Products, s)
+		for i := 0; i < s; i++ {
+			products[i] = reflect.New(reflect.ValueOf(p).Elem().Type()).Interface().(IProduct)
 		}
+		
 		err := conn.NewSelect().
 			Model(&products).
 			Where("product_code IN (?)", bun.In(codes)).
