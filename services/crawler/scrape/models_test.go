@@ -50,6 +50,69 @@ func TestBulkUpsert(t *testing.T) {
 	}
 }
 
+func TestGet(t *testing.T) {
+	conn, ctx := testutils.DatabaseFactory()
+	conn.ResetModel(ctx, (*Product)(nil))
+	f := GetByProductCodes(&Product{})
+	type args struct {
+		conn *bun.DB
+		ctx context.Context
+		f func(*bun.DB, context.Context, ...string) (Products, error)
+		codes []string
+	}
+	tests := []struct{
+		name string
+		args args
+		want Products
+		wantErr bool
+	}{{
+		name: "get product",
+		args: args{
+			conn: conn,
+			ctx: ctx,
+			f: f,
+			codes: []string{"test", "test1"},
+		},
+		want: Products{
+			NewProduct("name", "test", "https://test.com", "1111", "shop", 1111),
+			NewProduct("name", "test1", "https://test.com", "2222", "shop", 11),
+		},
+		wantErr: false,
+	},{
+		name: "get another product",
+		args: args{
+			conn: conn,
+			ctx: ctx,
+			f: f,
+			codes: []string{"test2"},
+		},
+		want: Products{
+			NewProduct("name", "test2", "https://test.com", "1331", "shop", 2),
+		},
+		wantErr: false,
+	}}
+
+	pre := Products{
+		NewProduct("name", "test", "https://test.com", "1111", "shop", 1111),
+		NewProduct("name", "test1", "https://test.com", "2222", "shop", 11),
+		NewProduct("name", "test2", "https://test.com", "1331", "shop", 2),
+	}
+	pre.BulkUpsert(conn, ctx)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			products, err := tt.args.f(tt.args.conn, tt.args.ctx, tt.args.codes...)
+			
+			assert.Equal(t, tt.want, products)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestMappingProducts(t *testing.T) {
 
 	t.Run("happy path", func(t *testing.T) {

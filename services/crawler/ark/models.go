@@ -19,21 +19,10 @@ type ArkProduct struct {
 	scrape.Product
 }
 
-func GetByProductCodes(conn *bun.DB,
-	ctx context.Context, codes ...string) (scrape.Products, error) {
-
-	var arkProducts []ArkProduct
-	err := conn.NewSelect().
-		Model(&arkProducts).
-		Where("product_code IN (?)", bun.In(codes)).
-		Scan(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var products scrape.Products
-	for i := 0; i < len(arkProducts); i++ {
-		products = append(products, &arkProducts[i])
-	}
-	return products, nil
+func CreateTable(conn *bun.DB, ctx context.Context) error {
+	_, err := conn.NewCreateTable().
+		Model((*ArkProduct)(nil)).
+		IfNotExists().
+		Exec(ctx)
+	return err
 }

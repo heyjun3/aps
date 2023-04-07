@@ -1,14 +1,34 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 
+	"github.com/uptrace/bun"
+
 	"crawler/ark"
+	"crawler/config"
 	"crawler/ikebe"
 	"crawler/pc4u"
 	"crawler/scrape"
 )
+
+func init() {
+	fs := []func(*bun.DB, context.Context)error{
+		ark.CreateTable,
+		ikebe.CreateTable,
+		pc4u.CreateTable,
+	}
+	conn := scrape.CreateDBConnection(config.Config.Dsn())
+	ctx := context.Background()
+
+	for _, f := range fs {
+		if err := f(conn, ctx); err != nil {
+			panic(err)
+		}
+	}
+}
 
 func main() {
 	var (
