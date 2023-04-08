@@ -15,7 +15,7 @@ func TestArkGetByProductCodes(t *testing.T) {
 	conn, ctx := testutils.DatabaseFactory()
 	conn.ResetModel(ctx, (*ArkProduct)(nil))
 	p := scrape.Products{NewArkProduct("test", "test_code", "https://google.com", "", 1111)}
-	f := scrape.GetByProductCodes(&ArkProduct{})
+	f := GetByProductCodes
 
 	type args struct {
 		conn *bun.DB
@@ -46,7 +46,7 @@ func TestArkGetByProductCodes(t *testing.T) {
 			codes: []string{"code", "test"},
 			f: f,
 		},
-		want: scrape.Products{},
+		want: scrape.Products(nil),
 		wantErr: false,
 	}}
 

@@ -14,7 +14,7 @@ import (
 func TestGetPc4uProductsByProductCode(t *testing.T) {
 	conn, ctx := testutils.DatabaseFactory()
 	conn.ResetModel(ctx, (*Pc4uProduct)(nil))
-	f := scrape.GetByProductCodes(&Pc4uProduct{})
+	f := GetByProductCodes
 	type args struct {
 		conn *bun.DB
 		ctx context.Context
@@ -70,7 +70,7 @@ func TestUpsert(t *testing.T) {
 		err := scrape.Products{p}.BulkUpsert(conn, ctx)
 
 		assert.Equal(t, nil, err)
-		expectd, _ := scrape.GetByProductCodes(&Pc4uProduct{})(conn, ctx, "test")
+		expectd, _ := GetByProductCodes(conn, ctx, "test")
 		assert.Equal(t, (expectd[0]).(*Pc4uProduct), p)
 	})
 }

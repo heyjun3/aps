@@ -14,7 +14,7 @@ const (
 
 func NewScrapeService() *scrape.Service{
 	return &scrape.Service{
-		FetchProductByProductCodes: scrape.GetByProductCodes(&IkebeProduct{}),
+		FetchProductByProductCodes: GetByProductCodes,
 		Parser: IkebeParser{},
 	}
 }

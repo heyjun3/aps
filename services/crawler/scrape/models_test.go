@@ -53,7 +53,7 @@ func TestBulkUpsert(t *testing.T) {
 func TestGet(t *testing.T) {
 	conn, ctx := testutils.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
-	f := GetByProductCodes(&Product{})
+	f := GetByProductCodes
 	type args struct {
 		conn *bun.DB
 		ctx context.Context
