@@ -18,35 +18,35 @@ func TestArkGetByProductCodes(t *testing.T) {
 	f := GetByProductCodes
 
 	type args struct {
-		conn *bun.DB
-		ctx context.Context
+		conn  *bun.DB
+		ctx   context.Context
 		codes []string
-		f func(*bun.DB, context.Context, ...string) (scrape.Products, error)
+		f     func(*bun.DB, context.Context, ...string) (scrape.Products, error)
 	}
-	tests := []struct{
-		name string
-		args args
-		want scrape.Products
+	tests := []struct {
+		name    string
+		args    args
+		want    scrape.Products
 		wantErr bool
 	}{{
 		name: "get procuets",
 		args: args{
-			conn: conn,
-			ctx: ctx,
+			conn:  conn,
+			ctx:   ctx,
 			codes: []string{"test_code"},
-			f: f,
+			f:     f,
 		},
-		want: p,
+		want:    p,
 		wantErr: false,
-	},{
+	}, {
 		name: "get products none",
-		args: args {
-			conn: conn,
-			ctx: ctx,
+		args: args{
+			conn:  conn,
+			ctx:   ctx,
 			codes: []string{"code", "test"},
-			f: f,
+			f:     f,
 		},
-		want: scrape.Products(nil),
+		want:    scrape.Products(nil),
 		wantErr: false,
 	}}
 
@@ -55,7 +55,7 @@ func TestArkGetByProductCodes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			products, err := tt.args.f(tt.args.conn, tt.args.ctx, tt.args.codes...)
-			
+
 			assert.Equal(t, tt.want, products)
 			if err != nil {
 				assert.Error(t, err)
@@ -68,19 +68,19 @@ func TestBulkUpsert(t *testing.T) {
 	conn, ctx := testutils.DatabaseFactory()
 	conn.ResetModel(ctx, ArkProduct{})
 	type args struct {
-		conn *bun.DB
-		ctx context.Context
+		conn     *bun.DB
+		ctx      context.Context
 		products scrape.Products
 	}
-	tests := []struct{
-		name string
-		args args
+	tests := []struct {
+		name    string
+		args    args
 		wantErr bool
 	}{{
 		name: "bulkupsert",
 		args: args{
 			conn: conn,
-			ctx: ctx,
+			ctx:  ctx,
 			products: scrape.Products{
 				NewArkProduct("test", "test_code", "https://google.com", "", 3333),
 				NewArkProduct("test", "test", "https://google.com", "", 11111),

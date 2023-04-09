@@ -14,12 +14,12 @@ type httpClient interface {
 	Request(string, string, io.Reader) (*http.Response, error)
 }
 
-func NewClient() Client{
+func NewClient() Client {
 	return Client{
 		httpClient: &http.Client{
 			Transport: &crawlerRoundTripper{
-				base: http.DefaultTransport,
-				logger: logger,
+				base:     http.DefaultTransport,
+				logger:   logger,
 				attempts: 10,
 				waitTime: time.Second * 2,
 			},
@@ -41,8 +41,8 @@ func (c Client) Request(method, url string, body io.Reader) (*http.Response, err
 }
 
 type crawlerRoundTripper struct {
-	base http.RoundTripper
-	logger *slog.Logger
+	base     http.RoundTripper
+	logger   *slog.Logger
 	attempts int
 	waitTime time.Duration
 }

@@ -13,9 +13,9 @@ import (
 	"crawler/scrape"
 )
 
-type IkebeParser struct {}
+type IkebeParser struct{}
 
-func (parser IkebeParser) ProductList(r io.ReadCloser)(scrape.Products, string) {
+func (parser IkebeParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)

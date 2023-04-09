@@ -14,10 +14,10 @@ import (
 
 const (
 	scheme = "https"
-	host = "www.ark-pc.co.jp"
+	host   = "www.ark-pc.co.jp"
 )
 
-type ArkParser struct {}
+type ArkParser struct{}
 
 func (p ArkParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)

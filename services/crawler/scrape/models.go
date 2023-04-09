@@ -89,7 +89,7 @@ func (i *Product) SetJan(jan string) {
 type Products []IProduct
 
 func GetByProductCodes(conn *bun.DB, ctx context.Context,
-	codes ...string)(Products, error) {
+	codes ...string) (Products, error) {
 
 	var products []*Product
 	err := conn.NewSelect().
@@ -101,7 +101,7 @@ func GetByProductCodes(conn *bun.DB, ctx context.Context,
 	for _, p := range products {
 		result = append(result, p)
 	}
-	
+
 	return result, err
 }
 
@@ -137,8 +137,6 @@ func (p Products) getProductCodes() []string {
 	}
 	return codes
 }
-
-
 
 func (p Products) MapProducts(products Products) Products {
 	mapped := map[string]IProduct{}

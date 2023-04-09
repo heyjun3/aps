@@ -1,14 +1,14 @@
 package ikebe
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"sync"
 	"testing"
-	"os"
-	"net/http"
-	"io"
-	"bytes"
 
 	"github.com/stretchr/testify/assert"
 

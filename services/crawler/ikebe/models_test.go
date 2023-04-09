@@ -20,25 +20,25 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 	}
 
 	type args struct {
-		conn *bun.DB
-		ctx context.Context
-		f func(*bun.DB, context.Context, ...string) (scrape.Products, error)
+		conn  *bun.DB
+		ctx   context.Context
+		f     func(*bun.DB, context.Context, ...string) (scrape.Products, error)
 		codes []string
 	}
-	tests := []struct{
-		name string
-		args args
-		want scrape.Products
+	tests := []struct {
+		name    string
+		args    args
+		want    scrape.Products
 		wantErr bool
 	}{{
 		name: "get products",
-		args: args {
-			conn: conn,
-			ctx: ctx,
-			f: f,
+		args: args{
+			conn:  conn,
+			ctx:   ctx,
+			f:     f,
 			codes: []string{"test_code"},
 		},
-		want: p,
+		want:    p,
 		wantErr: false,
 	}}
 
@@ -50,7 +50,7 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			products, err := tt.args.f(tt.args.conn, tt.args.ctx, tt.args.codes...)
-			
+
 			assert.Equal(t, tt.want, products)
 			if tt.wantErr {
 				assert.Error(t, err)

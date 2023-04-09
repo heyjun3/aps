@@ -28,7 +28,7 @@ func CreateTable(conn *bun.DB, ctx context.Context) error {
 }
 
 func GetByProductCodes(conn *bun.DB, ctx context.Context,
-	codes ...string)(scrape.Products, error) {
+	codes ...string) (scrape.Products, error) {
 
 	var products []*Pc4uProduct
 	err := conn.NewSelect().
@@ -40,6 +40,6 @@ func GetByProductCodes(conn *bun.DB, ctx context.Context,
 	for _, p := range products {
 		result = append(result, p)
 	}
-	
+
 	return result, err
 }

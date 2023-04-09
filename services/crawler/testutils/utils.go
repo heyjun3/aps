@@ -10,7 +10,6 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 )
 
-
 func DatabaseFactory() (*bun.DB, context.Context) {
 	ctx := context.Background()
 	conf, _ := config.NewConfig("../sqlboiler.toml")

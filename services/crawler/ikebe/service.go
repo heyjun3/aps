@@ -12,9 +12,9 @@ const (
 	host   = "www.ikebe-gakki.com"
 )
 
-func NewScrapeService() *scrape.Service{
+func NewScrapeService() *scrape.Service {
 	return &scrape.Service{
 		FetchProductByProductCodes: GetByProductCodes,
-		Parser: IkebeParser{},
+		Parser:                     IkebeParser{},
 	}
 }
