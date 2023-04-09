@@ -4,7 +4,7 @@ import time
 import json
 import itertools
 import asyncio
-import collections
+import datetime
 import re
 from typing import ChainMap, List
 from typing import Callable
@@ -103,12 +103,31 @@ class UpdateChartData(object):
 
         product.price_data[now] = price
         product.rank_data[now] = rank
-        product.render_data = convert.recharts_data({
-                                                'rank_data': product.rank_data,
-                                                'price_data': product.price_data,})
+        # product.render_data = convert.recharts_data({
+        #                                         'rank_data': product.rank_data,
+        #                                         'price_data': product.price_data,})
+
+        chart_data = product.render_data.get("data")
+        if chart_data is None:
+            return product
+        
+        today = datetime.datetime.now().date().strftime("%Y-%m-%d")
+        chart_data = list(filter(UpdateChartData._date_filter, chart_data))
+        chart_data.append({"date": today, "rank": rank, "price": price})
+        product.render_data["data"] = chart_data
 
         logger.info({"action": "mapping_keepa_products_and_parsed_data", "status": "done"})
         return product
+    
+    @staticmethod
+    def _date_filter(value: dict, past_days: int=90) -> bool:
+        date = value.get("date")
+        if date is None:
+            return False
+        
+        date = datetime.datetime.strptime(date, "%Y-%m-%d")
+        past_date = datetime.datetime.now() - datetime.timedelta(days=past_days)
+        return past_date < date
 
 
 class RunAmzTask(object):
