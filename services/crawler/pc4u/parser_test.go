@@ -170,4 +170,3 @@ func TestProduct(t *testing.T) {
 		assert.Equal(t, "195553843515", ean)
 	})
 }
-

@@ -1,6 +1,5 @@
 package ark
 
-
 import (
 	"testing"
 
@@ -38,7 +37,7 @@ func TestProductList(t *testing.T) {
 			"",
 			39600,
 		)
-		
+
 		assert.Equal(t, first, products[0])
 		assert.Equal(t, last, products[len(products)-1])
 	})
@@ -98,7 +97,7 @@ func TestProductList(t *testing.T) {
 
 func TestProduct(t *testing.T) {
 	parser := ArkParser{}
-	
+
 	t.Run("parse product page", func(t *testing.T) {
 		res, err := scrape.CreateHttpResponse("html/test_product_page.html")
 		if err != nil {

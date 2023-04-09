@@ -5,9 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"reflect"
-
-	// "reflect"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -91,21 +88,21 @@ func (i *Product) SetJan(jan string) {
 
 type Products []IProduct
 
-func GetByProductCodes(p IProduct) (func(*bun.DB, context.Context, ...string)(Products, error)) {
-	return func(conn *bun.DB, ctx context.Context, codes ...string) (Products, error) {
-		s := len(codes) * 2
-		products := make(Products, s)
-		for i := 0; i < s; i++ {
-			products[i] = reflect.New(reflect.ValueOf(p).Elem().Type()).Interface().(IProduct)
-		}
-		
-		err := conn.NewSelect().
-			Model(&products).
-			Where("product_code IN (?)", bun.In(codes)).
-			Scan(ctx)
-		
-		return products, err
+func GetByProductCodes(conn *bun.DB, ctx context.Context,
+	codes ...string) (Products, error) {
+
+	var products []*Product
+	err := conn.NewSelect().
+		Model(&products).
+		Where("product_code IN (?)", bun.In(codes)).
+		Scan(ctx)
+
+	var result Products
+	for _, p := range products {
+		result = append(result, p)
 	}
+
+	return result, err
 }
 
 func (p Products) BulkUpsert(conn *bun.DB, ctx context.Context) error {
@@ -140,8 +137,6 @@ func (p Products) getProductCodes() []string {
 	}
 	return codes
 }
-
-
 
 func (p Products) MapProducts(products Products) Products {
 	mapped := map[string]IProduct{}

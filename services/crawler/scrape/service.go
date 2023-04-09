@@ -13,9 +13,9 @@ import (
 
 var logger = config.Logger
 
-type Service struct{
-	Parser Parser
-	FetchProductByProductCodes func(*bun.DB, context.Context, ...string)(Products, error)
+type Service struct {
+	Parser                     Parser
+	FetchProductByProductCodes func(*bun.DB, context.Context, ...string) (Products, error)
 }
 
 type Parser interface {

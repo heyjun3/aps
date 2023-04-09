@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	fs := []func(*bun.DB, context.Context)error{
+	fs := []func(*bun.DB, context.Context) error{
 		ark.CreateTable,
 		ikebe.CreateTable,
 		pc4u.CreateTable,
