@@ -5,8 +5,6 @@ import (
 	"io"
 	URL "net/url"
 	"regexp"
-	"strconv"
-	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 
@@ -22,22 +20,16 @@ func (parser IkebeParser) ProductList(r io.ReadCloser) (scrape.Products, string)
 		return nil, ""
 	}
 
-	isSold := false
 	var products scrape.Products
-	doc.Find(".fs-c-productList__list__item.fs-c-productListItem").Each(func(i int, s *goquery.Selection) {
-		name := s.Find(".fs-c-productName__name").Text()
+	doc.Find(".grid_item.product_item").Each(func(i int, s *goquery.Selection) {
+		nameElem := s.Find(".item-information_productName.restrictTarget")
+		name := nameElem.Text()
 		if name == "" {
 			logger.Info("Not Found product name")
 			return
 		}
 
-		productId, exist := s.Find("input[name=staffStartSkuCode]").Attr("value")
-		if !exist {
-			logger.Info("Not Found productId")
-			return
-		}
-
-		path, exist := s.Find(".fs-c-productListItem__image.fs-c-productImage a[href]").Attr("href")
+		path, exist := nameElem.Attr("href")
 		url, err := URL.Parse(path)
 		if !exist || err != nil {
 			logger.Info("Not Found url")
@@ -46,27 +38,30 @@ func (parser IkebeParser) ProductList(r io.ReadCloser) (scrape.Products, string)
 		url.Scheme = scheme
 		url.Host = host
 
-		price := s.Find(".fs-c-productPrice__addon__price.fs-c-price .fs-c-price__value").Text()
-		p, err := strconv.Atoi(strings.ReplaceAll(price, ",", ""))
-		if err != nil {
-			logger.Info("Not Founc price")
+		productId := url.Query().Get("pid")
+		if productId == "" {
+			logger.Info("Not Found productId")
 			return
 		}
 
-		sold := s.Find(".fs-c-productListItem__outOfStock.fs-c-productListItem__notice.fs-c-productStock").Text()
-		if sold == "SOLD" {
-			logger.Info("product is sold out")
-			isSold = true
+		price := s.Find(".price-bold.price-nomal").Text()
+		p, err := scrape.PullOutNumber(price)
+		if err != nil {
+			logger.Info("Not Founc price")
 			return
 		}
 
 		products = append(products, NewIkebeProduct(name, productId, url.String(), "", int64(p)))
 	})
 
-	nextPath, exist := doc.Find(".fs-c-pagination__item.fs-c-pagination__item--next[href]").First().Attr("href")
-	u, err := URL.Parse(nextPath)
-	if !exist || err != nil || isSold {
+	nextPath, exist := doc.Find(".product_pager-bottom .next a").Attr("href")
+	if !exist || nextPath == "" || nextPath == "#" {
 		logger.Info("Next Page URL is Not Found")
+		return products, ""
+	}
+	u, err := URL.Parse(nextPath)
+	if err != nil {
+		logger.Error("url parse error", err)
 		return products, ""
 	}
 	u.Scheme = scheme
@@ -82,7 +77,7 @@ func (parser IkebeParser) Product(r io.ReadCloser) (string, error) {
 		return "", err
 	}
 
-	jan := doc.Find(".janCode").Text()
+	jan := doc.Find(".removeSection_targetElm-jan").Text()
 	if jan == "" {
 		return "", fmt.Errorf("not found jan code")
 	}
