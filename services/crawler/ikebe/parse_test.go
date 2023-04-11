@@ -12,76 +12,89 @@ import (
 )
 
 func TestParseProducts(t *testing.T) {
-	t.Run("parse product list page", func(t *testing.T) {
-		parser := IkebeParser{}
-		b, err := os.ReadFile("html/test_product_list.html")
-		if err != nil {
-			fmt.Println("file open error")
-			return
-		}
-		res := &http.Response{
-			Body:    io.NopCloser(bytes.NewReader(b)),
-			Request: &http.Request{},
-		}
-		defer res.Body.Close()
-		products, url := parser.ProductList(res.Body)
+	type args struct {
+		filename string
+	}
+	type want struct {
+		count int
+		url string
+		first *IkebeProduct
+		last *IkebeProduct
+	}
 
-		assert.Equal(t, 40, len(products))
-		assert.Equal(t, "https://www.ikebe-gakki.com/p/search?maxprice=100000&tag=%E6%96%B0%E5%93%81&page=2&sort=latest", url)
+	tests := []struct{
+		name string
+		args args
+		want want
+	}{{
+		name: "parse product list page",
+		args: args{
+			filename: "html/test_product_list.html",
+		},
+		want: want{
+			count: 40,
+			url: "https://www.ikebe-gakki.com/Form/Product/ProductList.aspx?shop=0&cat=&bid=ec&dpcnt=40&img=1&sort=07&udns=1&fpfl=0&sfl=0&pno=2",
+			first: NewIkebeProduct(
+				"BLUE LAVA Touch wIdeal Bag (Ice Sail White) 【特価】",
+				"755076",
+				"https://www.ikebe-gakki.com/Form/Product/ProductDetail.aspx?shop=0&pid=755076&bid=ec",
+				"",
+				99800,
+			),
+			last: NewIkebeProduct(
+				"FENDER TONE SAVER 250K (#7706416049)",
+				"755032",
+				"https://www.ikebe-gakki.com/Form/Product/ProductDetail.aspx?shop=0&pid=755032&bid=ec",
+				"",
+				6600,
+			),
+		},
+	},{
+		name: "parse last product list page",
+		args: args{
+			filename: "html/test_last_product_list.html",
+		},
+		want: want{
+			count: 17,
+			url: "",
+			first: NewIkebeProduct(
+				"CRY BABY 95Q WAH",
+				"529",
+				"https://www.ikebe-gakki.com/Form/Product/ProductDetail.aspx?shop=0&pid=529&bid=ec",
+				"",
+				23100,
+			),
+			last: NewIkebeProduct(
+				"PO-5S",
+				"42",
+				"https://www.ikebe-gakki.com/Form/Product/ProductDetail.aspx?shop=0&pid=42&bid=ec",
+				"",
+				1925,
+			),
+		},
+	}}
 
-		p1 := NewIkebeProduct(
-			"Apocalyptica(オンライン納品専用)※代引きはご利用いただけません",
-			"750802",
-			"https://www.ikebe-gakki.com/c/c-/dt/dt03/dt031548/dt031548002/750802",
-			"",
-			34300,
-		)
-		p40 := NewIkebeProduct(
-			"DRUM MIDI - EDM GROOVES(オンライン納品専用)※代引きはご利用いただけません",
-			"750628",
-			"https://www.ikebe-gakki.com/c/c-/dt/dt03/dt031598/dt031598002/750628",
-			"",
-			3630,
-		)
-		assert.Equal(t, p1, products[0])
-		assert.Equal(t, p40, products[len(products)-1])
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := IkebeParser{}
+			b, err := os.ReadFile(tt.args.filename)
+			if err != nil {
+				fmt.Println("file open error")
+				return
+			}
+			res := &http.Response{
+				Body:    io.NopCloser(bytes.NewReader(b)),
+				Request: &http.Request{},
+			}
+			defer res.Body.Close()
+			products, url := parser.ProductList(res.Body)
 
-	t.Run("parse last product list page", func(t *testing.T) {
-		parser := IkebeParser{}
-		b, err := os.ReadFile("html/test_last_product_list.html")
-		if err != nil {
-			fmt.Println("file open err")
-			return
-		}
-		res := &http.Response{
-			Body:    io.NopCloser(bytes.NewReader(b)),
-			Request: &http.Request{},
-		}
-
-		defer res.Body.Close()
-		products, url := parser.ProductList(res.Body)
-
-		assert.Equal(t, 17, len(products))
-		assert.Equal(t, "", url)
-
-		p1 := NewIkebeProduct(
-			"SR-SK30【次回3月入荷予定】",
-			"124704",
-			"https://www.ikebe-gakki.com/c/c-/pr/pr09/pr092127/124704",
-			"",
-			3267,
-		)
-		p17 := NewIkebeProduct(
-			"SS-6B 【6口電源タップ】(SS6B)",
-			"100469",
-			"https://www.ikebe-gakki.com/c/c-/am/am09/am090814/100469",
-			"",
-			6050,
-		)
-		assert.Equal(t, p1, products[0])
-		assert.Equal(t, p17, products[len(products)-1])
-	})
+			assert.Equal(t, tt.want.count, len(products))
+			assert.Equal(t, tt.want.url, url)
+			assert.Equal(t, tt.want.first, products[0])
+			assert.Equal(t, tt.want.last, products[len(products)-1])
+		})
+	}
 }
 
 func TestParseProduct(t *testing.T) {
@@ -100,6 +113,6 @@ func TestParseProduct(t *testing.T) {
 		jan, err := parser.Product(res.Body)
 
 		assert.Equal(t, nil, err)
-		assert.Equal(t, "2500140008600", jan)
+		assert.Equal(t, "4515515829030", jan)
 	})
 }

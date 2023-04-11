@@ -39,20 +39,19 @@ func TestScrapeProductsList(t *testing.T) {
 		s := NewScrapeService()
 
 		ch := s.ScrapeProductsList(c, "https://google.com")
-
 		p1 := NewIkebeProduct(
-			"SR-SK30【次回3月入荷予定】",
-			"124704",
-			"https://www.ikebe-gakki.com/c/c-/pr/pr09/pr092127/124704",
+			"CRY BABY 95Q WAH",
+			"529",
+			"https://www.ikebe-gakki.com/Form/Product/ProductDetail.aspx?shop=0&pid=529&bid=ec",
 			"",
-			3267,
+			23100,
 		)
 		p17 := NewIkebeProduct(
-			"SS-6B 【6口電源タップ】(SS6B)",
-			"100469",
-			"https://www.ikebe-gakki.com/c/c-/am/am09/am090814/100469",
+			"PO-5S",
+			"42",
+			"https://www.ikebe-gakki.com/Form/Product/ProductDetail.aspx?shop=0&pid=42&bid=ec",
 			"",
-			6050,
+			1925,
 		)
 		for p := range ch {
 			assert.Equal(t, 17, len(p))
@@ -135,8 +134,8 @@ func TestScrapeProduct(t *testing.T) {
 		channel := s.ScrapeProduct(ch, c)
 
 		expectProduct := scrape.Products{
-			NewIkebeProduct("test1", "test4", "http://", "2500140008600", 1111),
-			NewIkebeProduct("test3", "test6", "http://", "2500140008600", 3333),
+			NewIkebeProduct("test1", "test4", "http://", "4515515829030", 1111),
+			NewIkebeProduct("test3", "test6", "http://", "4515515829030", 3333),
 		}
 		var products scrape.Products
 		for product := range channel {
