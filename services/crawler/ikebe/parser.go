@@ -45,9 +45,12 @@ func (parser IkebeParser) ProductList(r io.ReadCloser) (scrape.Products, string)
 		}
 
 		price := s.Find(".price-bold.price-nomal").Text()
+		if price == "" {
+			price = s.Find(".price-bold.price-sale").Text()
+		}
 		p, err := scrape.PullOutNumber(price)
 		if err != nil {
-			logger.Info("Not Founc price")
+			logger.Info("Not Found price")
 			return
 		}
 

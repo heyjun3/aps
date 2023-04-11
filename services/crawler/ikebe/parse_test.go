@@ -72,6 +72,29 @@ func TestParseProducts(t *testing.T) {
 				1925,
 			),
 		},
+	},{
+		name: "parse sale price products",
+		args: args{
+			filename: "html/test_sale_product_list.html",
+		},
+		want: want{
+			count: 40,
+			url: "https://www.ikebe-gakki.com/Form/Product/ProductList.aspx?shop=0&cat=&bid=ec&cicon=6&dpcnt=40&img=1&sort=07&udns=1&fpfl=0&sfl=0&_cblCampaignIcon=6&_class=%e3%82%a2%e3%82%a6%e3%83%88%e3%83%ac%e3%83%83%e3%83%88&pno=2",
+			first: NewIkebeProduct(
+				"Hydra Elite PRO 7 Trans Black Satine (T-BLK-S)【在庫処分超特価】",
+				"754420",
+				"https://www.ikebe-gakki.com/Form/Product/ProductDetail.aspx?shop=0&pid=754420&bid=ec",
+				"",
+				473000,
+			),
+			last: NewIkebeProduct(
+				"Marine Band 1896/20 (キー：Fm) 【特価】",
+				"737193",
+				"https://www.ikebe-gakki.com/Form/Product/ProductDetail.aspx?shop=0&pid=737193&bid=ec",
+				"",
+				3850,
+			),
+		},
 	}}
 
 	for _, tt := range tests {
