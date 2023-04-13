@@ -164,10 +164,10 @@ type message struct {
 
 func (m *message) validation() error {
 	if m.Jan == nil || *m.Jan == "" {
-		return fmt.Errorf("jan is zero value")
+		return fmt.Errorf("jan is zero value. url: %s", m.URL)
 	}
 	if m.Price == 0 {
-		return fmt.Errorf("price is zero value")
+		return fmt.Errorf("price is zero value. url:%s", m.URL)
 	}
 	if m.URL == "" {
 		return fmt.Errorf("url is zero value")
