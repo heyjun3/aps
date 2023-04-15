@@ -114,6 +114,22 @@ class ScrapeDetailProductPage(unittest.TestCase):
         self.assertEqual(parsed_value.get('is_stocked'), True)
         self.assertEqual(parsed_value.get('product_code'), '10052sp-4d151191004')
 
+    def test_scrape_product_detail_page_another_product(self):
+        html_path = os.path.join(dirname, "scrape_another_product.html")
+        response = MagicMock()
+        with open(html_path, "r") as f:
+            response.text = f.read()
+
+        result = RakutenHTMLPage.scrape_product_detail_page(response)
+
+        self.assertEqual(
+            {"jan": "4526541041112",
+             "price": 22980,
+             "is_stocked": True,
+             "product_code": "4526541041112-44-62145-n",},
+             result
+        )
+
     def test_scrape_product_detail_page_fail(self):
         response = MagicMock()
         response.text = ''
