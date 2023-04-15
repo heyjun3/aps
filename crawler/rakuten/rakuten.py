@@ -307,9 +307,19 @@ class RakutenHTMLPage(object):
         soup = BeautifulSoup(text, 'lxml')
         jan = ((jan.group() if (jan := re.fullmatch('[0-9]{13}', code.get('value'))) 
                             else None) if (code := soup.select_one('#ratRanCode')) else None)
+        if jan is None:
+            jan = jan.get("content") if (jan := soup.select_one('meta[itemprop="gtin13"]')) else None
+            if jan is not None:
+                jan = match.group() if (match := re.fullmatch("[0-9]{13}", jan)) else None
 
         price = int(''.join(re.findall('[0-9]', price.text))) \
-                                        if (price := soup.select_one('.price2')) else None
+                                         if (price := soup.select_one('.price2')) else None
+
+        if price is None:
+            price = price_tag.get("content") if (price_tag := soup.select_one('meta[itemprop="price"]')) else None
+            if price is not None:
+                price = int("".join(re.findall("[0-9]", price)))
+
         url = (tag.get('content') 
               if (tag := soup.select_one('meta[property="og:url"]')) else 
               tag.get('href') 
@@ -318,6 +328,15 @@ class RakutenHTMLPage(object):
         product_code = list(filter(None, urlparse(url).path.split('/')))[PRODUCT_CODE_INDEX] \
                                                                 if url else None
         is_stocked = bool(soup.select_one('.cart-button-container'))
+        if not is_stocked:
+            app_data = soup.select_one("#item-page-app-data")
+            if app_data:
+                data = json.loads(app_data.text)
+                try:
+                    quantity = data["api"]["data"]["itemInfoSku"]["purchaseInfo"]["newPurchaseSku"]["quantity"]
+                    is_stocked = bool(float(quantity))
+                except (KeyError, ValueError)as e:
+                    logger.error(e)
         
         logger.info('action=scrape_product_detail_page status=done')
         return {'jan': jan,
