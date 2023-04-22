@@ -88,14 +88,20 @@ func (i *Product) SetJan(jan string) {
 
 type Products []IProduct
 
+func getByProductCodes() {
+	fmt.Println("func test")
+}
+
 func GetByProductCodes(conn *bun.DB, ctx context.Context,
 	codes ...string) (Products, error) {
 
 	var products []*Product
 	err := conn.NewSelect().
-		Model(&products).
+		// Model(&products).
+		// ModelTableExpr("ikebe_product").
+		Table("products").
 		Where("product_code IN (?)", bun.In(codes)).
-		Scan(ctx)
+		Scan(ctx, &products)
 
 	var result Products
 	for _, p := range products {
