@@ -37,7 +37,7 @@ func (c Client) Request(method, url string, body io.Reader) (*http.Response, err
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", config.UserAgent)
+	req.Header.Set("User-Agent", config.Http.UserAgent)
 
 	return c.httpClient.Do(req)
 }
