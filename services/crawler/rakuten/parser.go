@@ -4,14 +4,15 @@ import (
 	"crawler/scrape"
 	"io"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
 const (
-	scheme = ""
-	host = ""
+	scheme = "https"
+	host = "item.rakuten.co.jp"
 )
 
 type RakutenParser struct{}
@@ -31,7 +32,7 @@ func (p RakutenParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 			return
 		}
 
-		path, exist := s.Find("image a").Attr("href")
+		path, exist := s.Find(".image a").Attr("href")
 		URL, err := url.Parse(path)
 		if !exist || err != nil {
 			logger.Info("Not Found url", "name", name)
@@ -40,20 +41,26 @@ func (p RakutenParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		URL.Scheme = scheme
 		URL.Host = host
 
-		paths := strings.Split(URL.Path, "/")
+		var paths []string
+		for _, p := range strings.Split(URL.Path, "/") {
+			if p != "" {
+				paths = append(paths, p)
+			}
+		}
 		productId := paths[len(paths)-1]
 		shopId := paths[len(paths)-2]
 
-		price, err := scrape.PullOutNumber(s.Find("price--OX_YW").Text())
+		price, err := scrape.PullOutNumber(s.Find(".price--OX_YW").Text())
 		if err != nil {
-			logger.Info("Not Found price", "name", name, "url", URL)
+			logger.Info("Not Found price", "name", name, "url", URL.String())
 			return
 		}
-
-		point, err := scrape.PullOutNumber(s.Find(".points--AHzKn span").Text())
+		re := regexp.MustCompile("[0-9,]+ポイント")
+		point, err := scrape.PullOutNumber(re.FindString(s.Find(".points--AHzKn span").Text()))
 		if err != nil {
-			logger.Info("Not Found point", "name", name, "url", URL)
+			logger.Info("Not Found point", "name", name, "url", URL.String())
 		}
+		logger.Info("t", "point", point)
 
 		products = append(products,
 			NewRakutenProduct(name, productId, URL.String(), "", shopId, price, point))
