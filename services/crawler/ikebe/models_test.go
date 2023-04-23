@@ -8,11 +8,11 @@ import (
 	"github.com/uptrace/bun"
 
 	"crawler/scrape"
-	"crawler/testutils"
+	"crawler/testutil"
 )
 
 func TestGetIkebeProductsByProductCode(t *testing.T) {
-	conn, ctx := testutils.DatabaseFactory()
+	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*IkebeProduct)(nil))
 	f := GetByProductCodes
 	p := scrape.Products{
@@ -62,7 +62,7 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 }
 
 func TestUpsert(t *testing.T) {
-	conn, ctx := testutils.DatabaseFactory()
+	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*IkebeProduct)(nil))
 
 	t.Run("upsert ikebe product", func(t *testing.T) {

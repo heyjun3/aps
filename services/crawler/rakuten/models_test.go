@@ -8,11 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"crawler/scrape"
-	"crawler/testutils"
+	"crawler/testutil"
 )
 
 func TestGetRakutenProductsByProductCode(t *testing.T) {
-	conn, ctx := testutils.DatabaseFactory()
+	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*RakutenProduct)(nil))
 
 	type args struct {
