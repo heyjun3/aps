@@ -12,7 +12,7 @@ import (
 
 const (
 	scheme = "https"
-	host = "item.rakuten.co.jp"
+	host   = "item.rakuten.co.jp"
 )
 
 type RakutenParser struct{}
@@ -60,7 +60,6 @@ func (p RakutenParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		if err != nil {
 			logger.Info("Not Found point", "name", name, "url", URL.String())
 		}
-		logger.Info("t", "point", point)
 
 		products = append(products,
 			NewRakutenProduct(name, productId, URL.String(), "", shopId, price, point))

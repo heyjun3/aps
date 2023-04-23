@@ -2,7 +2,7 @@ package rakuten
 
 import (
 	"context"
-	
+
 	"github.com/uptrace/bun"
 
 	"crawler/scrape"
@@ -15,12 +15,11 @@ type RakutenProduct struct {
 }
 
 func NewRakutenProduct(
-	name, productCode, url, jan, shopCode string, price, point int64) (
-	*RakutenProduct){
-		return &RakutenProduct{
-			Product: *scrape.NewProduct(name, productCode, url, jan, shopCode, price),
-			point: point,
-		}
+	name, productCode, url, jan, shopCode string, price, point int64) *RakutenProduct {
+	return &RakutenProduct{
+		Product: *scrape.NewProduct(name, productCode, url, jan, shopCode, price),
+		point:   point,
+	}
 }
 
 func CreateTable(conn *bun.DB, ctx context.Context) error {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/uptrace/bun"
 	"github.com/stretchr/testify/assert"
+	"github.com/uptrace/bun"
 
 	"crawler/scrape"
 	"crawler/testutil"
@@ -16,20 +16,20 @@ func TestGetRakutenProductsByProductCode(t *testing.T) {
 	conn.ResetModel(ctx, (*RakutenProduct)(nil))
 
 	type args struct {
-		conn *bun.DB
-		ctx context.Context
+		conn  *bun.DB
+		ctx   context.Context
 		codes []string
 	}
 	tests := []struct {
-		name string
-		args args
-		want scrape.Products
+		name      string
+		args      args
+		want      scrape.Products
 		wantError bool
 	}{{
 		name: "get products",
 		args: args{
-			conn: conn,
-			ctx: ctx,
+			conn:  conn,
+			ctx:   ctx,
 			codes: []string{"test", "code", "test_code"},
 		},
 		want: scrape.Products{
@@ -40,11 +40,11 @@ func TestGetRakutenProductsByProductCode(t *testing.T) {
 	}, {
 		name: "get no products",
 		args: args{
-			conn: conn,
-			ctx: ctx,
+			conn:  conn,
+			ctx:   ctx,
 			codes: []string{"aaaate", "dddd"},
 		},
-		want: scrape.Products(nil),
+		want:      scrape.Products(nil),
 		wantError: false,
 	}}
 

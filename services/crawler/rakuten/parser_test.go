@@ -13,9 +13,9 @@ func TestProductList(t *testing.T) {
 	}
 	type want struct {
 		count int
-		url string
+		url   string
 		first *RakutenProduct
-		last *RakutenProduct
+		last  *RakutenProduct
 	}
 
 	tests := []struct {
@@ -29,7 +29,7 @@ func TestProductList(t *testing.T) {
 		},
 		want: want{
 			count: 45,
-			url: "https://search.rakuten.co.jp/search/mall/?p=2&sid=212220",
+			url:   "https://search.rakuten.co.jp/search/mall/?p=2&sid=212220",
 			first: NewRakutenProduct(
 				"【Z16L0005G】 Apple Mac mini 2023年CTOモデル（ベースモデル MMFK3J/A)",
 				"397925",
@@ -52,7 +52,7 @@ func TestProductList(t *testing.T) {
 	}}
 	parser := RakutenParser{}
 
-	for _, tt := range tests{
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := testutil.CreateHttpResponse(tt.args.filename)
 			if err != nil {
