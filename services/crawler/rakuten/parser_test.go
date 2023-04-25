@@ -70,3 +70,45 @@ func TestProductList(t *testing.T) {
 		})
 	}
 }
+
+func TestProduct(t *testing.T) {
+	type args struct {
+		filename string
+	}
+	type want struct {
+		jan string
+		err error
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want want
+		wantErr bool
+	}{{
+		name: "parse product",
+		args: args{"html/test_product.html"},
+		want: want{
+			jan: "4526541041112",
+			err: nil,
+		},
+	}}
+	p := RakutenParser{}
+
+	for _, tt := range tests {
+		res, err := testutil.CreateHttpResponse(tt.args.filename)
+		if err != nil {
+			panic(err)
+		}
+		defer res.Body.Close()
+
+		jan, err := p.Product(res.Body)
+
+		assert.Equal(t, tt.want.jan, jan)
+		if tt.wantErr {
+			assert.Error(t, err)
+		} else {
+			assert.NoError(t, err)
+		}
+	}
+}

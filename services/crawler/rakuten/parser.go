@@ -2,6 +2,8 @@ package rakuten
 
 import (
 	"crawler/scrape"
+	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"regexp"
@@ -71,4 +73,21 @@ func (p RakutenParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		return products, ""
 	}
 	return products, nextURL
+}
+
+func (p RakutenParser) Product(r io.ReadCloser) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		return "", err
+	}
+	jan, exist := doc.Find("meta[itemprop=gtin13]").Attr("content")
+	if !exist {
+		return "", errors.New("not found jan code")
+	}
+	re := regexp.MustCompile("^[0-9]{12,13}$")
+	match := re.Match([]byte(jan))
+	if match {
+		return jan, nil
+	}
+	return "", fmt.Errorf("not match jan code value: %s", jan)
 }
