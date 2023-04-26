@@ -8,11 +8,11 @@ import (
 	"github.com/uptrace/bun"
 
 	"crawler/scrape"
-	"crawler/testutils"
+	"crawler/testutil"
 )
 
 func TestArkGetByProductCodes(t *testing.T) {
-	conn, ctx := testutils.DatabaseFactory()
+	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*ArkProduct)(nil))
 	p := scrape.Products{NewArkProduct("test", "test_code", "https://google.com", "", 1111)}
 	f := GetByProductCodes
@@ -65,7 +65,7 @@ func TestArkGetByProductCodes(t *testing.T) {
 }
 
 func TestBulkUpsert(t *testing.T) {
-	conn, ctx := testutils.DatabaseFactory()
+	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, ArkProduct{})
 	type args struct {
 		conn     *bun.DB

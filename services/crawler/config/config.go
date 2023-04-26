@@ -12,6 +12,7 @@ import (
 type config struct {
 	Psql     Psql
 	RabbitMQ RabbitMQ
+	Http     HttpConf
 }
 
 type Psql struct {
@@ -31,11 +32,16 @@ type RabbitMQ struct {
 	Port string `toml:"port"`
 }
 
+type HttpConf struct {
+	UserAgent string `toml:"useragent"`
+}
+
 var Config config
 var DBDsn string
 var MQDsn string
 var DstMQDsn string
 var Logger *slog.Logger
+var Http HttpConf
 
 func init() {
 	Logger = slog.New(slog.NewJSONHandler(os.Stdout))
@@ -53,6 +59,7 @@ func init() {
 
 	Config.RabbitMQ.Host = "192.168.0.5"
 	DstMQDsn = Config.MQDsn()
+	Http = Config.Http
 }
 
 func NewConfig(path string) (config, error) {

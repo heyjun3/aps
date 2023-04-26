@@ -18,3 +18,4 @@ test_json
 gsheet*
 services/crawler/bin/
 services/crawler/pkg/
+shop.yaml

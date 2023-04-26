@@ -11,6 +11,7 @@ import (
 	"crawler/config"
 	"crawler/ikebe"
 	"crawler/pc4u"
+	"crawler/rakuten"
 	"crawler/scrape"
 )
 
@@ -34,9 +35,11 @@ func main() {
 	var (
 		shop string
 		url  string
+		id   string
 	)
 	flag.StringVar(&shop, "s", "", "expect crawle shop")
 	flag.StringVar(&url, "u", "", "expect crawle url")
+	flag.StringVar(&id, "i", "", "expect crawle shop id")
 	flag.Parse()
 
 	switch {
@@ -46,6 +49,10 @@ func main() {
 		ikebe.NewScrapeService().StartScrape(url, shop)
 	case shop == "pc4u" && url != "":
 		pc4u.NewScrapeService().StartScrape(url, shop)
+	case shop == "rakuten" && url != "" && id != "":
+		rakuten.NewScrapeService(id).StartScrape(url, shop)
+	case shop == "rakuten" && id == "all":
+		rakuten.RunServices()
 	case shop == "move" && url == "":
 		scrape.MoveMessages("mws", "mws")
 	default:

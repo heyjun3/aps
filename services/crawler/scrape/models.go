@@ -22,6 +22,7 @@ type IProduct interface {
 	GetProductCode() string
 	GetJan() string
 	GetURL() string
+	GetPrice() int64
 	IsValidJan() bool
 	SetJan(string)
 }
@@ -78,6 +79,10 @@ func (i Product) GetURL() string {
 	return i.URL
 }
 
+func (i Product) GetPrice() int64 {
+	return i.Price
+}
+
 func (i Product) IsValidJan() bool {
 	return i.Jan != nil
 }
@@ -95,7 +100,7 @@ func GetByProductCodes(conn *bun.DB, ctx context.Context,
 	err := conn.NewSelect().
 		Model(&products).
 		Where("product_code IN (?)", bun.In(codes)).
-		Scan(ctx)
+		Scan(ctx, &products)
 
 	var result Products
 	for _, p := range products {

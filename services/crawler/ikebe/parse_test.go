@@ -17,12 +17,12 @@ func TestParseProducts(t *testing.T) {
 	}
 	type want struct {
 		count int
-		url string
+		url   string
 		first *IkebeProduct
-		last *IkebeProduct
+		last  *IkebeProduct
 	}
 
-	tests := []struct{
+	tests := []struct {
 		name string
 		args args
 		want want
@@ -33,7 +33,7 @@ func TestParseProducts(t *testing.T) {
 		},
 		want: want{
 			count: 40,
-			url: "https://www.ikebe-gakki.com/Form/Product/ProductList.aspx?shop=0&cat=&bid=ec&dpcnt=40&img=1&sort=07&udns=1&fpfl=0&sfl=0&pno=2",
+			url:   "https://www.ikebe-gakki.com/Form/Product/ProductList.aspx?shop=0&cat=&bid=ec&dpcnt=40&img=1&sort=07&udns=1&fpfl=0&sfl=0&pno=2",
 			first: NewIkebeProduct(
 				"BLUE LAVA Touch wIdeal Bag (Ice Sail White) 【特価】",
 				"755076",
@@ -49,14 +49,14 @@ func TestParseProducts(t *testing.T) {
 				6600,
 			),
 		},
-	},{
+	}, {
 		name: "parse last product list page",
 		args: args{
 			filename: "html/test_last_product_list.html",
 		},
 		want: want{
 			count: 17,
-			url: "",
+			url:   "",
 			first: NewIkebeProduct(
 				"CRY BABY 95Q WAH",
 				"529",
@@ -72,14 +72,14 @@ func TestParseProducts(t *testing.T) {
 				1925,
 			),
 		},
-	},{
+	}, {
 		name: "parse sale price products",
 		args: args{
 			filename: "html/test_sale_product_list.html",
 		},
 		want: want{
 			count: 40,
-			url: "https://www.ikebe-gakki.com/Form/Product/ProductList.aspx?shop=0&cat=&bid=ec&cicon=6&dpcnt=40&img=1&sort=07&udns=1&fpfl=0&sfl=0&_cblCampaignIcon=6&_class=%e3%82%a2%e3%82%a6%e3%83%88%e3%83%ac%e3%83%83%e3%83%88&pno=2",
+			url:   "https://www.ikebe-gakki.com/Form/Product/ProductList.aspx?shop=0&cat=&bid=ec&cicon=6&dpcnt=40&img=1&sort=07&udns=1&fpfl=0&sfl=0&_cblCampaignIcon=6&_class=%e3%82%a2%e3%82%a6%e3%83%88%e3%83%ac%e3%83%83%e3%83%88&pno=2",
 			first: NewIkebeProduct(
 				"Hydra Elite PRO 7 Trans Black Satine (T-BLK-S)【在庫処分超特価】",
 				"754420",

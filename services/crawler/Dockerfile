@@ -10,3 +10,4 @@ FROM gcr.io/distroless/base-debian11:latest
 WORKDIR /app
 COPY --from=builder /app/go-crawler /app/go-crawler
 COPY --from=builder /app/sqlboiler.toml /app/sqlboiler.toml
+COPY --from=builder /app/shop.yaml /app/shop.yaml
