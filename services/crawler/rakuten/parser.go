@@ -67,12 +67,43 @@ func (p RakutenParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 			NewRakutenProduct(name, productId, URL.String(), "", shopId, price, point))
 	})
 
-	nextURL, exist := doc.Find(".item.-next.nextPage").Attr("href")
-	if !exist {
-		logger.Info("Not Found Next Page URL")
+	nextURL, err := p.scrapeNextURL(doc, products[len(products)-1].GetPrice())
+	if err != nil {
+		logger.Error("not found next page url %s", err)
 		return products, ""
 	}
 	return products, nextURL
+}
+
+func (p RakutenParser) scrapeNextURL(doc *goquery.Document, minPrice int64) (string, error) {
+	nextURL, exist := doc.Find(".item.-next.nextPage").Attr("href")
+	if exist {
+		URL, err := url.Parse(nextURL)
+		if err != nil {
+			return "", err
+		}
+		return URL.String(), nil
+	}
+	currentPage := doc.Find(".item.-active.currentPage").Text()
+	if currentPage != "150" {
+		logger.Info("curretn page is not 150")
+		return "", nil
+	}
+	currentURL, exist := doc.Find("link[rel=canonical]").Attr("href")
+	if !exist {
+		return "", errors.New("not found current url")
+	}
+	URL, err := url.Parse(currentURL)
+	if err != nil {
+		return "", err
+	}
+	query := URL.Query()
+	query.Set("max", fmt.Sprint(minPrice))
+	query.Set("p", "1")
+	query.Set("s", "12")
+	URL.RawQuery = query.Encode()
+
+	return URL.String(), nil
 }
 
 func (p RakutenParser) Product(r io.ReadCloser) (string, error) {

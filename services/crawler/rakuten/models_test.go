@@ -58,7 +58,7 @@ func TestGetRakutenProductsByProductCode(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		products, err := GetByProductCodes(tt.args.conn, tt.args.ctx, tt.args.codes...)
+		products, err := getByProductCodes("rakuten")(tt.args.conn, tt.args.ctx, tt.args.codes...)
 
 		assert.Equal(t, tt.want, products)
 		if tt.wantError {

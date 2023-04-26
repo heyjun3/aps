@@ -22,6 +22,7 @@ type IProduct interface {
 	GetProductCode() string
 	GetJan() string
 	GetURL() string
+	GetPrice() int64
 	IsValidJan() bool
 	SetJan(string)
 }
@@ -76,6 +77,10 @@ func (i Product) GetJan() string {
 
 func (i Product) GetURL() string {
 	return i.URL
+}
+
+func (i Product) GetPrice() int64 {
+	return i.Price
 }
 
 func (i Product) IsValidJan() bool {
