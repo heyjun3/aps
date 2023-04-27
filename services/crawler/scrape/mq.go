@@ -22,30 +22,33 @@ func NewMQClient(dsn, name string) MQClient {
 	return MQClient{dsn: dsn, queueName: name}
 }
 
-func (mq MQClient) createMQConnection() (*amqp.Channel, error) {
+func (mq MQClient) createMQConnection() (*amqp.Channel, *amqp.Connection, error) {
 	conn, err := amqp.Dial(mq.dsn)
 	if err != nil {
 		logger.Error("Failed to connect to RabbitMQ", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
 		logger.Error("Failed to open channel", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	_, err = ch.QueueDeclare(mq.queueName, true, false, false, false, nil)
 	if err != nil {
 		logger.Error("Failed to declare a queue", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return ch, err
+	return ch, conn, err
 }
 
 func (mq MQClient) CreateConsumer() (<-chan amqp.Delivery, error) {
-	ch, err := mq.createMQConnection()
+	ch, conn, err := mq.createMQConnection()
+	defer conn.Close()
+	defer ch.Close()
+
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +61,10 @@ func (mq MQClient) CreateConsumer() (<-chan amqp.Delivery, error) {
 }
 
 func (mq MQClient) Publish(message []byte) error {
-	ch, err := mq.createMQConnection()
+	ch, conn, err := mq.createMQConnection()
+	defer conn.Close()
+	defer ch.Close()
+
 	if err != nil {
 		logger.Error("create connection error", err)
 		return err
