@@ -26,6 +26,7 @@ func (p RakutenParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		return nil, ""
 	}
 
+	var price int64
 	var products scrape.Products
 	doc.Find(".dui-card.searchresultitem").Each(func(i int, s *goquery.Selection) {
 		name := s.Find(".title-link--3Ho6z").Text()
@@ -52,7 +53,7 @@ func (p RakutenParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 		productId := paths[len(paths)-1]
 		shopId := paths[len(paths)-2]
 
-		price, err := scrape.PullOutNumber(s.Find(".price--OX_YW").Text())
+		price, err = scrape.PullOutNumber(s.Find(".price--OX_YW").Text())
 		if err != nil {
 			logger.Info("Not Found price", "name", name, "url", URL.String())
 			return
@@ -63,11 +64,13 @@ func (p RakutenParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
 			logger.Info("Not Found point", "name", name, "url", URL.String())
 		}
 
-		products = append(products,
-			NewRakutenProduct(name, productId, URL.String(), "", shopId, price, point))
+		product := NewRakutenProduct(name, productId, URL.String(), "", shopId, price, point)
+		product.calcPrice()
+
+		products = append(products, product)
 	})
 
-	nextURL, err := p.scrapeNextURL(doc, products[len(products)-1].GetPrice())
+	nextURL, err := p.scrapeNextURL(doc, price)
 	if err != nil {
 		logger.Error("not found next page url %s", err)
 		return products, ""

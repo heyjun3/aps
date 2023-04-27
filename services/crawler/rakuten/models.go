@@ -22,6 +22,10 @@ func NewRakutenProduct(
 	}
 }
 
+func (r *RakutenProduct) calcPrice() {
+	r.Price = int64(float64(r.Price) * 0.91) - r.point
+}
+
 func CreateTable(conn *bun.DB, ctx context.Context) error {
 	_, err := conn.NewCreateTable().
 		Model((*RakutenProduct)(nil)).
