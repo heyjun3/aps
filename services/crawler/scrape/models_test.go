@@ -87,7 +87,7 @@ func TestGet(t *testing.T) {
 			codes: []string{"test2"},
 		},
 		want: Products{
-			NewProduct("name", "test2", "https://test.com", "1331", "shop", 2),
+			NewProduct("name", "test2", "https://test.com", "", "shop", 2),
 		},
 		wantErr: false,
 	}}
@@ -95,7 +95,7 @@ func TestGet(t *testing.T) {
 	pre := Products{
 		NewProduct("name", "test", "https://test.com", "1111", "shop", 1111),
 		NewProduct("name", "test1", "https://test.com", "2222", "shop", 11),
-		NewProduct("name", "test2", "https://test.com", "1331", "shop", 2),
+		NewProduct("name", "test2", "https://test.com", "", "shop", 2),
 	}
 	pre.BulkUpsert(conn, ctx)
 
