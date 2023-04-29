@@ -114,7 +114,7 @@ func (p RakutenParser) Product(r io.ReadCloser) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	jan, exist := doc.Find("meta[itemprop=gtin13]").Attr("content")
+	jan, exist := doc.Find("meta[itemprop=gtin13], meta[itemprop=gtin12]").Attr("content")
 	if !exist {
 		return "", errors.New("not found jan code")
 	}
