@@ -51,12 +51,12 @@ func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Prod
 	}
 }
 
-func (i Product) GenerateMessage(filename string) ([]byte, error) {
+func (p Product) GenerateMessage(filename string) ([]byte, error) {
 	message := message{
 		Filename: filename,
-		Jan:      i.Jan,
-		Price:    i.Price,
-		URL:      i.URL,
+		Jan:      p.Jan,
+		Price:    p.Price,
+		URL:      p.URL,
 	}
 	if err := message.validation(); err != nil {
 		return nil, err
@@ -64,51 +64,97 @@ func (i Product) GenerateMessage(filename string) ([]byte, error) {
 	return json.Marshal(message)
 }
 
-func (i Product) GetProductCode() string {
-	return i.ProductCode
+func (p Product) GetProductCode() string {
+	return p.ProductCode
 }
 
-func (i Product) GetJan() string {
-	if i.Jan == nil {
+func (p Product) GetJan() string {
+	if p.Jan == nil {
 		return ""
 	}
-	return *i.Jan
+	return *p.Jan
 }
 
-func (i Product) GetURL() string {
-	return i.URL
+func (p Product) GetURL() string {
+	return p.URL
 }
 
-func (i Product) GetPrice() int64 {
-	return i.Price
+func (p Product) GetPrice() int64 {
+	return p.Price
 }
 
-func (i Product) IsValidJan() bool {
-	return i.Jan != nil
+func (p Product) IsValidJan() bool {
+	return p.Jan != nil
 }
 
-func (i *Product) SetJan(jan string) {
-	i.Jan = &jan
+func (p *Product) SetJan(jan string) {
+	p.Jan = &jan
+}
+
+func (p Product) GetSameProduct(conn *bun.DB, ctx context.Context) (IProduct, error) {
+
+	var product Product
+	err := conn.NewSelect().
+		Model(&product).
+		Where("product_code = ?", p.ProductCode).
+		Where("shop_code = ?", p.ShopCode).
+		Scan(ctx)
+
+	return &product, err
 }
 
 type Products []IProduct
 
-func GetByProductCodes(conn *bun.DB, ctx context.Context,
-	codes ...string) (Products, error) {
+func GetByProductCodes[T IProduct](ps []T) func(*bun.DB, context.Context, ...string) (Products, error) {
+	return func(conn *bun.DB, ctx context.Context, codes ...string) (Products, error) {
+		products := ps
 
-	var products []*Product
-	err := conn.NewSelect().
-		Model(&products).
-		Where("product_code IN (?)", bun.In(codes)).
-		Scan(ctx, &products)
+		err := conn.NewSelect().
+			Model(&products).
+			Where("product_code IN (?)", bun.In(codes)).
+			Scan(ctx, &products)
 
-	var result Products
-	for _, p := range products {
-		result = append(result, p)
+		var result Products
+		for _, p := range products {
+			result = append(result, p)
+		}
+
+		return result, err
 	}
-
-	return result, err
 }
+
+// func GetByProductCodes[T IProduct](conn *bun.DB, ctx context.Context, products []T,
+// 	codes ...string) (Products, error) {
+
+// 	err := conn.NewSelect().
+// 		Model(&products).
+// 		Where("product_code IN (?)", bun.In(codes)).
+// 		Scan(ctx, &products)
+
+// 	var result Products
+// 	for _, p := range products {
+// 		result = append(result, p)
+// 	}
+
+// 	return result, err
+// }
+
+// func GetByProductCodes(conn *bun.DB, ctx context.Context,
+// 	codes ...string) (Products, error) {
+
+// 	var products []*Product
+// 	err := conn.NewSelect().
+// 		Model(&products).
+// 		Where("product_code IN (?)", bun.In(codes)).
+// 		Scan(ctx, &products)
+
+// 	var result Products
+// 	for _, p := range products {
+// 		result = append(result, p)
+// 	}
+
+// 	return result, err
+// }
 
 func (p Products) BulkUpsert(conn *bun.DB, ctx context.Context) error {
 	mapProduct := map[string]IProduct{}

@@ -10,6 +10,52 @@ import (
 	"crawler/testutil"
 )
 
+func TestGetSameProduct(t *testing.T) {
+	conn, ctx := testutil.DatabaseFactory()
+	conn.ResetModel(ctx, (*Product)(nil))
+	type args struct {
+		conn *bun.DB
+		ctx context.Context
+		product *Product
+	}
+
+	tests := []struct{
+		name string
+		args args
+		want *Product
+		wantErr bool
+	}{{
+		name: "test get same product",
+		args: args {
+			conn: conn,
+			ctx: ctx,
+			product: NewProduct("test name", "p1", "http://", "", "shop1", 111),
+		},
+		want: NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
+		wantErr: false,
+	}}
+
+	pre := Products{
+		NewProduct("name", "test", "https://test.com", "1111", "shop", 1111),
+		NewProduct("name", "test1", "https://test.com", "2222", "shop", 11),
+		NewProduct("name", "test2", "https://test.com", "", "shop", 2),
+		NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
+	}
+	pre.BulkUpsert(conn, ctx)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, err := tt.args.product.GetSameProduct(tt.args.conn, tt.args.ctx)
+
+			assert.Equal(t, tt.want, p)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} 
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func TestBulkUpsert(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
@@ -53,11 +99,9 @@ func TestBulkUpsert(t *testing.T) {
 func TestGet(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
-	f := GetByProductCodes
 	type args struct {
 		conn  *bun.DB
 		ctx   context.Context
-		f     func(*bun.DB, context.Context, ...string) (Products, error)
 		codes []string
 	}
 	tests := []struct {
@@ -70,7 +114,6 @@ func TestGet(t *testing.T) {
 		args: args{
 			conn:  conn,
 			ctx:   ctx,
-			f:     f,
 			codes: []string{"test", "test1"},
 		},
 		want: Products{
@@ -83,7 +126,6 @@ func TestGet(t *testing.T) {
 		args: args{
 			conn:  conn,
 			ctx:   ctx,
-			f:     f,
 			codes: []string{"test2"},
 		},
 		want: Products{
@@ -98,10 +140,11 @@ func TestGet(t *testing.T) {
 		NewProduct("name", "test2", "https://test.com", "", "shop", 2),
 	}
 	pre.BulkUpsert(conn, ctx)
+	f := GetByProductCodes([]*Product{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			products, err := tt.args.f(tt.args.conn, tt.args.ctx, tt.args.codes...)
+			products, err := f(tt.args.conn, tt.args.ctx, tt.args.codes...)
 
 			assert.Equal(t, tt.want, products)
 			if tt.wantErr {
