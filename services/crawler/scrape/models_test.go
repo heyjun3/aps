@@ -14,24 +14,24 @@ func TestGetSameProduct(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
 	type args struct {
-		conn *bun.DB
-		ctx context.Context
+		conn    *bun.DB
+		ctx     context.Context
 		product *Product
 	}
 
-	tests := []struct{
-		name string
-		args args
-		want *Product
+	tests := []struct {
+		name    string
+		args    args
+		want    *Product
 		wantErr bool
 	}{{
 		name: "test get same product",
-		args: args {
-			conn: conn,
-			ctx: ctx,
+		args: args{
+			conn:    conn,
+			ctx:     ctx,
 			product: NewProduct("test name", "p1", "http://", "", "shop1", 111),
 		},
-		want: NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
+		want:    NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
 		wantErr: false,
 	}}
 
@@ -50,7 +50,7 @@ func TestGetSameProduct(t *testing.T) {
 			assert.Equal(t, tt.want, p)
 			if tt.wantErr {
 				assert.Error(t, err)
-			} 
+			}
 			assert.NoError(t, err)
 		})
 	}
@@ -114,11 +114,14 @@ func TestGet(t *testing.T) {
 		args: args{
 			conn:  conn,
 			ctx:   ctx,
-			codes: []string{"test", "test1"},
+			codes: []string{"test", "test1", "test2", "test3", "test4"},
 		},
 		want: Products{
 			NewProduct("name", "test", "https://test.com", "1111", "shop", 1111),
 			NewProduct("name", "test1", "https://test.com", "2222", "shop", 11),
+			NewProduct("name", "test2", "https://test.com", "", "shop", 2),
+			NewProduct("name", "test3", "https://test.com", "", "shop", 2),
+			NewProduct("name", "test4", "https://test.com", "", "shop", 2),
 		},
 		wantErr: false,
 	}, {
@@ -138,6 +141,12 @@ func TestGet(t *testing.T) {
 		NewProduct("name", "test", "https://test.com", "1111", "shop", 1111),
 		NewProduct("name", "test1", "https://test.com", "2222", "shop", 11),
 		NewProduct("name", "test2", "https://test.com", "", "shop", 2),
+		NewProduct("name", "test3", "https://test.com", "", "shop", 2),
+		NewProduct("name", "test4", "https://test.com", "", "shop", 2),
+		NewProduct("name", "test5", "https://test.com", "", "shop", 2),
+		NewProduct("name", "test6", "https://test.com", "", "shop", 2),
+		NewProduct("name", "test7", "https://test.com", "", "shop", 2),
+		NewProduct("name", "test8", "https://test.com", "", "shop", 2),
 	}
 	pre.BulkUpsert(conn, ctx)
 	f := GetByProductCodes([]*Product{})

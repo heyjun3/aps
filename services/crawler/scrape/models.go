@@ -112,6 +112,7 @@ func GetByProductCodes[T IProduct](ps []T) func(*bun.DB, context.Context, ...str
 		err := conn.NewSelect().
 			Model(&products).
 			Where("product_code IN (?)", bun.In(codes)).
+			Order("product_code ASC").
 			Scan(ctx, &products)
 
 		var result Products
@@ -122,39 +123,6 @@ func GetByProductCodes[T IProduct](ps []T) func(*bun.DB, context.Context, ...str
 		return result, err
 	}
 }
-
-// func GetByProductCodes[T IProduct](conn *bun.DB, ctx context.Context, products []T,
-// 	codes ...string) (Products, error) {
-
-// 	err := conn.NewSelect().
-// 		Model(&products).
-// 		Where("product_code IN (?)", bun.In(codes)).
-// 		Scan(ctx, &products)
-
-// 	var result Products
-// 	for _, p := range products {
-// 		result = append(result, p)
-// 	}
-
-// 	return result, err
-// }
-
-// func GetByProductCodes(conn *bun.DB, ctx context.Context,
-// 	codes ...string) (Products, error) {
-
-// 	var products []*Product
-// 	err := conn.NewSelect().
-// 		Model(&products).
-// 		Where("product_code IN (?)", bun.In(codes)).
-// 		Scan(ctx, &products)
-
-// 	var result Products
-// 	for _, p := range products {
-// 		result = append(result, p)
-// 	}
-
-// 	return result, err
-// }
 
 func (p Products) BulkUpsert(conn *bun.DB, ctx context.Context) error {
 	mapProduct := map[string]IProduct{}
