@@ -91,16 +91,18 @@ func (p *Product) SetJan(jan string) {
 	p.Jan = &jan
 }
 
-func (p Product) GetSameProduct(conn *bun.DB, ctx context.Context) (IProduct, error) {
-
-	var product Product
-	err := conn.NewSelect().
-		Model(&product).
-		Where("product_code = ?", p.ProductCode).
-		Where("shop_code = ?", p.ShopCode).
-		Scan(ctx)
-
-	return &product, err
+func GetProduct(p IProduct) func(*bun.DB, context.Context, string, string) (IProduct, error) {
+	return func(conn *bun.DB, ctx context.Context, productCode, shopCode string) (IProduct, error) {
+		product := p
+		err := conn.NewSelect().
+			Model(product).
+			Where("product_code = ?", productCode).
+			Where("shop_code = ?", shopCode).
+			Scan(ctx)
+		fmt.Println(product)
+		fmt.Println(p)
+		return product, err
+	}
 }
 
 type Products []IProduct

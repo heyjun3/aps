@@ -13,10 +13,13 @@ import (
 func TestGetSameProduct(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
+	f := GetProduct(&Product{})
+
 	type args struct {
 		conn    *bun.DB
 		ctx     context.Context
-		product *Product
+		productCode string
+		shopCode string
 	}
 
 	tests := []struct {
@@ -29,9 +32,20 @@ func TestGetSameProduct(t *testing.T) {
 		args: args{
 			conn:    conn,
 			ctx:     ctx,
-			product: NewProduct("test name", "p1", "http://", "", "shop1", 111),
+			productCode: "p1",
+			shopCode: "shop1",
 		},
 		want:    NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
+		wantErr: false,
+	}, {
+		name: "test get same product",
+		args: args{
+			conn:    conn,
+			ctx:     ctx,
+			productCode: "ppp",
+			shopCode: "shop11",
+		},
+		want:    &Product{},
 		wantErr: false,
 	}}
 
@@ -45,7 +59,7 @@ func TestGetSameProduct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p, err := tt.args.product.GetSameProduct(tt.args.conn, tt.args.ctx)
+			p, err := f(tt.args.conn, tt.args.ctx, tt.args.productCode, tt.args.shopCode)
 
 			assert.Equal(t, tt.want, p)
 			if tt.wantErr {
@@ -135,6 +149,14 @@ func TestGet(t *testing.T) {
 			NewProduct("name", "test2", "https://test.com", "", "shop", 2),
 		},
 		wantErr: false,
+	}, {
+		name: "get none product",
+		args: args{
+			conn: conn,
+			ctx: ctx,
+			codes: []string{"ttttt", "eeeee"},
+		},
+		want: Products(nil),
 	}}
 
 	pre := Products{
