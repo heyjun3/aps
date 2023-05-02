@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -23,6 +24,7 @@ type IProduct interface {
 	GetJan() string
 	GetURL() string
 	GetPrice() int64
+	GetShopCode() string
 	IsValidJan() bool
 	SetJan(string)
 }
@@ -83,6 +85,10 @@ func (p Product) GetPrice() int64 {
 	return p.Price
 }
 
+func (p Product) GetShopCode() string{
+	return p.ShopCode
+}
+
 func (p Product) IsValidJan() bool {
 	return p.Jan != nil
 }
@@ -93,14 +99,14 @@ func (p *Product) SetJan(jan string) {
 
 func GetProduct(p IProduct) func(*bun.DB, context.Context, string, string) (IProduct, error) {
 	return func(conn *bun.DB, ctx context.Context, productCode, shopCode string) (IProduct, error) {
-		product := p
+		product := reflect.New(reflect.ValueOf(p).Elem().Type()).Interface().(IProduct)
 		err := conn.NewSelect().
 			Model(product).
 			Where("product_code = ?", productCode).
 			Where("shop_code = ?", shopCode).
-			Scan(ctx)
-		fmt.Println(product)
-		fmt.Println(p)
+			Scan(ctx, product)
+
+		fmt.Println(err)
 		return product, err
 	}
 }

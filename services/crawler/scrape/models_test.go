@@ -38,7 +38,7 @@ func TestGetSameProduct(t *testing.T) {
 		want:    NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
 		wantErr: false,
 	}, {
-		name: "test get same product",
+		name: "get none product",
 		args: args{
 			conn:    conn,
 			ctx:     ctx,
@@ -46,7 +46,7 @@ func TestGetSameProduct(t *testing.T) {
 			shopCode: "shop11",
 		},
 		want:    &Product{},
-		wantErr: false,
+		wantErr: true,
 	}}
 
 	pre := Products{
@@ -64,8 +64,9 @@ func TestGetSameProduct(t *testing.T) {
 			assert.Equal(t, tt.want, p)
 			if tt.wantErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
-			assert.NoError(t, err)
 		})
 	}
 }
@@ -157,6 +158,7 @@ func TestGet(t *testing.T) {
 			codes: []string{"ttttt", "eeeee"},
 		},
 		want: Products(nil),
+		wantErr: false,
 	}}
 
 	pre := Products{
