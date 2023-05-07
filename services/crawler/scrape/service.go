@@ -16,6 +16,7 @@ var logger = config.Logger
 type Service struct {
 	Parser                     Parser
 	FetchProductByProductCodes func(*bun.DB, context.Context, ...string) (Products, error)
+	FetchProduct func(*bun.DB, context.Context, string, string) (IProduct, error)
 }
 
 type Parser interface {
@@ -30,7 +31,7 @@ func (s Service) StartScrape(url, shopName string) {
 	wg.Add(1)
 
 	c1 := s.ScrapeProductsList(client, url)
-	c2 := s.GetProducts(c1, config.DBDsn)
+	c2 := s.GetProductsBatch(c1, config.DBDsn)
 	c3 := s.ScrapeProduct(c2, client)
 	c4 := s.SaveProduct(c3, config.DBDsn)
 	s.SendMessage(c4, mqClient, shopName, &wg)
@@ -60,7 +61,7 @@ func (s Service) ScrapeProductsList(
 	return c
 }
 
-func (s Service) GetProducts(c chan Products, dsn string) chan Products {
+func (s Service) GetProductsBatch(c chan Products, dsn string) chan Products {
 	send := make(chan Products, 100)
 	go func() {
 		defer close(send)
@@ -74,6 +75,31 @@ func (s Service) GetProducts(c chan Products, dsn string) chan Products {
 				continue
 			}
 			products := p.MapProducts(dbProduct)
+			send <- products
+		}
+	}()
+	return send
+}
+
+func (s Service) GetProduct(c chan Products, dsn string) chan Products {
+	send := make(chan Products, 100)
+	go func () {
+		defer close(send)
+		ctx := context.Background()
+		conn := CreateDBConnection(dsn)
+
+		for ps := range c {
+			var products Products
+			for _, p := range ps {
+				inDBProduct, err := s.FetchProduct(conn, ctx, p.GetProductCode(), p.GetShopCode())
+				if err != nil {
+					logger.Error("db get product error", err)
+				} else {
+					p.SetJan(inDBProduct.GetJan())
+				}
+
+				products = append(products, p)
+			}
 			send <- products
 		}
 	}()

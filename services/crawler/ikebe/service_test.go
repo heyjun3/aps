@@ -87,7 +87,7 @@ func TestGetIkebeProduct(t *testing.T) {
 			ch <- p
 		}()
 
-		c := s.GetProducts(ch, conf.Dsn())
+		c := s.GetProductsBatch(ch, conf.Dsn())
 
 		for product := range c {
 			assert.Equal(t, ps, product)
@@ -108,7 +108,7 @@ func TestGetIkebeProduct(t *testing.T) {
 			ch <- p
 		}()
 
-		c := s.GetProducts(ch, conf.Dsn())
+		c := s.GetProductsBatch(ch, conf.Dsn())
 
 		for product := range c {
 			assert.Equal(t, p, product)
