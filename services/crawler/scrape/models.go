@@ -106,7 +106,6 @@ func GetProduct(p IProduct) func(*bun.DB, context.Context, string, string) (IPro
 			Where("shop_code = ?", shopCode).
 			Scan(ctx, product)
 
-		fmt.Println(err)
 		return product, err
 	}
 }

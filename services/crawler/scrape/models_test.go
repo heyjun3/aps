@@ -10,7 +10,7 @@ import (
 	"crawler/testutil"
 )
 
-func TestGetSameProduct(t *testing.T) {
+func TestGetProduct(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
 	f := GetProduct(&Product{})
