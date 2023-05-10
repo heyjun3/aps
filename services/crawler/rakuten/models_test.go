@@ -33,8 +33,8 @@ func TestGetRakutenProductsByProductCode(t *testing.T) {
 			codes: []string{"test", "code", "test_code"},
 		},
 		want: scrape.Products{
-			NewRakutenProduct("name", "test", "http://", "4444", "rakuten", 9900, 0),
 			NewRakutenProduct("name", "code", "http://", "4444444", "rakuten", 9900, 0),
+			NewRakutenProduct("name", "test", "http://", "4444", "rakuten", 9900, 0),
 		},
 		wantError: false,
 	}, {
