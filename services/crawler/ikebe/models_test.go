@@ -14,7 +14,7 @@ import (
 func TestGetIkebeProductsByProductCode(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*IkebeProduct)(nil))
-	f := GetByProductCodes
+	f := scrape.GetByProductCodes([]*IkebeProduct{})
 	p := scrape.Products{
 		NewIkebeProduct("test", "test_code", "https://test.com", "", 1111),
 	}
@@ -71,7 +71,7 @@ func TestUpsert(t *testing.T) {
 		err := scrape.Products{p}.BulkUpsert(conn, ctx)
 
 		assert.Equal(t, nil, err)
-		expectd, _ := GetByProductCodes(conn, ctx, "test")
+		expectd, _ := scrape.GetByProductCodes([]*IkebeProduct{})(conn, ctx, "test")
 		assert.Equal(t, (expectd[0]).(*IkebeProduct), p)
 	})
 }

@@ -26,20 +26,3 @@ func CreateTable(conn *bun.DB, ctx context.Context) error {
 		Exec(ctx)
 	return err
 }
-
-func GetByProductCodes(conn *bun.DB, ctx context.Context,
-	codes ...string) (scrape.Products, error) {
-
-	var products []*ArkProduct
-	err := conn.NewSelect().
-		Model(&products).
-		Where("product_code IN (?)", bun.In(codes)).
-		Scan(ctx)
-
-	var result scrape.Products
-	for _, p := range products {
-		result = append(result, p)
-	}
-
-	return result, err
-}

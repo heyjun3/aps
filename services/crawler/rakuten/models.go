@@ -42,6 +42,7 @@ func getByProductCodes(shopCode string) func(*bun.DB, context.Context, ...string
 			Model(&products).
 			Where("product_code IN (?)", bun.In(codes)).
 			Where("shop_code = ?", shopCode).
+			Order("product_code ASC").
 			Scan(ctx)
 
 		var result scrape.Products
