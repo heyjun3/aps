@@ -168,6 +168,66 @@ func TestGetProductsBatch(t *testing.T) {
 	}
 }
 
+func TestGetProducts(t *testing.T) {
+	type args struct {
+		service  Service
+		products Products
+		DSN      string
+	}
+	type want struct {
+		products Products
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{{
+		name: "happy path",
+		args: args{
+			service: Service{
+				FetchProduct: GetProduct(&Product{}),
+			},
+			products: Products{
+				NewProduct("test1", "test1", "http://test.jp", "", "test", 1111),
+				NewProduct("test2", "test2", "http://test.jp", "", "test", 2222),
+				NewProduct("test3", "test3", "http://test.jp", "", "test", 3333),
+			},
+			DSN: testutil.TestDSN(),
+		},
+		want: want{
+			products: Products{
+				NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111),
+				NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222),
+				NewProduct("test3", "test3", "http://test.jp", "", "test", 3333),
+			},
+		},
+	}}
+
+	conn, ctx := testutil.DatabaseFactory()
+	conn.ResetModel(ctx, (*Product)(nil))
+	pre := Products{
+		NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111),
+		NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222),
+		NewProduct("test3", "test3", "http://test.jp", "", "test", 3333),
+	}
+	pre.BulkUpsert(conn, ctx)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(*testing.T) {
+			ch := make(chan Products, 10)
+			ch <- tt.args.products
+			close(ch)
+
+			p := tt.args.service.GetProduct(ch, tt.args.DSN)
+
+			for ps := range p {
+				assert.Equal(t, tt.want.products, ps)
+			}
+		})
+	}
+}
+
 func TestScrapeProduct(t *testing.T) {
 	type args struct {
 		service  Service
@@ -282,6 +342,7 @@ func TestSendMessage(t *testing.T) {
 		products Products
 		client   RabbitMQClient
 		siteName string
+		wg sync.WaitGroup
 	}
 
 	tests := []struct {
@@ -298,6 +359,7 @@ func TestSendMessage(t *testing.T) {
 			},
 			client:   MQMock{},
 			siteName: "test",
+			wg: sync.WaitGroup{},
 		},
 	}}
 
@@ -308,10 +370,10 @@ func TestSendMessage(t *testing.T) {
 				ch <- v
 			}
 			close(ch)
-			wg := sync.WaitGroup{}
+			tt.args.wg.Add(1)
 
-			tt.args.service.SendMessage(ch, tt.args.client, tt.args.siteName, &wg)
-			wg.Wait()
+			tt.args.service.SendMessage(ch, tt.args.client, tt.args.siteName, &tt.args.wg)
+			tt.args.wg.Wait()
 		})
 	}
 }
