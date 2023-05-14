@@ -16,11 +16,15 @@ import (
 
 func DatabaseFactory() (*bun.DB, context.Context) {
 	ctx := context.Background()
-	conf, _ := config.NewConfig("../sqlboiler.toml")
-	conf.Psql.DBname = "test"
-	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(conf.Dsn())))
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(TestDSN())))
 	conn := bun.NewDB(sqldb, pgdialect.New())
 	return conn, ctx
+}
+
+func TestDSN() string {
+	conf, _ := config.NewConfig("../sqlboiler.toml")
+	conf.Psql.DBname = "test"
+	return conf.Dsn()
 }
 
 func CreateHttpResponse(path string) (*http.Response, error) {
