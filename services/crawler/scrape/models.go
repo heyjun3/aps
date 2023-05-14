@@ -112,6 +112,20 @@ func GetProduct(p IProduct) func(*bun.DB, context.Context, string, string) (IPro
 
 type Products []IProduct
 
+// type testProducts[T IProduct] []T
+
+// func test1[T IProduct](ps []T) {
+// 	testProducts[IProduct](ps)
+// }
+
+// func test() {
+// 	ps := []*Product{
+// 		NewProduct("", "", "", "", "", 111),
+// 	}
+// 	test1(ps)
+// 	a := testProducts[IProduct](ps)
+// }
+
 func GetByProductCodes[T IProduct](ps []T) func(*bun.DB, context.Context, ...string) (Products, error) {
 	return func(conn *bun.DB, ctx context.Context, codes ...string) (Products, error) {
 		products := ps
