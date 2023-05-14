@@ -39,6 +39,21 @@ func (s Service) StartScrape(url, shopName string) {
 	wg.Wait()
 }
 
+func (s Service) StartScrapeBySeries(url, shopName string){
+	client := NewClient()
+	mqClient := NewMQClient(config.MQDsn, "mws")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	c1 := s.ScrapeProductsList(client, url)
+	c2 := s.GetProduct(c1, config.DBDsn)
+	c3 := s.ScrapeProduct(c2, client)
+	c4 := s.SaveProduct(c3, config.DBDsn)
+	s.SendMessage(c4, mqClient, shopName, &wg)
+
+	wg.Wait()
+}
+
 func (s Service) ScrapeProductsList(
 	client httpClient, url string) chan Products {
 	c := make(chan Products, 100)

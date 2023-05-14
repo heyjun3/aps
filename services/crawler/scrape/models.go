@@ -94,7 +94,9 @@ func (p Product) IsValidJan() bool {
 }
 
 func (p *Product) SetJan(jan string) {
-	p.Jan = &jan
+	if jan != "" {
+		p.Jan = &jan
+	}
 }
 
 func GetProduct(p IProduct) func(*bun.DB, context.Context, string, string) (IProduct, error) {
