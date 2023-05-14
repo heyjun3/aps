@@ -12,10 +12,10 @@ import (
 
 var logger = config.Logger
 
-func NewScrapeService(shopCode string) *scrape.Service {
+func NewScrapeService() *scrape.Service {
 	return &scrape.Service{
-		FetchProductByProductCodes: getByProductCodes(shopCode),
 		Parser:                     RakutenParser{},
+		FetchProduct: scrape.GetProduct(&RakutenProduct{}),
 	}
 }
 
@@ -27,7 +27,7 @@ func RunServices() {
 	}
 	for _, s := range shops.List {
 		logger.Info("run service", "shop", s.ID, "url", s.URL)
-		NewScrapeService(s.ID).StartScrape(s.URL, "rakuten")
+		NewScrapeService().StartScrapeBySeries(s.URL, "rakuten")
 	}
 }
 

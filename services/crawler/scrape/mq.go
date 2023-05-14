@@ -44,20 +44,20 @@ func (mq MQClient) createMQConnection() (*amqp.Channel, *amqp.Connection, error)
 	return ch, conn, err
 }
 
-func (mq MQClient) CreateConsumer() (<-chan amqp.Delivery, error) {
-	ch, conn, err := mq.createMQConnection()
-	defer conn.Close()
-	defer ch.Close()
+func (mq MQClient) CreateConsumer() (<-chan amqp.Delivery, *amqp.Channel, error) {
+	ch, _, err := mq.createMQConnection()
 
 	if err != nil {
-		return nil, err
+		ch.Close()
+		return nil, nil, err
 	}
 	msgs, err := ch.Consume(mq.queueName, "", true, false, false, false, nil)
 	if err != nil {
-		return nil, err
+		ch.Close()
+		return nil, nil, err
 	}
 
-	return msgs, nil
+	return msgs, ch, nil
 }
 
 func (mq MQClient) Publish(message []byte) error {
@@ -78,11 +78,11 @@ func (mq MQClient) Publish(message []byte) error {
 
 func MoveMessages(srcQueue, dstQueue string) {
 	srcClient := NewMQClient(config.MQDsn, srcQueue)
-	msgs, err := srcClient.CreateConsumer()
+	msgs, ch, err:= srcClient.CreateConsumer()
+	defer ch.Close()
 	if err != nil {
 		logger.Error("error", err)
 	}
-
 	dstClient := NewMQClient(config.DstMQDsn, dstQueue)
 	for d := range msgs {
 		logger.Info(string(d.Body))

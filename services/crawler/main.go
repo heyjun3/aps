@@ -49,8 +49,8 @@ func main() {
 		ikebe.NewScrapeService().StartScrape(url, shop)
 	case shop == "pc4u" && url != "":
 		pc4u.NewScrapeService().StartScrape(url, shop)
-	case shop == "rakuten" && url != "" && id != "":
-		rakuten.NewScrapeService(id).StartScrape(url, shop)
+	case shop == "rakuten" && url != "":
+		rakuten.NewScrapeService().StartScrapeBySeries(url, shop)
 	case shop == "rakuten" && id == "all":
 		rakuten.RunServices()
 	case shop == "move" && url == "":

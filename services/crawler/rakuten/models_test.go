@@ -11,7 +11,7 @@ import (
 	"crawler/testutil"
 )
 
-func TestGetRakutenProductsByProductCode(t *testing.T) {
+func TestGetRakutenProducts(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*RakutenProduct)(nil))
 
@@ -33,8 +33,8 @@ func TestGetRakutenProductsByProductCode(t *testing.T) {
 			codes: []string{"test", "code", "test_code"},
 		},
 		want: scrape.Products{
-			NewRakutenProduct("name", "code", "http://", "4444444", "rakuten", 9900, 0),
 			NewRakutenProduct("name", "test", "http://", "4444", "rakuten", 9900, 0),
+			NewRakutenProduct("name", "code", "http://", "4444444", "rakuten", 9900, 0),
 		},
 		wantError: false,
 	}, {
@@ -58,13 +58,23 @@ func TestGetRakutenProductsByProductCode(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		products, err := getByProductCodes("rakuten")(tt.args.conn, tt.args.ctx, tt.args.codes...)
+		t.Run(tt.name, func(*testing.T) {
+			var products scrape.Products
+			for _, code := range tt.args.codes {
+				product, err := scrape.GetProduct(&RakutenProduct{})(tt.args.conn, tt.args.ctx, code, "rakuten")
+				logger.Error("error", err)
+				if err != nil {
+					continue
+				}
+				products = append(products, product)
+			}
 
-		assert.Equal(t, tt.want, products)
-		if tt.wantError {
-			assert.Error(t, err)
-		} else {
-			assert.NoError(t, err)
-		}
+			assert.Equal(t, tt.want, products)
+			if tt.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }
