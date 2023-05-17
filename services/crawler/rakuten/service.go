@@ -14,7 +14,7 @@ var logger = config.Logger
 
 func NewScrapeService() *scrape.Service {
 	return &scrape.Service{
-		Parser:                     RakutenParser{},
+		Parser:       RakutenParser{},
 		FetchProduct: scrape.GetProduct(&RakutenProduct{}),
 	}
 }

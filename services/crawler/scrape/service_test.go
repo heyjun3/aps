@@ -342,7 +342,6 @@ func TestSendMessage(t *testing.T) {
 		products Products
 		client   RabbitMQClient
 		siteName string
-		wg sync.WaitGroup
 	}
 
 	tests := []struct {
@@ -359,7 +358,6 @@ func TestSendMessage(t *testing.T) {
 			},
 			client:   MQMock{},
 			siteName: "test",
-			wg: sync.WaitGroup{},
 		},
 	}}
 
@@ -370,10 +368,11 @@ func TestSendMessage(t *testing.T) {
 				ch <- v
 			}
 			close(ch)
-			tt.args.wg.Add(1)
+			wg := sync.WaitGroup{}
+			wg.Add(1)
 
-			tt.args.service.SendMessage(ch, tt.args.client, tt.args.siteName, &tt.args.wg)
-			tt.args.wg.Wait()
+			tt.args.service.SendMessage(ch, tt.args.client, tt.args.siteName, &wg)
+			wg.Wait()
 		})
 	}
 }

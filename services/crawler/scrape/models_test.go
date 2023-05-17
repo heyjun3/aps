@@ -16,10 +16,10 @@ func TestGetProduct(t *testing.T) {
 	f := GetProduct(&Product{})
 
 	type args struct {
-		conn    *bun.DB
-		ctx     context.Context
+		conn        *bun.DB
+		ctx         context.Context
 		productCode string
-		shopCode string
+		shopCode    string
 	}
 
 	tests := []struct {
@@ -30,20 +30,20 @@ func TestGetProduct(t *testing.T) {
 	}{{
 		name: "test get same product",
 		args: args{
-			conn:    conn,
-			ctx:     ctx,
+			conn:        conn,
+			ctx:         ctx,
 			productCode: "p1",
-			shopCode: "shop1",
+			shopCode:    "shop1",
 		},
 		want:    NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
 		wantErr: false,
 	}, {
 		name: "get none product",
 		args: args{
-			conn:    conn,
-			ctx:     ctx,
+			conn:        conn,
+			ctx:         ctx,
 			productCode: "ppp",
-			shopCode: "shop11",
+			shopCode:    "shop11",
 		},
 		want:    &Product{},
 		wantErr: true,
@@ -153,11 +153,11 @@ func TestGet(t *testing.T) {
 	}, {
 		name: "get none product",
 		args: args{
-			conn: conn,
-			ctx: ctx,
+			conn:  conn,
+			ctx:   ctx,
 			codes: []string{"ttttt", "eeeee"},
 		},
-		want: Products(nil),
+		want:    Products(nil),
 		wantErr: false,
 	}}
 

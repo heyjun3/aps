@@ -16,7 +16,7 @@ var logger = config.Logger
 type Service struct {
 	Parser                     Parser
 	FetchProductByProductCodes func(*bun.DB, context.Context, ...string) (Products, error)
-	FetchProduct func(*bun.DB, context.Context, string, string) (IProduct, error)
+	FetchProduct               func(*bun.DB, context.Context, string, string) (IProduct, error)
 }
 
 type Parser interface {
@@ -39,7 +39,7 @@ func (s Service) StartScrape(url, shopName string) {
 	wg.Wait()
 }
 
-func (s Service) StartScrapeBySeries(url, shopName string){
+func (s Service) StartScrapeBySeries(url, shopName string) {
 	client := NewClient()
 	mqClient := NewMQClient(config.MQDsn, "mws")
 	wg := sync.WaitGroup{}
@@ -98,7 +98,7 @@ func (s Service) GetProductsBatch(c chan Products, dsn string) chan Products {
 
 func (s Service) GetProduct(c chan Products, dsn string) chan Products {
 	send := make(chan Products, 100)
-	go func () {
+	go func() {
 		defer close(send)
 		ctx := context.Background()
 		conn := CreateDBConnection(dsn)

@@ -85,7 +85,7 @@ func (p Product) GetPrice() int64 {
 	return p.Price
 }
 
-func (p Product) GetShopCode() string{
+func (p Product) GetShopCode() string {
 	return p.ShopCode
 }
 
