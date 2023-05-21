@@ -99,12 +99,6 @@ func (p *Product) SetJan(jan string) {
 	}
 }
 
-type ProductRepository[T IProduct] struct {}
-
-func (p ProductRepository[T]) GetProduct(ctx context.Context, db *bun.DB, productCode, shopCode string) IProduct{
-	return &Product{}
-}
-
 func GetProduct(p IProduct) func(*bun.DB, context.Context, string, string) (IProduct, error) {
 	return func(conn *bun.DB, ctx context.Context, productCode, shopCode string) (IProduct, error) {
 		product := reflect.New(reflect.ValueOf(p).Elem().Type()).Interface().(IProduct)
@@ -119,19 +113,6 @@ func GetProduct(p IProduct) func(*bun.DB, context.Context, string, string) (IPro
 }
 
 type Products []IProduct
-
-func convToProducts[T IProduct](products []T) Products{
-	ps := make(Products, len(products))
-	for i := 0; i < len(products); i++ {
-		ps = append(ps, products[i])
-	}
-	return ps
-}
-
-func main() {
-	p := Products{}
-	convToProducts(p)
-}
 
 func GetByProductCodes[T IProduct](ps []T) func(*bun.DB, context.Context, ...string) (Products, error) {
 	return func(conn *bun.DB, ctx context.Context, codes ...string) (Products, error) {
