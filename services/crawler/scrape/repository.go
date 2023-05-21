@@ -12,10 +12,10 @@ type ProductRepository[T IProduct] struct {
 	products []T
 }
 
-func NewProductRepository[T IProduct](p T, ps []T) ProductRepository[T] {
-	return ProductRepository[T]{
-		product:  p,
-		products: ps,
+func NewProductRepository() ProductRepository[*Product] {
+	return ProductRepository[*Product]{
+		product:  &Product{},
+		products: []*Product{},
 	}
 }
 
@@ -41,15 +41,10 @@ func (p ProductRepository[T]) GetByProductCodes(ctx context.Context, db *bun.DB,
 		Order("product_code ASC").
 		Scan(ctx, &products)
 
-	var result Products
-	for _, p := range products {
-		result = append(result, p)
-	}
-
-	return result, err
+	return ConvToProducts(products), err
 }
 
-func (p ProductRepository[T])BulkUpsert(ctx context.Context, db *bun.DB, ps Products) error {
+func (p ProductRepository[T]) BulkUpsert(ctx context.Context, db *bun.DB, ps Products) error {
 	mapProduct := map[string]IProduct{}
 	for _, v := range ps {
 		mapProduct[v.GetProductCode()] = v

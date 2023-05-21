@@ -158,6 +158,14 @@ func (p Products) BulkUpsert(conn *bun.DB, ctx context.Context) error {
 	return err
 }
 
+func ConvToProducts[T IProduct](products []T) Products {
+	var result Products
+	for i := 0; i < len(products); i++ {
+		result = append(result, products[i])
+	}
+	return result
+}
+
 func (p Products) getProductCodes() []string {
 	var codes []string
 	for _, pro := range p {

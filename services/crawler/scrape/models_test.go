@@ -13,7 +13,7 @@ import (
 func TestGetProduct(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
-	f := GetProduct(&Product{})
+	repo := NewProductRepository()
 
 	type args struct {
 		conn        *bun.DB
@@ -59,7 +59,7 @@ func TestGetProduct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p, err := f(tt.args.conn, tt.args.ctx, tt.args.productCode, tt.args.shopCode)
+			p, err := repo.GetProduct(tt.args.ctx, tt.args.conn, tt.args.productCode, tt.args.shopCode)
 
 			assert.Equal(t, tt.want, p)
 			if tt.wantErr {
@@ -74,6 +74,8 @@ func TestGetProduct(t *testing.T) {
 func TestBulkUpsert(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
+	repo := NewProductRepository()
+
 	type args struct {
 		conn     *bun.DB
 		ctx      context.Context
@@ -101,7 +103,7 @@ func TestBulkUpsert(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.args.products.BulkUpsert(tt.args.conn, tt.args.ctx)
+			err := repo.BulkUpsert(tt.args.ctx, tt.args.conn, tt.args.products)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -114,6 +116,8 @@ func TestBulkUpsert(t *testing.T) {
 func TestGet(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
+	repo := NewProductRepository()
+
 	type args struct {
 		conn  *bun.DB
 		ctx   context.Context
@@ -173,11 +177,10 @@ func TestGet(t *testing.T) {
 		NewProduct("name", "test8", "https://test.com", "", "shop", 2),
 	}
 	pre.BulkUpsert(conn, ctx)
-	f := GetByProductCodes([]*Product{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			products, err := f(tt.args.conn, tt.args.ctx, tt.args.codes...)
+			products, err := repo.GetByProductCodes(tt.args.ctx, tt.args.conn, tt.args.codes...)
 
 			assert.Equal(t, tt.want, products)
 			if tt.wantErr {
