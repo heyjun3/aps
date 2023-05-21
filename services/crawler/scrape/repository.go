@@ -49,7 +49,7 @@ func (p ProductRepository[T]) GetByProductCodes(ctx context.Context, db *bun.DB,
 	return result, err
 }
 
-func BulkUpsert[T IProduct](ctx context.Context, db *bun.DB, ps []T) error {
+func (p ProductRepository[T])BulkUpsert(ctx context.Context, db *bun.DB, ps Products) error {
 	mapProduct := map[string]IProduct{}
 	for _, v := range ps {
 		mapProduct[v.GetProductCode()] = v
