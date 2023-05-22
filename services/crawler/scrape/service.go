@@ -6,17 +6,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/uptrace/bun"
-
 	"crawler/config"
 )
 
 var logger = config.Logger
 
-type Service struct {
+type Service[T IProduct] struct {
 	Parser                     Parser
-	FetchProductByProductCodes func(*bun.DB, context.Context, ...string) (Products, error)
-	FetchProduct               func(*bun.DB, context.Context, string, string) (IProduct, error)
+	Repo ProductRepository[T]
+}
+
+func NewService[T IProduct](parser Parser, p T, ps []T) Service[T] {
+	return Service[T]{
+		Parser: parser,
+		Repo: NewProductRepository(p, ps),
+	}
 }
 
 type Parser interface {
@@ -24,7 +28,7 @@ type Parser interface {
 	Product(io.ReadCloser) (string, error)
 }
 
-func (s Service) StartScrape(url, shopName string) {
+func (s Service[T]) StartScrape(url, shopName string) {
 	client := NewClient()
 	mqClient := NewMQClient(config.MQDsn, "mws")
 	wg := sync.WaitGroup{}
@@ -39,7 +43,7 @@ func (s Service) StartScrape(url, shopName string) {
 	wg.Wait()
 }
 
-func (s Service) StartScrapeBySeries(url, shopName string) {
+func (s Service[T]) StartScrapeBySeries(url, shopName string) {
 	client := NewClient()
 	mqClient := NewMQClient(config.MQDsn, "mws")
 	wg := sync.WaitGroup{}
@@ -54,7 +58,7 @@ func (s Service) StartScrapeBySeries(url, shopName string) {
 	wg.Wait()
 }
 
-func (s Service) ScrapeProductsList(
+func (s Service[T]) ScrapeProductsList(
 	client httpClient, url string) chan Products {
 	c := make(chan Products, 100)
 	go func() {
@@ -76,7 +80,7 @@ func (s Service) ScrapeProductsList(
 	return c
 }
 
-func (s Service) GetProductsBatch(c chan Products, dsn string) chan Products {
+func (s Service[T]) GetProductsBatch(c chan Products, dsn string) chan Products {
 	send := make(chan Products, 100)
 	go func() {
 		defer close(send)
@@ -84,7 +88,7 @@ func (s Service) GetProductsBatch(c chan Products, dsn string) chan Products {
 		conn := CreateDBConnection(dsn)
 
 		for p := range c {
-			dbProduct, err := s.FetchProductByProductCodes(conn, ctx, p.getProductCodes()...)
+			dbProduct, err := s.Repo.GetByProductCodes(ctx, conn, p.getProductCodes()...)
 			if err != nil {
 				logger.Error("db get product error", err)
 				continue
@@ -96,7 +100,7 @@ func (s Service) GetProductsBatch(c chan Products, dsn string) chan Products {
 	return send
 }
 
-func (s Service) GetProduct(c chan Products, dsn string) chan Products {
+func (s Service[T]) GetProduct(c chan Products, dsn string) chan Products {
 	send := make(chan Products, 100)
 	go func() {
 		defer close(send)
@@ -106,7 +110,7 @@ func (s Service) GetProduct(c chan Products, dsn string) chan Products {
 		for ps := range c {
 			var products Products
 			for _, p := range ps {
-				inDBProduct, err := s.FetchProduct(conn, ctx, p.GetProductCode(), p.GetShopCode())
+				inDBProduct, err := s.Repo.GetProduct(ctx, conn, p.GetProductCode(), p.GetShopCode())
 				if err != nil {
 					logger.Error("db get product error", err)
 				} else {
@@ -121,7 +125,7 @@ func (s Service) GetProduct(c chan Products, dsn string) chan Products {
 	return send
 }
 
-func (s Service) ScrapeProduct(
+func (s Service[T]) ScrapeProduct(
 	ch chan Products, client httpClient) chan Products {
 
 	send := make(chan Products, 100)
@@ -149,7 +153,7 @@ func (s Service) ScrapeProduct(
 	return send
 }
 
-func (s Service) SaveProduct(ch chan Products, dsn string) chan IProduct {
+func (s Service[T]) SaveProduct(ch chan Products, dsn string) chan IProduct {
 
 	send := make(chan IProduct, 100)
 	go func() {
@@ -157,7 +161,7 @@ func (s Service) SaveProduct(ch chan Products, dsn string) chan IProduct {
 		ctx := context.Background()
 		conn := CreateDBConnection(dsn)
 		for p := range ch {
-			err := p.BulkUpsert(conn, ctx)
+			err := s.Repo.BulkUpsert(ctx, conn, p)
 			if err != nil {
 				logger.Error("product upsert error", err)
 				continue
@@ -170,7 +174,7 @@ func (s Service) SaveProduct(ch chan Products, dsn string) chan IProduct {
 	return send
 }
 
-func (s Service) SendMessage(
+func (s Service[T]) SendMessage(
 	ch chan IProduct, client RabbitMQClient,
 	shop_name string, wg *sync.WaitGroup) {
 	go func() {

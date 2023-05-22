@@ -12,10 +12,10 @@ type ProductRepository[T IProduct] struct {
 	products []T
 }
 
-func NewProductRepository() ProductRepository[*Product] {
-	return ProductRepository[*Product]{
-		product:  &Product{},
-		products: []*Product{},
+func NewProductRepository[T IProduct](p T, ps []T) ProductRepository[T] {
+	return ProductRepository[T]{
+		product:  p,
+		products: ps,
 	}
 }
 

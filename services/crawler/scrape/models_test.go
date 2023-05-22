@@ -13,7 +13,7 @@ import (
 func TestGetProduct(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
-	repo := NewProductRepository()
+	repo := NewProductRepository(&Product{}, []*Product{})
 
 	type args struct {
 		conn        *bun.DB
@@ -74,7 +74,7 @@ func TestGetProduct(t *testing.T) {
 func TestBulkUpsert(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
-	repo := NewProductRepository()
+	repo := NewProductRepository(&Product{}, []*Product{})
 
 	type args struct {
 		conn     *bun.DB
@@ -116,7 +116,7 @@ func TestBulkUpsert(t *testing.T) {
 func TestGet(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
-	repo := NewProductRepository()
+	repo := NewProductRepository(&Product{}, []*Product{})
 
 	type args struct {
 		conn  *bun.DB
