@@ -55,7 +55,7 @@ func TestGetProduct(t *testing.T) {
 		NewProduct("name", "test2", "https://test.com", "", "shop", 2),
 		NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
 	}
-	pre.BulkUpsert(conn, ctx)
+	repo.BulkUpsert(ctx, conn, pre)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -176,7 +176,7 @@ func TestGet(t *testing.T) {
 		NewProduct("name", "test7", "https://test.com", "", "shop", 2),
 		NewProduct("name", "test8", "https://test.com", "", "shop", 2),
 	}
-	pre.BulkUpsert(conn, ctx)
+	repo.BulkUpsert(ctx, conn, pre)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

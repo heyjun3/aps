@@ -14,11 +14,11 @@ import (
 func TestGetPc4uProductsByProductCode(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Pc4uProduct)(nil))
-	f := scrape.GetByProductCodes([]*Pc4uProduct{})
+	s := NewScrapeService()
+
 	type args struct {
 		conn  *bun.DB
 		ctx   context.Context
-		f     func(*bun.DB, context.Context, ...string) (scrape.Products, error)
 		codes []string
 	}
 	tests := []struct {
@@ -31,7 +31,6 @@ func TestGetPc4uProductsByProductCode(t *testing.T) {
 		args: args{
 			conn:  conn,
 			ctx:   ctx,
-			f:     f,
 			codes: []string{"test_code", "test1", "test2"},
 		},
 		want: scrape.Products{
@@ -49,14 +48,14 @@ func TestGetPc4uProductsByProductCode(t *testing.T) {
 		NewPc4uProduct("test", "test1", "https://google.com", "", 1111),
 		NewPc4uProduct("test", "test2", "https://google.com", "", 2222),
 	}
-	err := ps.BulkUpsert(conn, ctx)
+	err := s.Repo.BulkUpsert(ctx, conn, ps)
 	if err != nil {
 		logger.Error("insert error", err)
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pros, err := tt.args.f(tt.args.conn, tt.args.ctx, tt.args.codes...)
+			pros, err := s.Repo.GetByProductCodes(tt.args.ctx, tt.args.conn, tt.args.codes...)
 
 			assert.Equal(t, tt.want, pros)
 			if tt.wantErr {
@@ -71,14 +70,15 @@ func TestGetPc4uProductsByProductCode(t *testing.T) {
 func TestUpsert(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Pc4uProduct)(nil))
+	s := NewScrapeService()
 
 	t.Run("upsert pc4u product", func(t *testing.T) {
 		p := NewPc4uProduct("test", "test", "test url", "1111", 9000)
 
-		err := scrape.Products{p}.BulkUpsert(conn, ctx)
+		err := s.Repo.BulkUpsert(ctx, conn, scrape.Products{p})
 
 		assert.Equal(t, nil, err)
-		expectd, _ := scrape.GetByProductCodes([]*Pc4uProduct{})(conn, ctx, "test")
+		expectd, _ := s.Repo.GetByProductCodes(ctx, conn, "test")
 		assert.Equal(t, (expectd[0]).(*Pc4uProduct), p)
 	})
 }

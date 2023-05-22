@@ -1,11 +1,9 @@
 package scrape
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -99,64 +97,7 @@ func (p *Product) SetJan(jan string) {
 	}
 }
 
-func GetProduct(p IProduct) func(*bun.DB, context.Context, string, string) (IProduct, error) {
-	return func(conn *bun.DB, ctx context.Context, productCode, shopCode string) (IProduct, error) {
-		product := reflect.New(reflect.ValueOf(p).Elem().Type()).Interface().(IProduct)
-		err := conn.NewSelect().
-			Model(product).
-			Where("product_code = ?", productCode).
-			Where("shop_code = ?", shopCode).
-			Scan(ctx, product)
-
-		return product, err
-	}
-}
-
 type Products []IProduct
-
-func GetByProductCodes[T IProduct](ps []T) func(*bun.DB, context.Context, ...string) (Products, error) {
-	return func(conn *bun.DB, ctx context.Context, codes ...string) (Products, error) {
-		products := ps
-
-		err := conn.NewSelect().
-			Model(&products).
-			Where("product_code IN (?)", bun.In(codes)).
-			Order("product_code ASC").
-			Scan(ctx, &products)
-
-		var result Products
-		for _, p := range products {
-			result = append(result, p)
-		}
-
-		return result, err
-	}
-}
-
-func (p Products) BulkUpsert(conn *bun.DB, ctx context.Context) error {
-	mapProduct := map[string]IProduct{}
-	for _, v := range p {
-		mapProduct[v.GetProductCode()] = v
-	}
-	var products Products
-	for _, v := range mapProduct {
-		products = append(products, v)
-	}
-
-	_, err := conn.NewInsert().
-		Model(&products).
-		On("CONFLICT (shop_code, product_code) DO UPDATE").
-		Set(`
-			name = EXCLUDED.name,
-			jan = EXCLUDED.jan,
-			price = EXCLUDED.price,
-			url = EXCLUDED.url
-		`).
-		Returning("NULL").
-		Exec(ctx)
-
-	return err
-}
 
 func ConvToProducts[T IProduct](products []T) Products {
 	var result Products

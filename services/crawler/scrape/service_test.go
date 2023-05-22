@@ -153,7 +153,7 @@ func TestGetProductsBatch(t *testing.T) {
 		NewProduct("test3", "test3", "http://test.jp", "3333", "test", 3333),
 		NewProduct("test4", "test4", "http://test.jp", "4444", "test", 4444),
 	}
-	ps.BulkUpsert(conn, ctx)
+	ProductRepository[*Product]{}.BulkUpsert(ctx, conn, ps)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
@@ -211,7 +211,7 @@ func TestGetProducts(t *testing.T) {
 		NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222),
 		NewProduct("test3", "test3", "http://test.jp", "", "test", 3333),
 	}
-	pre.BulkUpsert(conn, ctx)
+	ProductRepository[*Product]{}.BulkUpsert(ctx, conn, pre)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
