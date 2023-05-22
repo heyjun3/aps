@@ -7,9 +7,6 @@ import (
 
 var logger = config.Logger
 
-func NewScrapeService() *scrape.Service {
-	return &scrape.Service{
-		FetchProductByProductCodes: scrape.GetByProductCodes([]*ArkProduct{}),
-		Parser:                     ArkParser{},
-	}
+func NewScrapeService() scrape.Service[*ArkProduct] {
+	return scrape.NewService(ArkParser{}, &ArkProduct{}, []*ArkProduct{})
 }
