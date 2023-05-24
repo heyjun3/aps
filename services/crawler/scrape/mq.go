@@ -78,7 +78,7 @@ func (mq MQClient) Publish(message []byte) error {
 
 func MoveMessages(srcQueue, dstQueue string) {
 	srcClient := NewMQClient(config.MQDsn, srcQueue)
-	msgs, ch, err:= srcClient.CreateConsumer()
+	msgs, ch, err := srcClient.CreateConsumer()
 	defer ch.Close()
 	if err != nil {
 		logger.Error("error", err)

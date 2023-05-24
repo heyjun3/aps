@@ -12,11 +12,8 @@ import (
 
 var logger = config.Logger
 
-func NewScrapeService() *scrape.Service {
-	return &scrape.Service{
-		Parser:                     RakutenParser{},
-		FetchProduct: scrape.GetProduct(&RakutenProduct{}),
-	}
+func NewScrapeService() scrape.Service[*RakutenProduct] {
+	return scrape.NewService(RakutenParser{}, &RakutenProduct{}, []*RakutenProduct{})
 }
 
 func RunServices() {

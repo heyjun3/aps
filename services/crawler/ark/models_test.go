@@ -14,14 +14,13 @@ import (
 func TestArkGetByProductCodes(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*ArkProduct)(nil))
+	s := NewScrapeService()
 	p := scrape.Products{NewArkProduct("test", "test_code", "https://google.com", "", 1111)}
-	f := scrape.GetByProductCodes([]*ArkProduct{})
 
 	type args struct {
 		conn  *bun.DB
 		ctx   context.Context
 		codes []string
-		f     func(*bun.DB, context.Context, ...string) (scrape.Products, error)
 	}
 	tests := []struct {
 		name    string
@@ -34,7 +33,6 @@ func TestArkGetByProductCodes(t *testing.T) {
 			conn:  conn,
 			ctx:   ctx,
 			codes: []string{"test_code"},
-			f:     f,
 		},
 		want:    p,
 		wantErr: false,
@@ -44,17 +42,16 @@ func TestArkGetByProductCodes(t *testing.T) {
 			conn:  conn,
 			ctx:   ctx,
 			codes: []string{"code", "test"},
-			f:     f,
 		},
 		want:    scrape.Products(nil),
 		wantErr: false,
 	}}
 
-	p.BulkUpsert(conn, ctx)
+	s.Repo.BulkUpsert(ctx, conn, p)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			products, err := tt.args.f(tt.args.conn, tt.args.ctx, tt.args.codes...)
+			products, err := s.Repo.GetByProductCodes(tt.args.ctx, tt.args.conn, tt.args.codes...)
 
 			assert.Equal(t, tt.want, products)
 			if err != nil {
@@ -67,6 +64,8 @@ func TestArkGetByProductCodes(t *testing.T) {
 func TestBulkUpsert(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, ArkProduct{})
+	s := NewScrapeService()
+
 	type args struct {
 		conn     *bun.DB
 		ctx      context.Context
@@ -96,7 +95,7 @@ func TestBulkUpsert(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.args.products.BulkUpsert(tt.args.conn, tt.args.ctx)
+			err := s.Repo.BulkUpsert(tt.args.ctx, tt.args.conn, tt.args.products)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

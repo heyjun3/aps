@@ -12,9 +12,6 @@ const (
 	host   = "www.ikebe-gakki.com"
 )
 
-func NewScrapeService() *scrape.Service {
-	return &scrape.Service{
-		FetchProductByProductCodes: scrape.GetByProductCodes([]*IkebeProduct{}),
-		Parser:                     IkebeParser{},
-	}
+func NewScrapeService() scrape.Service[*IkebeProduct] {
+	return scrape.NewService(IkebeParser{}, &IkebeProduct{}, []*IkebeProduct{})
 }

@@ -38,7 +38,7 @@ func (p ParserMock) Product(doc io.ReadCloser) (string, error) {
 func TestScrapeProductsList(t *testing.T) {
 	type args struct {
 		client  httpClient
-		service Service
+		service Service[*Product]
 		URL     string
 	}
 	type want struct {
@@ -55,7 +55,7 @@ func TestScrapeProductsList(t *testing.T) {
 		name: "happy path",
 		args: args{
 			client: ClientMock{"html/test_scrape_products_list.html"},
-			service: Service{
+			service: Service[*Product]{
 				Parser: ParserMock{
 					products: Products{
 						NewProduct("test", "test1", "http://test.jp", "1111", "test", 1111),
@@ -89,7 +89,7 @@ func TestScrapeProductsList(t *testing.T) {
 
 func TestGetProductsBatch(t *testing.T) {
 	type args struct {
-		service  Service
+		service  Service[*Product]
 		products Products
 		DSN      string
 	}
@@ -104,8 +104,8 @@ func TestGetProductsBatch(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service{
-				FetchProductByProductCodes: GetByProductCodes([]*Product{}),
+			service: Service[*Product]{
+				Repo: NewProductRepository(&Product{}, []*Product{}),
 			},
 			products: Products{
 				NewProduct("test1", "test1", "http://test.jp", "", "test", 1111),
@@ -126,8 +126,8 @@ func TestGetProductsBatch(t *testing.T) {
 	}, {
 		name: "get products return null",
 		args: args{
-			service: Service{
-				FetchProductByProductCodes: GetByProductCodes([]*Product{}),
+			service: Service[*Product]{
+				Repo: NewProductRepository(&Product{}, []*Product{}),
 			},
 			products: Products{
 				NewProduct("test11", "test11", "http://test.jp", "", "test", 1111),
@@ -153,7 +153,7 @@ func TestGetProductsBatch(t *testing.T) {
 		NewProduct("test3", "test3", "http://test.jp", "3333", "test", 3333),
 		NewProduct("test4", "test4", "http://test.jp", "4444", "test", 4444),
 	}
-	ps.BulkUpsert(conn, ctx)
+	ProductRepository[*Product]{}.BulkUpsert(ctx, conn, ps)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
@@ -170,7 +170,7 @@ func TestGetProductsBatch(t *testing.T) {
 
 func TestGetProducts(t *testing.T) {
 	type args struct {
-		service  Service
+		service  Service[*Product]
 		products Products
 		DSN      string
 	}
@@ -185,8 +185,8 @@ func TestGetProducts(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service{
-				FetchProduct: GetProduct(&Product{}),
+			service: Service[*Product]{
+				Repo: NewProductRepository(&Product{}, []*Product{}),
 			},
 			products: Products{
 				NewProduct("test1", "test1", "http://test.jp", "", "test", 1111),
@@ -211,7 +211,7 @@ func TestGetProducts(t *testing.T) {
 		NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222),
 		NewProduct("test3", "test3", "http://test.jp", "", "test", 3333),
 	}
-	pre.BulkUpsert(conn, ctx)
+	ProductRepository[*Product]{}.BulkUpsert(ctx, conn, pre)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
@@ -230,7 +230,7 @@ func TestGetProducts(t *testing.T) {
 
 func TestScrapeProduct(t *testing.T) {
 	type args struct {
-		service  Service
+		service  Service[*Product]
 		products Products
 		client   httpClient
 	}
@@ -245,7 +245,7 @@ func TestScrapeProduct(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service{
+			service: Service[*Product]{
 				Parser: ParserMock{
 					jan: "99999",
 				},
@@ -279,7 +279,7 @@ func TestScrapeProduct(t *testing.T) {
 
 func TestSaveProduct(t *testing.T) {
 	type args struct {
-		service  Service
+		service  Service[*Product]
 		products Products
 		DSN      string
 	}
@@ -294,7 +294,7 @@ func TestSaveProduct(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service{},
+			service: Service[*Product]{},
 			products: Products{
 				NewProduct("test1", "test1", "http://test.jp", "99999", "test", 1111),
 				NewProduct("test2", "test2", "http://test.jp", "99999", "test", 2222),
@@ -338,11 +338,10 @@ func (m MQMock) Publish(message []byte) error {
 
 func TestSendMessage(t *testing.T) {
 	type args struct {
-		service  Service
+		service  Service[*Product]
 		products Products
 		client   RabbitMQClient
 		siteName string
-		wg sync.WaitGroup
 	}
 
 	tests := []struct {
@@ -351,7 +350,7 @@ func TestSendMessage(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service{},
+			service: Service[*Product]{},
 			products: Products{
 				NewProduct("test1", "test1", "http://test.jp", "99999", "test", 1111),
 				NewProduct("test2", "test2", "http://test.jp", "99999", "test", 2222),
@@ -359,7 +358,6 @@ func TestSendMessage(t *testing.T) {
 			},
 			client:   MQMock{},
 			siteName: "test",
-			wg: sync.WaitGroup{},
 		},
 	}}
 
@@ -370,10 +368,11 @@ func TestSendMessage(t *testing.T) {
 				ch <- v
 			}
 			close(ch)
-			tt.args.wg.Add(1)
+			wg := sync.WaitGroup{}
+			wg.Add(1)
 
-			tt.args.service.SendMessage(ch, tt.args.client, tt.args.siteName, &tt.args.wg)
-			tt.args.wg.Wait()
+			tt.args.service.SendMessage(ch, tt.args.client, tt.args.siteName, &wg)
+			wg.Wait()
 		})
 	}
 }

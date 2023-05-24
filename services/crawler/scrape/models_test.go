@@ -13,13 +13,13 @@ import (
 func TestGetProduct(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
-	f := GetProduct(&Product{})
+	repo := NewProductRepository(&Product{}, []*Product{})
 
 	type args struct {
-		conn    *bun.DB
-		ctx     context.Context
+		conn        *bun.DB
+		ctx         context.Context
 		productCode string
-		shopCode string
+		shopCode    string
 	}
 
 	tests := []struct {
@@ -30,20 +30,20 @@ func TestGetProduct(t *testing.T) {
 	}{{
 		name: "test get same product",
 		args: args{
-			conn:    conn,
-			ctx:     ctx,
+			conn:        conn,
+			ctx:         ctx,
 			productCode: "p1",
-			shopCode: "shop1",
+			shopCode:    "shop1",
 		},
 		want:    NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
 		wantErr: false,
 	}, {
 		name: "get none product",
 		args: args{
-			conn:    conn,
-			ctx:     ctx,
+			conn:        conn,
+			ctx:         ctx,
 			productCode: "ppp",
-			shopCode: "shop11",
+			shopCode:    "shop11",
 		},
 		want:    &Product{},
 		wantErr: true,
@@ -55,11 +55,11 @@ func TestGetProduct(t *testing.T) {
 		NewProduct("name", "test2", "https://test.com", "", "shop", 2),
 		NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
 	}
-	pre.BulkUpsert(conn, ctx)
+	repo.BulkUpsert(ctx, conn, pre)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p, err := f(tt.args.conn, tt.args.ctx, tt.args.productCode, tt.args.shopCode)
+			p, err := repo.GetProduct(tt.args.ctx, tt.args.conn, tt.args.productCode, tt.args.shopCode)
 
 			assert.Equal(t, tt.want, p)
 			if tt.wantErr {
@@ -74,6 +74,8 @@ func TestGetProduct(t *testing.T) {
 func TestBulkUpsert(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
+	repo := NewProductRepository(&Product{}, []*Product{})
+
 	type args struct {
 		conn     *bun.DB
 		ctx      context.Context
@@ -101,7 +103,7 @@ func TestBulkUpsert(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.args.products.BulkUpsert(tt.args.conn, tt.args.ctx)
+			err := repo.BulkUpsert(tt.args.ctx, tt.args.conn, tt.args.products)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -114,6 +116,8 @@ func TestBulkUpsert(t *testing.T) {
 func TestGet(t *testing.T) {
 	conn, ctx := testutil.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
+	repo := NewProductRepository(&Product{}, []*Product{})
+
 	type args struct {
 		conn  *bun.DB
 		ctx   context.Context
@@ -153,11 +157,11 @@ func TestGet(t *testing.T) {
 	}, {
 		name: "get none product",
 		args: args{
-			conn: conn,
-			ctx: ctx,
+			conn:  conn,
+			ctx:   ctx,
 			codes: []string{"ttttt", "eeeee"},
 		},
-		want: Products(nil),
+		want:    Products(nil),
 		wantErr: false,
 	}}
 
@@ -172,12 +176,11 @@ func TestGet(t *testing.T) {
 		NewProduct("name", "test7", "https://test.com", "", "shop", 2),
 		NewProduct("name", "test8", "https://test.com", "", "shop", 2),
 	}
-	pre.BulkUpsert(conn, ctx)
-	f := GetByProductCodes([]*Product{})
+	repo.BulkUpsert(ctx, conn, pre)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			products, err := f(tt.args.conn, tt.args.ctx, tt.args.codes...)
+			products, err := repo.GetByProductCodes(tt.args.ctx, tt.args.conn, tt.args.codes...)
 
 			assert.Equal(t, tt.want, products)
 			if tt.wantErr {
