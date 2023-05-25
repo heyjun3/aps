@@ -27,7 +27,7 @@ func (p NojimaParser) ProductList(r io.ReadCloser, requestURL string) (scrape.Pr
 
 	var products scrape.Products
 	doc.Find(".shouhinlist").Each(func(i int, s *goquery.Selection) {
-		name := s.Find(".textOverflowShohinmei a[href]").Text()
+		name := strings.Join(strings.Fields(s.Find(".textOverflowShohinmei a[href]").Text()), "")
 		if name == "" {
 			logger.Info("Not Found product name")
 			return
@@ -83,7 +83,7 @@ func (p NojimaParser) generateNextURL(doc *goquery.Document, requestURL string) 
 		return "", err
 	}
 
-	page, err := scrape.PullOutNumber(doc.Find(".listwakuselect").Text())
+	page, err := scrape.PullOutNumber(doc.Find(".listwakuselect").First().Text())
 	if err != nil {
 		return "", err
 	}
