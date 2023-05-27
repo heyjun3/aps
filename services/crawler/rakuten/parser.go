@@ -19,7 +19,7 @@ const (
 
 type RakutenParser struct{}
 
-func (p RakutenParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
+func (p RakutenParser) ProductList(r io.ReadCloser, u string) (scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)

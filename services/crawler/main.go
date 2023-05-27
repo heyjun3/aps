@@ -49,6 +49,8 @@ func main() {
 		ark.NewScrapeService().StartScrape(url, shop)
 	case shop == "ikebe" && url != "":
 		ikebe.NewScrapeService().StartScrape(url, shop)
+	case shop == "nojima" && url != "":
+		nojima.NewScrapeService().StartScrape(url, shop)
 	case shop == "pc4u" && url != "":
 		pc4u.NewScrapeService().StartScrape(url, shop)
 	case shop == "rakuten" && url != "":

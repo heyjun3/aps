@@ -94,3 +94,22 @@ func (p NojimaParser) generateNextURL(doc *goquery.Document, requestURL string) 
 	
 	return nextURL.String(), nil
 }
+
+func (p NojimaParser) Product(r io.ReadCloser) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		return "", err
+	}
+
+	u, exist := doc.Find("link[rel=canonical]").Attr("href")
+	if !exist {
+		return "", fmt.Errorf("not found canonical url")
+	}
+	var path []string
+	for _, v := range strings.Split(u, "/") {
+		if v != "" {
+			path = append(path, v)
+		}
+	}
+	return path[len(path)-1], nil
+}

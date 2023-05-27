@@ -115,7 +115,7 @@ func TestProductList(t *testing.T) {
 			}
 			defer resp.Body.Close()
 
-			products, url := parser.ProductList(resp.Body)
+			products, url := parser.ProductList(resp.Body, "")
 
 			assert.Equal(t, tt.want.count, len(products))
 			assert.Equal(t, tt.want.url, url)

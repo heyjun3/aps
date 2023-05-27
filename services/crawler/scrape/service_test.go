@@ -27,7 +27,7 @@ type ParserMock struct {
 	err      error
 }
 
-func (p ParserMock) ProductList(doc io.ReadCloser) (Products, string) {
+func (p ParserMock) ProductList(doc io.ReadCloser, url string) (Products, string) {
 	return p.products, p.URL
 }
 

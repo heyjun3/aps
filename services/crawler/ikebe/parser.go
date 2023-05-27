@@ -13,7 +13,7 @@ import (
 
 type IkebeParser struct{}
 
-func (parser IkebeParser) ProductList(r io.ReadCloser) (scrape.Products, string) {
+func (parser IkebeParser) ProductList(r io.ReadCloser, u string) (scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)
@@ -62,15 +62,15 @@ func (parser IkebeParser) ProductList(r io.ReadCloser) (scrape.Products, string)
 		logger.Info("Next Page URL is Not Found")
 		return products, ""
 	}
-	u, err := URL.Parse(nextPath)
+	nextURL, err := URL.Parse(nextPath)
 	if err != nil {
 		logger.Error("url parse error", err)
 		return products, ""
 	}
-	u.Scheme = scheme
-	u.Host = host
+	nextURL.Scheme = scheme
+	nextURL.Host = host
 
-	return products, u.String()
+	return products, nextURL.String()
 }
 
 func (parser IkebeParser) Product(r io.ReadCloser) (string, error) {

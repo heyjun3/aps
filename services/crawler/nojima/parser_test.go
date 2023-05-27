@@ -94,3 +94,38 @@ func TestProductList(t *testing.T) {
 		})
 	}
 }
+
+func TestProduct(t *testing.T) {
+	tests := []struct{
+		name string
+		filename string
+		jan string
+		wantErr bool
+	}{{
+		name: "parse product detail page",
+		filename: "html/test_product_detail.html",
+		jan: "4977766788977",
+		wantErr: false,
+	}}
+	parser := NojimaParser{}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := testutil.CreateHttpResponse(tt.filename)
+			if err != nil {
+				logger.Error("file open error", err)
+				panic(err)
+			}
+			defer res.Body.Close()
+
+			jan, err := parser.Product(res.Body)
+
+			assert.Equal(t, tt.jan, jan)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
