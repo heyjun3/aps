@@ -29,6 +29,7 @@
 0 4 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py super -i bookmark
 0 16 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py pcones
 0 17 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s pc4u -u "https://www.pc4u.co.jp/view/category/outlet"
+0 17 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s nojima -u "https://online.nojima.co.jp/app/catalog/list/init?searchCategoryCode=0&mode=image&pageSize=60&currentPage=1&alignmentSequence=9&searchDispFlg=true&immediateDeliveryDispFlg=1&searchWord=+"
 30 17 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s pc4u -u "https://www.pc4u.co.jp/view/search"
 0 18 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s ark -u "https://www.ark-pc.co.jp/search/?limit=50&nouki=1"
 0 18 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spread_sheet
