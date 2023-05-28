@@ -24,7 +24,7 @@ func NewService[T IProduct](parser Parser, p T, ps []T) Service[T] {
 }
 
 type Parser interface {
-	ProductList(io.ReadCloser) (Products, string)
+	ProductList(io.ReadCloser, string) (Products, string)
 	Product(io.ReadCloser) (string, error)
 }
 
@@ -71,7 +71,7 @@ func (s Service[T]) ScrapeProductsList(
 				break
 			}
 			var products Products
-			products, url = s.Parser.ProductList(res.Body)
+			products, url = s.Parser.ProductList(res.Body, url)
 			res.Body.Close()
 
 			c <- products

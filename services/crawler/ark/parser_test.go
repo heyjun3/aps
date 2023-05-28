@@ -19,7 +19,7 @@ func TestProductList(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		products, url := parser.ProductList(res.Body)
+		products, url := parser.ProductList(res.Body, "")
 
 		assert.Equal(t, 50, len(products))
 		assert.Equal(t, "https://www.ark-pc.co.jp/search/?offset=50&limit=50&nouki=1", url)
@@ -50,7 +50,7 @@ func TestProductList(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		products, url := parser.ProductList(res.Body)
+		products, url := parser.ProductList(res.Body, "")
 
 		assert.Equal(t, 4, len(products))
 		assert.Equal(t, "", url)
@@ -82,7 +82,7 @@ func TestProductList(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		products, url := parser.ProductList(res.Body)
+		products, url := parser.ProductList(res.Body, "")
 
 		assert.Equal(t, 50, len(products))
 		assert.Equal(t, "https://www.ark-pc.co.jp/search/?offset=2900&limit=50&nouki=1", url)

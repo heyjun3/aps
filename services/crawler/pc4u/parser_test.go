@@ -33,7 +33,7 @@ func TestParseProducts(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		products, url := parser.ProductList(res.Body)
+		products, url := parser.ProductList(res.Body, "")
 
 		assert.Equal(t, 50, len(products))
 		assert.Equal(t, "https://www.pc4u.co.jp/view/search?page=2", url)
@@ -64,7 +64,7 @@ func TestParseProducts(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		products, url := parser.ProductList(res.Body)
+		products, url := parser.ProductList(res.Body, "")
 
 		assert.Equal(t, 17, len(products))
 		assert.Equal(t, "", url)
@@ -94,7 +94,7 @@ func TestParseProducts(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		_, url := parser.ProductList(res.Body)
+		_, url := parser.ProductList(res.Body, "")
 
 		assert.Equal(t, "https://www.pc4u.co.jp/view/search?page=6", url)
 	})
@@ -106,7 +106,7 @@ func TestParseProducts(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		_, url := parser.ProductList(res.Body)
+		_, url := parser.ProductList(res.Body, "")
 
 		assert.Equal(t, "", url)
 	})

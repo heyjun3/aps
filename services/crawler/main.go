@@ -13,6 +13,7 @@ import (
 	"crawler/pc4u"
 	"crawler/rakuten"
 	"crawler/scrape"
+	"crawler/nojima"
 )
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 		ark.CreateTable,
 		ikebe.CreateTable,
 		pc4u.CreateTable,
+		nojima.CreateTable,
 	}
 	conn := scrape.CreateDBConnection(config.Config.Dsn())
 	ctx := context.Background()
@@ -47,6 +49,8 @@ func main() {
 		ark.NewScrapeService().StartScrape(url, shop)
 	case shop == "ikebe" && url != "":
 		ikebe.NewScrapeService().StartScrape(url, shop)
+	case shop == "nojima" && url != "":
+		nojima.NewScrapeService().StartScrape(url, shop)
 	case shop == "pc4u" && url != "":
 		pc4u.NewScrapeService().StartScrape(url, shop)
 	case shop == "rakuten" && url != "":

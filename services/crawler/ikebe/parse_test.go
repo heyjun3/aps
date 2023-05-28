@@ -110,7 +110,7 @@ func TestParseProducts(t *testing.T) {
 				Request: &http.Request{},
 			}
 			defer res.Body.Close()
-			products, url := parser.ProductList(res.Body)
+			products, url := parser.ProductList(res.Body, "")
 
 			assert.Equal(t, tt.want.count, len(products))
 			assert.Equal(t, tt.want.url, url)
