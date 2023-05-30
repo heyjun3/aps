@@ -58,3 +58,48 @@ func TestProductListIntegration(t *testing.T){
 		})
 	}
 }
+
+func TestProductIntegration(t *testing.T) {
+	type args struct {
+		url string
+	}
+	type want struct {
+		jan string
+	}
+
+	tests := []struct{
+		name string
+		args args
+		want want
+		wantErr bool
+	}{{
+		name: "parse product",
+		args: args{
+			url: "https://item.rakuten.co.jp/dj/596022/?s-id=bk_pc_item_list_name_d",
+		},
+		want: want{
+			jan: "4042477257071",
+		},
+		wantErr: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := RakutenParser{}
+			res, err := scrape.NewClient().Request("GET", tt.args.url, nil)
+			if err != nil {
+				panic(err)
+			}
+			defer res.Body.Close()
+
+			jan, err := p.Product(res.Body)
+
+			assert.Equal(t, tt.want.jan, jan)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
