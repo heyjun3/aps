@@ -5,14 +5,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"crawler/testutil"
+	"crawler/test/util"
 )
 
 func TestProductList(t *testing.T) {
 	parser := ArkParser{}
 
 	t.Run("parse product list page", func(t *testing.T) {
-		res, err := testutil.CreateHttpResponse("html/test_product_list.html")
+		res, err := util.CreateHttpResponse("html/test_product_list.html")
 		if err != nil {
 			logger.Error("error", err)
 			panic(err)
@@ -43,7 +43,7 @@ func TestProductList(t *testing.T) {
 	})
 
 	t.Run("parse last page", func(t *testing.T) {
-		res, err := testutil.CreateHttpResponse("html/test_product_list_last.html")
+		res, err := util.CreateHttpResponse("html/test_product_list_last.html")
 		if err != nil {
 			logger.Error("file open error", err)
 			panic(err)
@@ -75,7 +75,7 @@ func TestProductList(t *testing.T) {
 	})
 
 	t.Run("parse coupon price", func(t *testing.T) {
-		res, err := testutil.CreateHttpResponse("html/test_coupon_price.html")
+		res, err := util.CreateHttpResponse("html/test_coupon_price.html")
 		if err != nil {
 			logger.Error("file open error", err)
 			panic(err)
@@ -99,7 +99,7 @@ func TestProduct(t *testing.T) {
 	parser := ArkParser{}
 
 	t.Run("parse product page", func(t *testing.T) {
-		res, err := testutil.CreateHttpResponse("html/test_product_page.html")
+		res, err := util.CreateHttpResponse("html/test_product_page.html")
 		if err != nil {
 			logger.Error("file open error", err)
 			panic(err)

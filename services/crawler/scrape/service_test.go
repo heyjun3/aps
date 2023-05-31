@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"crawler/testutil"
+	"crawler/test/util"
 )
 
 type ClientMock struct {
@@ -17,7 +17,7 @@ type ClientMock struct {
 }
 
 func (c ClientMock) Request(method, url string, body io.Reader) (*http.Response, error) {
-	return testutil.CreateHttpResponse(c.path)
+	return util.CreateHttpResponse(c.path)
 }
 
 type ParserMock struct {
@@ -113,7 +113,7 @@ func TestGetProductsBatch(t *testing.T) {
 				NewProduct("test3", "test3", "http://test.jp", "", "test", 3333),
 				NewProduct("test4", "test4", "http://test.jp", "", "test", 4444),
 			},
-			DSN: testutil.TestDSN(),
+			DSN: util.TestDSN(),
 		},
 		want: want{
 			Products{
@@ -134,7 +134,7 @@ func TestGetProductsBatch(t *testing.T) {
 				NewProduct("test22", "test22", "http://test.jp", "", "test", 2222),
 				NewProduct("test33", "test33", "http://test.jp", "", "test", 3333),
 			},
-			DSN: testutil.TestDSN(),
+			DSN: util.TestDSN(),
 		},
 		want: want{
 			Products{
@@ -145,7 +145,7 @@ func TestGetProductsBatch(t *testing.T) {
 		},
 	}}
 
-	conn, ctx := testutil.DatabaseFactory()
+	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
 	ps := Products{
 		NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111),
@@ -193,7 +193,7 @@ func TestGetProducts(t *testing.T) {
 				NewProduct("test2", "test2", "http://test.jp", "", "test", 2222),
 				NewProduct("test3", "test3", "http://test.jp", "", "test", 3333),
 			},
-			DSN: testutil.TestDSN(),
+			DSN: util.TestDSN(),
 		},
 		want: want{
 			products: Products{
@@ -204,7 +204,7 @@ func TestGetProducts(t *testing.T) {
 		},
 	}}
 
-	conn, ctx := testutil.DatabaseFactory()
+	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
 	pre := Products{
 		NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111),
@@ -300,7 +300,7 @@ func TestSaveProduct(t *testing.T) {
 				NewProduct("test2", "test2", "http://test.jp", "99999", "test", 2222),
 				NewProduct("test3", "test3", "http://test.jp", "99999", "test", 3333),
 			},
-			DSN: testutil.TestDSN(),
+			DSN: util.TestDSN(),
 		},
 		want: want{
 			products: Products{

@@ -1,7 +1,7 @@
 package rakuten
 
 import (
-	"crawler/testutil"
+	"crawler/test/util"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -108,7 +108,7 @@ func TestProductList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := testutil.CreateHttpResponse(tt.args.filename)
+			resp, err := util.CreateHttpResponse(tt.args.filename)
 			if err != nil {
 				logger.Error("file open error", err)
 				panic(err)
@@ -157,7 +157,7 @@ func TestProduct(t *testing.T) {
 	p := RakutenParser{}
 
 	for _, tt := range tests {
-		res, err := testutil.CreateHttpResponse(tt.args.filename)
+		res, err := util.CreateHttpResponse(tt.args.filename)
 		if err != nil {
 			panic(err)
 		}

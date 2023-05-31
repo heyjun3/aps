@@ -18,6 +18,7 @@ func CreateDBConnection(dsn string) *bun.DB {
 
 type IProduct interface {
 	GenerateMessage(filename string) ([]byte, error)
+	GetName() string
 	GetProductCode() string
 	GetJan() string
 	GetURL() string
@@ -62,6 +63,10 @@ func (p Product) GenerateMessage(filename string) ([]byte, error) {
 		return nil, err
 	}
 	return json.Marshal(message)
+}
+
+func (p Product) GetName() string {
+	return p.Name
 }
 
 func (p Product) GetProductCode() string {

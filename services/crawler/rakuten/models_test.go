@@ -8,11 +8,11 @@ import (
 	"github.com/uptrace/bun"
 
 	"crawler/scrape"
-	"crawler/testutil"
+	"crawler/test/util"
 )
 
 func TestGetRakutenProducts(t *testing.T) {
-	conn, ctx := testutil.DatabaseFactory()
+	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*RakutenProduct)(nil))
 	s := NewScrapeService()
 

@@ -1,6 +1,6 @@
 // +build integration
 
-package rakuten
+package integration
 
 import (
 	"testing"
@@ -8,9 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"crawler/scrape"
+	"crawler/rakuten"
 )
 
 func TestProductListIntegration(t *testing.T){
+	t.Parallel()
 	type args struct {
 		url string
 	}
@@ -36,7 +38,7 @@ func TestProductListIntegration(t *testing.T){
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := RakutenParser{}
+			p := rakuten.RakutenParser{}
 			res, err := scrape.NewClient().Request("GET", tt.args.url, nil)
 			if err != nil {
 				panic(err)
@@ -49,17 +51,18 @@ func TestProductListIntegration(t *testing.T){
 			assert.Equal(t, tt.want.url, url)
 
 			for _, p := range products {
-				assert.NotEmpty(t, p.(*RakutenProduct).Name)
-				assert.NotEmpty(t, p.(*RakutenProduct).Price)
-				assert.NotEmpty(t, p.(*RakutenProduct).ProductCode)
-				assert.NotEmpty(t, p.(*RakutenProduct).ShopCode)
-				assert.NotEmpty(t, p.(*RakutenProduct).URL)
+				assert.NotEmpty(t, p.GetName())
+				assert.NotEmpty(t, p.GetPrice())
+				assert.NotEmpty(t, p.GetProductCode())
+				assert.NotEmpty(t, p.GetShopCode())
+				assert.NotEmpty(t, p.GetURL())
 			}
 		})
 	}
 }
 
 func TestProductIntegration(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		url string
 	}
@@ -85,7 +88,7 @@ func TestProductIntegration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := RakutenParser{}
+			p := rakuten.RakutenParser{}
 			res, err := scrape.NewClient().Request("GET", tt.args.url, nil)
 			if err != nil {
 				panic(err)

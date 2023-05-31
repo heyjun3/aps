@@ -7,11 +7,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/uptrace/bun"
 
-	"crawler/testutil"
+	"crawler/test/util"
 )
 
 func TestGetProduct(t *testing.T) {
-	conn, ctx := testutil.DatabaseFactory()
+	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
 	repo := NewProductRepository(&Product{}, []*Product{})
 
@@ -72,7 +72,7 @@ func TestGetProduct(t *testing.T) {
 }
 
 func TestBulkUpsert(t *testing.T) {
-	conn, ctx := testutil.DatabaseFactory()
+	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
 	repo := NewProductRepository(&Product{}, []*Product{})
 
@@ -114,7 +114,7 @@ func TestBulkUpsert(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	conn, ctx := testutil.DatabaseFactory()
+	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
 	repo := NewProductRepository(&Product{}, []*Product{})
 

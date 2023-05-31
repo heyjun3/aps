@@ -4,7 +4,7 @@ import (
 	"testing"
 	"net/url"
 
-	"crawler/testutil"
+	"crawler/test/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -78,7 +78,7 @@ func TestProductList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-		res, err := testutil.CreateHttpResponse(tt.args.filename)
+		res, err := util.CreateHttpResponse(tt.args.filename)
 		if err != nil {
 			logger.Error("file open error", err)
 			panic(err)
@@ -111,7 +111,7 @@ func TestProduct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := testutil.CreateHttpResponse(tt.filename)
+			res, err := util.CreateHttpResponse(tt.filename)
 			if err != nil {
 				logger.Error("file open error", err)
 				panic(err)
