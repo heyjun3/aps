@@ -9,6 +9,7 @@ todo.txt
 *.xlsx
 *.log
 test*.html
+test*.json
 tmp.py
 *.csv
 node_modules

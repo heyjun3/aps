@@ -1,12 +1,54 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 )
 
 func main() {
+	p1 := Person{
+		name: "John",
+		colors: []string{"red"},
+		age: 1,
+		email: "test",
+	}
+	err := ValidatePerson(p1)
+	fmt.Println(err)
+}
+
+func ValidatePerson(p Person) (err error) {
+	structType := reflect.TypeOf(p)
+	if structType.Kind() != reflect.Struct {
+		return errors.New("input param should be a struct")
+	}
+
+	value := reflect.ValueOf(p)
+	fields := value.NumField()
+
+	for i := 0; i < fields; i++ {
+		field := value.Field(i)
+		fieldName := structType.Field(i).Name
+
+		isSet := field.IsValid() && !field.IsZero()
+
+		if !isSet {
+			err = errors.New("error" + fieldName )
+		}
+	}
+	return err
+}
+
+type Person struct {
+	name   string
+	age    int
+	email  string
+	colors []string
+}
+
+func send() {
 	c1 := make(chan string, 10)
 	c2 := make(chan string, 10)
 	wg := sync.WaitGroup{}
