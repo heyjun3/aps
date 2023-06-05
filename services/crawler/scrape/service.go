@@ -12,14 +12,14 @@ import (
 var logger = config.Logger
 
 type Service[T IProduct] struct {
-	Parser                     Parser
-	Repo ProductRepository[T]
+	Parser Parser
+	Repo   ProductRepository[T]
 }
 
 func NewService[T IProduct](parser Parser, p T, ps []T) Service[T] {
 	return Service[T]{
 		Parser: parser,
-		Repo: NewProductRepository(p, ps),
+		Repo:   NewProductRepository(p, ps),
 	}
 }
 

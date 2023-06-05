@@ -91,7 +91,7 @@ func (p NojimaParser) generateNextURL(doc *goquery.Document, requestURL string) 
 	query := nextURL.Query()
 	query.Set("currentPage", fmt.Sprint(page+1))
 	nextURL.RawQuery = query.Encode()
-	
+
 	return nextURL.String(), nil
 }
 

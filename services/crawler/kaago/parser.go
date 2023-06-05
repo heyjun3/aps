@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"io"
 
-	"crawler/scrape"
 	"crawler/config"
+	"crawler/scrape"
 )
 
 var logger = config.Logger
 
-type KaagoParser struct {}
+type KaagoParser struct{}
 
 func (p KaagoParser) ProductList(r io.ReadCloser, url string) (scrape.Products, string) {
 	var resp KaagoResp
@@ -31,4 +31,8 @@ func (p KaagoParser) ProductList(r io.ReadCloser, url string) (scrape.Products, 
 	print(len(products))
 
 	return products, ""
+}
+
+func (p KaagoParser) Product(r io.ReadCloser) (string, error) {
+	return "", nil
 }

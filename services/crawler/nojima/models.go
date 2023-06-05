@@ -24,6 +24,6 @@ func CreateTable(conn *bun.DB, ctx context.Context) error {
 		Model((*NojimaProduct)(nil)).
 		IfNotExists().
 		Exec(ctx)
-	
+
 	return err
 }

@@ -53,7 +53,7 @@ func ValidateKaagoRespProduct(k KaagoRespProduct) (err error) {
 		fieldName := structType.Field(i).Name
 
 		if isSet := field.IsValid() && !field.IsZero(); !isSet {
-			err = fmt.Errorf("%v%s is not set; ", err ,fieldName)
+			err = fmt.Errorf("%v%s is not set; ", err, fieldName)
 		}
 	}
 	return err

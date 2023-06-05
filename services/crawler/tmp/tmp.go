@@ -10,10 +10,10 @@ import (
 
 func main() {
 	p1 := Person{
-		name: "John",
+		name:   "John",
 		colors: []string{"red"},
-		age: 1,
-		email: "test",
+		age:    1,
+		email:  "test",
 	}
 	err := ValidatePerson(p1)
 	fmt.Println(err)
@@ -35,7 +35,7 @@ func ValidatePerson(p Person) (err error) {
 		isSet := field.IsValid() && !field.IsZero()
 
 		if !isSet {
-			err = errors.New("error" + fieldName )
+			err = errors.New("error" + fieldName)
 		}
 	}
 	return err
