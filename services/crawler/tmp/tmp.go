@@ -3,12 +3,46 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
 
 func main() {
+	testRequest()
+}
+
+func testRequest() {
+	form := url.Values{}
+	form.Add("shopcode", "")
+	form.Add("categorycode", "0")
+	form.Add("hasStock", "1")
+	form.Add("currentPage", "100")
+
+	body := strings.NewReader(form.Encode())
+
+	req, err := http.NewRequest("POST", "https://kaago.com/ajax/catalog/list/init", body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	c := http.Client{}
+	res, err := c.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	b, _ := io.ReadAll(res.Body)
+	fmt.Println(string(b))
+}
+
+func person() {
 	p1 := Person{
 		name:   "John",
 		colors: []string{"red"},
