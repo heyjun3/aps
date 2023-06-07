@@ -12,7 +12,8 @@ import (
 )
 
 type httpClient interface {
-	Request(string, string, io.Reader) (*http.Response, error)
+	RequestURL(string, string, io.Reader) (*http.Response, error)
+	Request(req *http.Request) (*http.Response, error)
 }
 
 func NewClient() Client {
@@ -32,13 +33,18 @@ type Client struct {
 	httpClient *http.Client
 }
 
-func (c Client) Request(method, url string, body io.Reader) (*http.Response, error) {
+func (c Client) RequestURL(method, url string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", config.Http.UserAgent)
 
+	return c.httpClient.Do(req)
+}
+
+func (c Client) Request(req *http.Request) (*http.Response, error) {
+	req.Header.Set("User-Agent", config.Http.UserAgent)
 	return c.httpClient.Do(req)
 }
 

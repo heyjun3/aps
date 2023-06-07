@@ -94,7 +94,7 @@ func TestProductListIntegration(t *testing.T) {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			res, err := scrape.NewClient().Request("GET", tc.args.url, nil)
+			res, err := scrape.NewClient().RequestURL("GET", tc.args.url, nil)
 			if err != nil {
 				panic(err)
 			}
@@ -191,7 +191,7 @@ func TestProductIntegration(t *testing.T) {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			res, err := scrape.NewClient().Request("GET", tc.args.url, nil)
+			res, err := scrape.NewClient().RequestURL("GET", tc.args.url, nil)
 			if err != nil {
 				panic(err)
 			}

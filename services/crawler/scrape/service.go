@@ -3,6 +3,8 @@ package scrape
 import (
 	"context"
 	"io"
+	"log"
+	"net/http"
 	"sync"
 	"time"
 
@@ -24,7 +26,7 @@ func NewService[T IProduct](parser Parser, p T, ps []T) Service[T] {
 }
 
 type Parser interface {
-	ProductList(io.ReadCloser, string) (Products, string)
+	ProductList(io.ReadCloser, string) (Products, *http.Request)
 	Product(io.ReadCloser) (string, error)
 }
 
@@ -34,7 +36,12 @@ func (s Service[T]) StartScrape(url, shopName string) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	c1 := s.ScrapeProductsList(client, url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	c1 := s.ScrapeProductsList(client, req)
 	c2 := s.GetProductsBatch(c1, config.DBDsn)
 	c3 := s.ScrapeProduct(c2, client)
 	c4 := s.SaveProduct(c3, config.DBDsn)
@@ -49,7 +56,12 @@ func (s Service[T]) StartScrapeBySeries(url, shopName string) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	c1 := s.ScrapeProductsList(client, url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	c1 := s.ScrapeProductsList(client, req)
 	c2 := s.GetProduct(c1, config.DBDsn)
 	c3 := s.ScrapeProduct(c2, client)
 	c4 := s.SaveProduct(c3, config.DBDsn)
@@ -59,19 +71,18 @@ func (s Service[T]) StartScrapeBySeries(url, shopName string) {
 }
 
 func (s Service[T]) ScrapeProductsList(
-	client httpClient, url string) chan Products {
+	client httpClient, req *http.Request) chan Products {
 	c := make(chan Products, 100)
 	go func() {
 		defer close(c)
-		for url != "" {
-			logger.Info("product list request url", "url", url)
-			res, err := client.Request("GET", url, nil)
+		for req != nil {
+			res, err := client.Request(req)
 			if err != nil {
 				logger.Error("http request error", err)
 				break
 			}
 			var products Products
-			products, url = s.Parser.ProductList(res.Body, url)
+			products, req = s.Parser.ProductList(res.Body, req.URL.String()) 
 			res.Body.Close()
 
 			c <- products
@@ -138,7 +149,7 @@ func (s Service[T]) ScrapeProduct(
 				}
 
 				logger.Info("product request url", "url", product.GetURL())
-				res, err := client.Request("GET", product.GetURL(), nil)
+				res, err := client.RequestURL("GET", product.GetURL(), nil)
 				if err != nil {
 					logger.Error("http request error", err, "action", "scrapeProduct")
 					continue
