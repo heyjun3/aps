@@ -10,10 +10,11 @@ import (
 	"crawler/ark"
 	"crawler/config"
 	"crawler/ikebe"
+	"crawler/kaago"
+	"crawler/nojima"
 	"crawler/pc4u"
 	"crawler/rakuten"
 	"crawler/scrape"
-	"crawler/nojima"
 )
 
 func init() {
@@ -22,6 +23,7 @@ func init() {
 		ikebe.CreateTable,
 		pc4u.CreateTable,
 		nojima.CreateTable,
+		kaago.CreateTable,
 	}
 	conn := scrape.CreateDBConnection(config.Config.Dsn())
 	ctx := context.Background()

@@ -1,10 +1,10 @@
 package nojima
 
 import (
-	"testing"
 	"net/url"
+	"testing"
 
-	"crawler/testutil"
+	"crawler/test/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -12,13 +12,13 @@ import (
 func TestProductList(t *testing.T) {
 	type args struct {
 		filename string
-		URL string
+		URL      string
 	}
 	type want struct {
 		count int
-		url string
+		url   string
 		first *NojimaProduct
-		last *NojimaProduct
+		last  *NojimaProduct
 	}
 	u, _ := url.Parse("https://online.nojima.co.jp/app/catalog/list/init?searchCategoryCode=0&mode=image&pageSize=60&currentPage=4&alignmentSequence=9&searchDispFlg=true&immediateDeliveryDispFlg=1&searchWord=%E3%82%A4%E3%83%B3%E3%82%AF")
 	u.RawQuery = u.Query().Encode()
@@ -30,11 +30,11 @@ func TestProductList(t *testing.T) {
 		name: "parse product list page",
 		args: args{
 			filename: "html/test_product_list.html",
-			URL: "https://online.nojima.co.jp/app/catalog/list/init?searchCategoryCode=0&mode=image&pageSize=60&currentPage=3&alignmentSequence=9&searchDispFlg=true&immediateDeliveryDispFlg=1&searchWord=%E3%82%A4%E3%83%B3%E3%82%AF",
+			URL:      "https://online.nojima.co.jp/app/catalog/list/init?searchCategoryCode=0&mode=image&pageSize=60&currentPage=3&alignmentSequence=9&searchDispFlg=true&immediateDeliveryDispFlg=1&searchWord=%E3%82%A4%E3%83%B3%E3%82%AF",
 		},
 		want: want{
 			count: 60,
-			url: u.String(),
+			url:   u.String(),
 			first: NewNojimaProduct(
 				"Canon純正インクイエロー",
 				"4960999905549",
@@ -50,14 +50,14 @@ func TestProductList(t *testing.T) {
 				2601,
 			),
 		},
-	},{
+	}, {
 		name: "parse last page",
 		args: args{
 			filename: "html/test_product_list_last.html",
 		},
 		want: want{
 			count: 26,
-			url: "",
+			url:   "",
 			first: NewNojimaProduct(
 				"BANDAIひろがるスカイ!プリキュアふしぎなミラージュペン",
 				"4549660880431",
@@ -78,40 +78,40 @@ func TestProductList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-		res, err := testutil.CreateHttpResponse(tt.args.filename)
-		if err != nil {
-			logger.Error("file open error", err)
-			panic(err)
-		}
-		defer res.Body.Close()
+			res, err := util.CreateHttpResponse(tt.args.filename)
+			if err != nil {
+				logger.Error("file open error", err)
+				panic(err)
+			}
+			defer res.Body.Close()
 
-		products, url := parser.ProductList(res.Body, tt.args.URL)
+			products, url := parser.ProductList(res.Body, tt.args.URL)
 
-		assert.Equal(t, tt.want.count, len(products))
-		assert.Equal(t, tt.want.url, url)
-		assert.Equal(t, tt.want.first, products[0])
-		assert.Equal(t, tt.want.last, products[len(products)-1])
+			assert.Equal(t, tt.want.count, len(products))
+			assert.Equal(t, tt.want.url, url)
+			assert.Equal(t, tt.want.first, products[0])
+			assert.Equal(t, tt.want.last, products[len(products)-1])
 		})
 	}
 }
 
 func TestProduct(t *testing.T) {
-	tests := []struct{
-		name string
+	tests := []struct {
+		name     string
 		filename string
-		jan string
-		wantErr bool
+		jan      string
+		wantErr  bool
 	}{{
-		name: "parse product detail page",
+		name:     "parse product detail page",
 		filename: "html/test_product_detail.html",
-		jan: "4977766788977",
-		wantErr: false,
+		jan:      "4977766788977",
+		wantErr:  false,
 	}}
 	parser := NojimaParser{}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := testutil.CreateHttpResponse(tt.filename)
+			res, err := util.CreateHttpResponse(tt.filename)
 			if err != nil {
 				logger.Error("file open error", err)
 				panic(err)
