@@ -14,20 +14,35 @@ import (
 var logger = config.Logger
 
 type Service[T IProduct] struct {
-	Parser Parser
+	Parser IParser
 	Repo   ProductRepository[T]
 }
 
-func NewService[T IProduct](parser Parser, p T, ps []T) Service[T] {
+func NewService[T IProduct](parser IParser, p T, ps []T) Service[T] {
 	return Service[T]{
 		Parser: parser,
 		Repo:   NewProductRepository(p, ps),
 	}
 }
 
-type Parser interface {
-	ProductList(io.ReadCloser, string) (Products, *http.Request)
+type IParser interface {
+	ProductListByReq(io.ReadCloser, *http.Request) (Products, *http.Request)
+	ProductList(io.ReadCloser, string) (Products, string)
 	Product(io.ReadCloser) (string, error)
+}
+
+type Parser struct {}
+
+func (p Parser)ConvToReq(products Products, url string) (Products, *http.Request) {
+	if url == "" {
+		return products, nil
+	}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logger.Error("create new request error", err)
+		return products, nil
+	}
+	return products, req
 }
 
 func (s Service[T]) StartScrape(url, shopName string) {
@@ -82,7 +97,7 @@ func (s Service[T]) ScrapeProductsList(
 				break
 			}
 			var products Products
-			products, req = s.Parser.ProductList(res.Body, req.URL.String()) 
+			products, req = s.Parser.ProductListByReq(res.Body, req) 
 			res.Body.Close()
 
 			c <- products

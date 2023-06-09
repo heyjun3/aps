@@ -19,13 +19,19 @@ const (
 	host   = "item.rakuten.co.jp"
 )
 
-type RakutenParser struct{}
+type RakutenParser struct{
+	scrape.Parser
+}
 
-func (p RakutenParser) ProductList(r io.ReadCloser, u string) (scrape.Products, *http.Request) {
+func (p RakutenParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+	return p.ConvToReq(p.ProductList(r, req.URL.String()))
+}
+
+func (p RakutenParser) ProductList(r io.ReadCloser, u string) (scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)
-		return nil, nil
+		return nil, ""
 	}
 
 	var price int64
@@ -75,13 +81,10 @@ func (p RakutenParser) ProductList(r io.ReadCloser, u string) (scrape.Products, 
 	nextURL, err := p.scrapeNextURL(doc, price)
 	if err != nil {
 		logger.Error("not found next page url %s", err)
-		return products, nil
+		return products, ""
 	}
-	req, err := http.NewRequest("GET", nextURL, nil)
-	if err != nil {
-		return products, nil
-	}
-	return products, req
+
+	return products, nextURL
 }
 
 func (p RakutenParser) scrapeNextURL(doc *goquery.Document, minPrice int64) (string, error) {

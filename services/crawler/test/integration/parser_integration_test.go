@@ -18,7 +18,7 @@ import (
 
 func TestProductListIntegration(t *testing.T) {
 	type args struct {
-		parser scrape.Parser
+		parser scrape.IParser
 		url    string
 	}
 	type want struct {
@@ -123,7 +123,7 @@ func TestProductListIntegration(t *testing.T) {
 func TestProductIntegration(t *testing.T) {
 	type args struct {
 		url    string
-		parser scrape.Parser
+		parser scrape.IParser
 	}
 	type want struct {
 		jan string

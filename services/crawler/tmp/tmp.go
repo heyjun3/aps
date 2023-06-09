@@ -14,7 +14,16 @@ import (
 )
 
 func main() {
-	testRequest()
+	testNewRequest()
+}
+
+func testNewRequest() {
+	req, err := http.NewRequest("GET", "", nil)
+	if err != nil {
+		// 空のstringでもエラーにはならないみたいね。
+		fmt.Println(err)
+	}
+	fmt.Println(req)
 }
 
 func testRequest() {
