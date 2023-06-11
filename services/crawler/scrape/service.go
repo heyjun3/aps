@@ -27,7 +27,7 @@ func NewService[T IProduct](parser IParser, p T, ps []T) Service[T] {
 
 type IParser interface {
 	ProductListByReq(io.ReadCloser, *http.Request) (Products, *http.Request)
-	ProductList(io.ReadCloser, string) (Products, string)
+	// ProductList(io.ReadCloser, string) (Products, string)
 	Product(io.ReadCloser) (string, error)
 }
 
