@@ -14,7 +14,8 @@ import (
 )
 
 func main() {
-	testNewRequest()
+	// testNewRequest()
+	testRequest()
 }
 
 func testNewRequest() {
@@ -31,7 +32,7 @@ func testRequest() {
 	form.Add("shopcode", "")
 	form.Add("categorycode", "0")
 	form.Add("hasStock", "1")
-	form.Add("currentPage", "100")
+	form.Add("currentPage", "82")
 
 	body := strings.NewReader(form.Encode())
 
