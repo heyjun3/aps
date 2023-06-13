@@ -15,12 +15,12 @@ func TestProductListByReq(t *testing.T) {
 		filename string
 	}
 	type want struct {
-		body string
-		count int
+		body        string
+		count       int
 		currentPage int
-		url string
-		first *KaagoProduct
-		last  *KaagoProduct
+		url         string
+		first       *KaagoProduct
+		last        *KaagoProduct
 	}
 
 	tests := []struct {
@@ -33,10 +33,10 @@ func TestProductListByReq(t *testing.T) {
 			filename: "json/test_product_list.json",
 		},
 		want: want{
-			body: "categorycode=0&currentPage=2&hasStock=1&shopcode=",
-			count: 36,
+			body:        "categorycode=0&currentPage=2&hasStock=1&shopcode=",
+			count:       36,
 			currentPage: 2,
-			url: "https://kaago.com/ajax/catalog/list/init",
+			url:         "https://kaago.com/ajax/catalog/list/init",
 			first: NewKaagoProduct(
 				"S223ATES-W ダイキン ルームエアコン6畳 ホワイト",
 				"9900000004842",
@@ -77,16 +77,16 @@ func TestProductListByReq(t *testing.T) {
 }
 
 func TestProduct(t *testing.T) {
-	tests := []struct{
-		name string
+	tests := []struct {
+		name     string
 		filename string
-		jan string
-		wantErr bool
+		jan      string
+		wantErr  bool
 	}{{
-		name: "parse product page",
-		filename: "html/product.html",
-		jan: "4549980516713",
-		wantErr: false,
+		name:     "parse product page",
+		filename: "html/test_product.html",
+		jan:      "4549980516713",
+		wantErr:  false,
 	}}
 	p := KaagoParser{}
 

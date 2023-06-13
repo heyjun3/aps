@@ -18,7 +18,7 @@ const (
 	host   = "www.pc4u.co.jp"
 )
 
-type Pc4uParser struct{
+type Pc4uParser struct {
 	scrape.Parser
 }
 

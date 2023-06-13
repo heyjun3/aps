@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -19,7 +19,7 @@ const (
 	host   = "item.rakuten.co.jp"
 )
 
-type RakutenParser struct{
+type RakutenParser struct {
 	scrape.Parser
 }
 

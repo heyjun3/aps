@@ -17,7 +17,7 @@ const (
 	host   = "online.nojima.co.jp"
 )
 
-type NojimaParser struct{
+type NojimaParser struct {
 	scrape.Parser
 }
 

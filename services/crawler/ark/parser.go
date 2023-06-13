@@ -18,7 +18,7 @@ const (
 	host   = "www.ark-pc.co.jp"
 )
 
-type ArkParser struct{
+type ArkParser struct {
 	scrape.Parser
 }
 

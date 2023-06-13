@@ -12,7 +12,7 @@ import (
 	"crawler/scrape"
 )
 
-type IkebeParser struct{
+type IkebeParser struct {
 	scrape.Parser
 }
 

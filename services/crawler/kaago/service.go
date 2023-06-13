@@ -1,9 +1,9 @@
 package kaago
 
-import ( 
+import (
 	"crawler/scrape"
 )
 
-func NewScrapeService() scrape.Service[*KaagoProduct]{
+func NewScrapeService() scrape.Service[*KaagoProduct] {
 	return scrape.NewService(KaagoParser{}, &KaagoProduct{}, []*KaagoProduct{})
 }

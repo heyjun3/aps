@@ -31,9 +31,9 @@ type IParser interface {
 	Product(io.ReadCloser) (string, error)
 }
 
-type Parser struct {}
+type Parser struct{}
 
-func (p Parser)ConvToReq(products Products, url string) (Products, *http.Request) {
+func (p Parser) ConvToReq(products Products, url string) (Products, *http.Request) {
 	if url == "" {
 		return products, nil
 	}
@@ -97,7 +97,7 @@ func (s Service[T]) ScrapeProductsList(
 				break
 			}
 			var products Products
-			products, req = s.Parser.ProductListByReq(res.Body, req) 
+			products, req = s.Parser.ProductListByReq(res.Body, req)
 			res.Body.Close()
 
 			c <- products

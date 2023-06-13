@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sync"
 	"testing"
-	"net/url"
 
 	"github.com/stretchr/testify/assert"
 
@@ -32,7 +32,7 @@ type ParserMock struct {
 	err      error
 }
 
-func(p ParserMock) ProductListByReq(r io.ReadCloser, req *http.Request) (Products, *http.Request) {
+func (p ParserMock) ProductListByReq(r io.ReadCloser, req *http.Request) (Products, *http.Request) {
 	if p.URL == "" {
 		return p.products, nil
 	}
