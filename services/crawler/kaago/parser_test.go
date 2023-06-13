@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParser(t *testing.T) {
+func TestProductListByReq(t *testing.T) {
 	type args struct {
 		filename string
 	}
@@ -72,6 +72,40 @@ func TestParser(t *testing.T) {
 			assert.Equal(t, tt.want.last, products[len(products)-1])
 			body, _ := io.ReadAll(req.Body)
 			assert.Equal(t, tt.want.body, string(body))
+		})
+	}
+}
+
+func TestProduct(t *testing.T) {
+	tests := []struct{
+		name string
+		filename string
+		jan string
+		wantErr bool
+	}{{
+		name: "parse product page",
+		filename: "html/product.html",
+		jan: "4549980516713",
+		wantErr: false,
+	}}
+	p := KaagoParser{}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, err := util.CreateHttpResponse(tt.filename)
+			if err != nil {
+				panic(err)
+			}
+			defer r.Body.Close()
+
+			jan, err := p.Product(r.Body)
+
+			assert.Equal(t, tt.jan, jan)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

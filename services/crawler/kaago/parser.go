@@ -10,6 +10,8 @@ import (
 
 	"crawler/config"
 	"crawler/scrape"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 const (
@@ -39,6 +41,11 @@ func (p KaagoParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrap
 	p.previousPage = int(resp.CurrentPage)
 	logger.Info("current page: ", p.previousPage)
 
+	// test
+	if resp.CurrentPage > 10 {
+		return products, nil
+	}
+
 	for _, p := range resp.ProductList {
 		if err := ValidateKaagoRespProduct(p); err != nil {
 			logger.Info("product contains zero value field", "err", err)
@@ -63,7 +70,12 @@ func (p KaagoParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrap
 }
 
 func (p KaagoParser) Product(r io.ReadCloser) (string, error) {
-	return "", nil
+	doc, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		return "", err
+	}
+
+	return doc.Find("#commodityCode").AttrOr("value", ""), nil
 }
 
 func (p KaagoParser) generateRequest(currentPage int64) (*http.Request, error) {
