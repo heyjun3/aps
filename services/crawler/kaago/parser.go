@@ -22,9 +22,7 @@ const (
 
 var logger = config.Logger
 
-type KaagoParser struct {
-	previousPage int
-}
+type KaagoParser struct{}
 
 func (p KaagoParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
 	var resp KaagoResp
@@ -35,11 +33,10 @@ func (p KaagoParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrap
 		return products, nil
 	}
 
-	if p.previousPage == int(resp.CurrentPage) {
+	if req.Header.Get("x-current") == fmt.Sprint(resp.CurrentPage) {
 		return products, nil
 	}
-	p.previousPage = int(resp.CurrentPage)
-	logger.Info(fmt.Sprintf("current page: %d", p.previousPage))
+	logger.Info(fmt.Sprintf("current page: %d", resp.CurrentPage))
 
 	for _, p := range resp.ProductList {
 		if err := ValidateKaagoRespProduct(p); err != nil {
@@ -93,5 +90,7 @@ func (p KaagoParser) generateRequest(currentPage int64) (*http.Request, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("x-current", fmt.Sprint(currentPage))
+
 	return req, nil
 }

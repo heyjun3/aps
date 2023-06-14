@@ -9,11 +9,12 @@ import (
 )
 
 func NewScrapeService(url, payload string) scrape.Service[*KaagoProduct] {
+	service := scrape.NewService(KaagoParser{}, &KaagoProduct{}, []*KaagoProduct{})
 	req, err := http.NewRequest("POST", url, strings.NewReader(payload))
 	if err != nil {
 		log.Fatalln(err)
 	}
-	service := scrape.NewService(KaagoParser{}, &KaagoProduct{}, []*KaagoProduct{})
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	service.EntryReq = req
 	return service
 }
