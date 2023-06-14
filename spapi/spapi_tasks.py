@@ -106,7 +106,12 @@ class UpdateChartData(object):
         # product.render_data = convert.recharts_data({
         #                                         'rank_data': product.rank_data,
         #                                         'price_data': product.price_data,})
-
+        if product.render_data is None:
+            logger.error({
+                "action": "mapping_keepa_products_and_parsed_data",
+                "message": f'render_data is null. asin:{product.asin}'},)
+            return product
+        
         chart_data = product.render_data.get("data")
         if chart_data is None:
             return product
