@@ -53,7 +53,7 @@ func (p KaagoParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrap
 		products = append(products, NewKaagoProduct(p.Name, p.ProductCode, u.String(), p.ProductCode, p.ShopCode, p.Price))
 	}
 
-	nextReq, err := p.generateRequest(resp.CurrentPage)
+	nextReq, err := generateRequest(resp.CurrentPage)
 	if err != nil {
 		return products, nil
 	}
@@ -70,7 +70,7 @@ func (p KaagoParser) Product(r io.ReadCloser) (string, error) {
 	return doc.Find("#commodityCode").AttrOr("value", ""), nil
 }
 
-func (p KaagoParser) generateRequest(currentPage int64) (*http.Request, error) {
+func generateRequest(currentPage int64) (*http.Request, error) {
 	values := map[string]string{
 		"categorycode": "0",
 		"currentPage":  fmt.Sprint(currentPage),
