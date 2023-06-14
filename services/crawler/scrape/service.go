@@ -14,8 +14,9 @@ import (
 var logger = config.Logger
 
 type Service[T IProduct] struct {
-	Parser IParser
-	Repo   ProductRepository[T]
+	Parser   IParser
+	Repo     ProductRepository[T]
+	EntryReq *http.Request
 }
 
 func NewService[T IProduct](parser IParser, p T, ps []T) Service[T] {
@@ -51,12 +52,15 @@ func (s Service[T]) StartScrape(url, shopName string) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Fatalln(err)
+	var err error
+	if s.EntryReq == nil {
+		s.EntryReq, err = http.NewRequest("GET", url, nil)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 
-	c1 := s.ScrapeProductsList(client, req)
+	c1 := s.ScrapeProductsList(client, s.EntryReq)
 	c2 := s.GetProductsBatch(c1, config.DBDsn)
 	c3 := s.ScrapeProduct(c2, client)
 	c4 := s.SaveProduct(c3, config.DBDsn)

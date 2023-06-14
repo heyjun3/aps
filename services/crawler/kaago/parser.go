@@ -39,12 +39,7 @@ func (p KaagoParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrap
 		return products, nil
 	}
 	p.previousPage = int(resp.CurrentPage)
-	logger.Info("current page: ", p.previousPage)
-
-	// test
-	if resp.CurrentPage > 10 {
-		return products, nil
-	}
+	logger.Info(fmt.Sprintf("current page: %d", p.previousPage))
 
 	for _, p := range resp.ProductList {
 		if err := ValidateKaagoRespProduct(p); err != nil {

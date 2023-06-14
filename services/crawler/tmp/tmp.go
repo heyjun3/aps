@@ -14,8 +14,15 @@ import (
 )
 
 func main() {
-	// testNewRequest()
 	testRequest()
+}
+
+func checkDefaultValue() {
+	type res struct {
+		r *http.Request
+	}
+	r := res{}
+	fmt.Println(r.r)
 }
 
 func testNewRequest() {
@@ -35,6 +42,7 @@ func testRequest() {
 	form.Add("currentPage", "82")
 
 	body := strings.NewReader(form.Encode())
+	fmt.Println(form.Encode())
 
 	req, err := http.NewRequest("POST", "https://kaago.com/ajax/catalog/list/init", body)
 	if err != nil {
