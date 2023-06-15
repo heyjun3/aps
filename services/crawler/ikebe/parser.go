@@ -3,6 +3,7 @@ package ikebe
 import (
 	"fmt"
 	"io"
+	"net/http"
 	URL "net/url"
 	"regexp"
 
@@ -11,7 +12,13 @@ import (
 	"crawler/scrape"
 )
 
-type IkebeParser struct{}
+type IkebeParser struct {
+	scrape.Parser
+}
+
+func (p IkebeParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+	return p.ConvToReq(p.ProductList(r, req.URL.String()))
+}
 
 func (parser IkebeParser) ProductList(r io.ReadCloser, u string) (scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)

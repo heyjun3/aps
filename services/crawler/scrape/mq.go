@@ -51,7 +51,7 @@ func (mq MQClient) CreateConsumer() (<-chan amqp.Delivery, *amqp.Channel, error)
 		ch.Close()
 		return nil, nil, err
 	}
-	msgs, err := ch.Consume(mq.queueName, "", true, false, false, false, nil)
+	msgs, err := ch.Consume(mq.queueName, "", false, false, false, false, nil)
 	if err != nil {
 		ch.Close()
 		return nil, nil, err
@@ -88,7 +88,10 @@ func MoveMessages(srcQueue, dstQueue string) {
 		logger.Info(string(d.Body))
 		err := dstClient.Publish(d.Body)
 		if err != nil {
+			logger.Error("publish error", err)
+			d.Nack(true, true)
 			return
 		}
+		d.Ack(true)
 	}
 }

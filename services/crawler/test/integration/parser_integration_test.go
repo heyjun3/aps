@@ -4,6 +4,8 @@
 package integration
 
 import (
+	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +20,7 @@ import (
 
 func TestProductListIntegration(t *testing.T) {
 	type args struct {
-		parser scrape.Parser
+		parser scrape.IParser
 		url    string
 	}
 	type want struct {
@@ -94,16 +96,20 @@ func TestProductListIntegration(t *testing.T) {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			res, err := scrape.NewClient().Request("GET", tc.args.url, nil)
+			res, err := scrape.NewClient().RequestURL("GET", tc.args.url, nil)
 			if err != nil {
 				panic(err)
 			}
 			defer res.Body.Close()
 
-			products, url := tc.args.parser.ProductList(res.Body, tc.args.url)
+			u, err := url.Parse(tc.args.url)
+			if err != nil {
+				panic(err)
+			}
+			products, url := tc.args.parser.ProductListByReq(res.Body, &http.Request{URL: u})
 
 			assert.Equal(t, tc.want.count, len(products))
-			assert.Equal(t, tc.want.url, url)
+			assert.Equal(t, tc.want.url, url.URL.String())
 
 			for _, p := range products {
 				assert.NotEmpty(t, p.GetName())
@@ -123,7 +129,7 @@ func TestProductListIntegration(t *testing.T) {
 func TestProductIntegration(t *testing.T) {
 	type args struct {
 		url    string
-		parser scrape.Parser
+		parser scrape.IParser
 	}
 	type want struct {
 		jan string
@@ -191,7 +197,7 @@ func TestProductIntegration(t *testing.T) {
 		tc := tt
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			res, err := scrape.NewClient().Request("GET", tc.args.url, nil)
+			res, err := scrape.NewClient().RequestURL("GET", tc.args.url, nil)
 			if err != nil {
 				panic(err)
 			}

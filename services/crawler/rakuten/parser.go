@@ -1,15 +1,17 @@
 package rakuten
 
 import (
-	"crawler/scrape"
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+
+	"crawler/scrape"
 )
 
 const (
@@ -17,7 +19,13 @@ const (
 	host   = "item.rakuten.co.jp"
 )
 
-type RakutenParser struct{}
+type RakutenParser struct {
+	scrape.Parser
+}
+
+func (p RakutenParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+	return p.ConvToReq(p.ProductList(r, req.URL.String()))
+}
 
 func (p RakutenParser) ProductList(r io.ReadCloser, u string) (scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
@@ -75,6 +83,7 @@ func (p RakutenParser) ProductList(r io.ReadCloser, u string) (scrape.Products, 
 		logger.Error("not found next page url %s", err)
 		return products, ""
 	}
+
 	return products, nextURL
 }
 

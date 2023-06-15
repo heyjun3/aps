@@ -3,6 +3,7 @@ package pc4u
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -17,7 +18,13 @@ const (
 	host   = "www.pc4u.co.jp"
 )
 
-type Pc4uParser struct{}
+type Pc4uParser struct {
+	scrape.Parser
+}
+
+func (p Pc4uParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+	return p.ConvToReq(p.ProductList(r, req.URL.String()))
+}
 
 func (p Pc4uParser) ProductList(r io.ReadCloser, u string) (scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
