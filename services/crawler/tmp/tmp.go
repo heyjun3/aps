@@ -39,7 +39,7 @@ func testRequest() {
 	form.Add("shopcode", "")
 	form.Add("categorycode", "0")
 	form.Add("hasStock", "1")
-	form.Add("currentPage", "5642")
+	form.Add("currentPage", "5")
 
 	body := strings.NewReader(form.Encode())
 	fmt.Println(form.Encode())
