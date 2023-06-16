@@ -3,6 +3,7 @@ package nojima
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -16,7 +17,13 @@ const (
 	host   = "online.nojima.co.jp"
 )
 
-type NojimaParser struct{}
+type NojimaParser struct {
+	scrape.Parser
+}
+
+func (p NojimaParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+	return p.ConvToReq(p.ProductList(r, req.URL.String()))
+}
 
 func (p NojimaParser) ProductList(r io.ReadCloser, requestURL string) (scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)

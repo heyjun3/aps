@@ -17,14 +17,32 @@ func main() {
 	testRequest()
 }
 
+func checkDefaultValue() {
+	type res struct {
+		r *http.Request
+	}
+	r := res{}
+	fmt.Println(r.r)
+}
+
+func testNewRequest() {
+	req, err := http.NewRequest("GET", "", nil)
+	if err != nil {
+		// 空のstringでもエラーにはならないみたいね。
+		fmt.Println(err)
+	}
+	fmt.Println(req)
+}
+
 func testRequest() {
 	form := url.Values{}
 	form.Add("shopcode", "")
 	form.Add("categorycode", "0")
 	form.Add("hasStock", "1")
-	form.Add("currentPage", "100")
+	form.Add("currentPage", "5")
 
 	body := strings.NewReader(form.Encode())
+	fmt.Println(form.Encode())
 
 	req, err := http.NewRequest("POST", "https://kaago.com/ajax/catalog/list/init", body)
 	if err != nil {

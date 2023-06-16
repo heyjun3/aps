@@ -3,6 +3,7 @@ package ark
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -17,7 +18,13 @@ const (
 	host   = "www.ark-pc.co.jp"
 )
 
-type ArkParser struct{}
+type ArkParser struct {
+	scrape.Parser
+}
+
+func (p ArkParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+	return p.ConvToReq(p.ProductList(r, req.URL.String()))
+}
 
 func (p ArkParser) ProductList(r io.ReadCloser, u string) (scrape.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)

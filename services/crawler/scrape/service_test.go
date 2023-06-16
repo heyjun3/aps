@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sync"
 	"testing"
 
@@ -16,7 +17,11 @@ type ClientMock struct {
 	path string
 }
 
-func (c ClientMock) Request(method, url string, body io.Reader) (*http.Response, error) {
+func (c ClientMock) RequestURL(method, url string, body io.Reader) (*http.Response, error) {
+	return util.CreateHttpResponse(c.path)
+}
+
+func (c ClientMock) Request(req *http.Request) (*http.Response, error) {
 	return util.CreateHttpResponse(c.path)
 }
 
@@ -25,6 +30,14 @@ type ParserMock struct {
 	URL      string
 	jan      string
 	err      error
+}
+
+func (p ParserMock) ProductListByReq(r io.ReadCloser, req *http.Request) (Products, *http.Request) {
+	if p.URL == "" {
+		return p.products, nil
+	}
+	u, _ := url.Parse(p.URL)
+	return p.products, &http.Request{URL: u}
 }
 
 func (p ParserMock) ProductList(doc io.ReadCloser, url string) (Products, string) {
@@ -76,7 +89,8 @@ func TestScrapeProductsList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
-			ch := tt.args.service.ScrapeProductsList(tt.args.client, tt.args.URL)
+			req, _ := http.NewRequest("GET", tt.args.URL, nil)
+			ch := tt.args.service.ScrapeProductsList(tt.args.client, req)
 
 			for p := range ch {
 				assert.Equal(t, tt.want.first, p[0])
