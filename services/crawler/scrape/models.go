@@ -53,13 +53,8 @@ func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Prod
 }
 
 func (p Product) GenerateMessage(filename string) ([]byte, error) {
-	message := message{
-		Filename: filename,
-		Jan:      p.Jan,
-		Price:    p.Price,
-		URL:      p.URL,
-	}
-	if err := message.validation(); err != nil {
+	message, err := NewMessage(filename, p.URL, p.Jan, p.Price)
+	if err != nil {
 		return nil, err
 	}
 	return json.Marshal(message)
@@ -142,6 +137,19 @@ type message struct {
 	Jan      *string `json:"jan"`
 	Price    int64   `json:"cost"`
 	URL      string  `json:"url"`
+}
+
+func NewMessage(filename, url string, jan *string, price int64) (*message, error) {
+	m := message{
+		Filename: filename,
+		Jan: jan,
+		Price: price,
+		URL: url,
+	}
+	if err := m.validation(); err != nil {
+		return nil, err
+	}
+	return &m, nil
 }
 
 func (m *message) validation() error {
