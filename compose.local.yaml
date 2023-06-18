@@ -44,6 +44,23 @@ services:
       - go-pkg:/go/pkg
       - go-pkg:/go/bin
 
+  api-server:
+    build:
+      context: .
+      dockerfile: ./services/api-server/Dockerfile.local
+    container_name: api-server
+    restart: always
+    environment:
+      - TZ=Asia/Tokyo
+    entrypoint: tail -f /dev/null
+    ports:
+     - 1323:1323
+    volumes:
+      - ./services/api-server:/go/src
+      - api-server-pkg:/go/pkg
+      - api-server-pkg:/go/bin
+
 volumes:
   go-pkg:
+  api-server-pkg:
   
