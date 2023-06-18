@@ -51,7 +51,10 @@ func NewProduct(name, productCode, url, jan, shopCode string, price int64) (*Pro
 		ProductCode: productCode,
 		URL:         url,
 	}
-	return p, p.validateZeroValues()
+	if err := p.validateZeroValues(); err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
 func (p Product) GenerateMessage(filename string) ([]byte, error) {
