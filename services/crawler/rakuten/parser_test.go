@@ -1,10 +1,11 @@
 package rakuten
 
 import (
-	"crawler/test/util"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"crawler/test/util"
 )
 
 func TestProductList(t *testing.T) {
@@ -30,7 +31,7 @@ func TestProductList(t *testing.T) {
 		want: want{
 			count: 45,
 			url:   "https://search.rakuten.co.jp/search/mall/?p=2&sid=212220",
-			first: NewRakutenProduct(
+			first: util.OmitError(NewRakutenProduct(
 				"【Z16L0005G】 Apple Mac mini 2023年CTOモデル（ベースモデル MMFK3J/A)",
 				"397925",
 				"https://item.rakuten.co.jp/jtus/397925/?variantId=397925",
@@ -38,8 +39,8 @@ func TestProductList(t *testing.T) {
 				"jtus",
 				116334,
 				11794,
-			),
-			last: NewRakutenProduct(
+			)),
+			last: util.OmitError(NewRakutenProduct(
 				"ELECOM 外付けHDD ELD-FTV020UBK",
 				"173391",
 				"https://item.rakuten.co.jp/jtus/173391/?variantId=173391",
@@ -47,7 +48,7 @@ func TestProductList(t *testing.T) {
 				"jtus",
 				6864,
 				852,
-			),
+			)),
 		},
 	}, {
 		name: "parse last page",
@@ -57,7 +58,7 @@ func TestProductList(t *testing.T) {
 		want: want{
 			count: 21,
 			url:   "",
-			first: NewRakutenProduct(
+			first: util.OmitError(NewRakutenProduct(
 				"IO DATA UD-RPCASE1　Raspberry Pi 2/3用ケース",
 				"1000-01530328-00000001",
 				"https://item.rakuten.co.jp/ioplaza/1000-01530328-00000001/?variantId=1000-01530328-00000001",
@@ -65,8 +66,8 @@ func TestProductList(t *testing.T) {
 				"ioplaza",
 				1772,
 				209,
-			),
-			last: NewRakutenProduct(
+			)),
+			last: util.OmitError(NewRakutenProduct(
 				"【税込み】【メーカー保証】三菱ケミカルメディア SR80SP50V1",
 				"1000-00007675-00000001",
 				"https://item.rakuten.co.jp/ioplaza/1000-00007675-00000001/?variantId=1000-00007675-00000001",
@@ -74,7 +75,7 @@ func TestProductList(t *testing.T) {
 				"ioplaza",
 				2037,
 				245,
-			),
+			)),
 		},
 	}, {
 		name: "parse last page and get next url",
@@ -84,7 +85,7 @@ func TestProductList(t *testing.T) {
 		want: want{
 			count: 45,
 			url:   "https://search.rakuten.co.jp/search/mall/?max=45412&p=1&s=12&sid=206032",
-			first: NewRakutenProduct(
+			first: util.OmitError(NewRakutenProduct(
 				"449276 シマノ リミテッドプロガードタイツ LLAサイズ(TFイエロー) SHIMANO FI-014U",
 				"4969363449276-36-58834-n",
 				"https://item.rakuten.co.jp/jism/4969363449276-36-58834-n/?variantId=4969363449276-36-58834-n",
@@ -92,8 +93,8 @@ func TestProductList(t *testing.T) {
 				"jism",
 				35143,
 				6234,
-			),
-			last: NewRakutenProduct(
+			)),
+			last: util.OmitError(NewRakutenProduct(
 				"16MMF1.4_DCDN_C_EF-M シグマ 16mm F1.4 DC DN ※EF-Mレンズ（APS-Cサイズミラーレス用）",
 				"0085126402716-34-52183-n",
 				"https://item.rakuten.co.jp/jism/0085126402716-34-52183-n/?variantId=0085126402716-34-52183-n",
@@ -101,7 +102,7 @@ func TestProductList(t *testing.T) {
 				"jism",
 				36338,
 				4986,
-			),
+			)),
 		},
 	}}
 	parser := RakutenParser{}

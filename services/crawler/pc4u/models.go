@@ -8,10 +8,14 @@ import (
 	"crawler/scrape"
 )
 
-func NewPc4uProduct(name, productCode, url, jan string, price int64) *Pc4uProduct {
-	return &Pc4uProduct{
-		Product: *scrape.NewProduct(name, productCode, url, jan, "pc4u", price),
+func NewPc4uProduct(name, productCode, url, jan string, price int64) (*Pc4uProduct, error) {
+	p, err := scrape.NewProduct(name, productCode, url, jan, "pc4u", price)
+	if err != nil {
+		return nil, err
 	}
+	return &Pc4uProduct{
+		Product: *p,
+	}, nil
 }
 
 type Pc4uProduct struct {

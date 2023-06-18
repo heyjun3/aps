@@ -38,3 +38,10 @@ func CreateHttpResponse(path string) (*http.Response, error) {
 	}
 	return res, nil
 }
+
+func OmitError[T any](v T, err error) (T) {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}

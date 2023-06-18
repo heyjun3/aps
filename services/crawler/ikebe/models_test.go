@@ -16,7 +16,7 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 	conn.ResetModel(ctx, (*IkebeProduct)(nil))
 	s := NewScrapeService()
 	p := scrape.Products{
-		NewIkebeProduct("test", "test_code", "https://test.com", "", 1111),
+		util.OmitError(NewIkebeProduct("test", "test_code", "https://test.com", "", 1111)),
 	}
 
 	type args struct {
@@ -65,7 +65,7 @@ func TestUpsert(t *testing.T) {
 	s := NewScrapeService()
 
 	t.Run("upsert ikebe product", func(t *testing.T) {
-		p := NewIkebeProduct("test", "test", "test url", "1111", 9000)
+		p := util.OmitError(NewIkebeProduct("test", "test", "test url", "1111", 9000))
 
 		err := s.Repo.BulkUpsert(ctx, conn, scrape.Products{p})
 

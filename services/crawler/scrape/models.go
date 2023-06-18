@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -37,12 +38,12 @@ type Product struct {
 	URL         string
 }
 
-func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Product {
+func NewProduct(name, productCode, url, jan, shopCode string, price int64) (*Product, error) {
 	janPtr := &jan
 	if jan == "" {
 		janPtr = nil
 	}
-	return &Product{
+	p := &Product{
 		Name:        name,
 		Jan:         janPtr,
 		Price:       price,
@@ -50,6 +51,7 @@ func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Prod
 		ProductCode: productCode,
 		URL:         url,
 	}
+	return p, p.validateZeroValues()
 }
 
 func (p Product) GenerateMessage(filename string) ([]byte, error) {
@@ -58,6 +60,27 @@ func (p Product) GenerateMessage(filename string) ([]byte, error) {
 		return nil, err
 	}
 	return json.Marshal(message)
+}
+
+func (p Product)validateZeroValues() (err error) {
+	structType := reflect.TypeOf(p)
+	structValue := reflect.ValueOf(p)
+	fieldsNum := structValue.NumField()
+
+	for i := 0; i < fieldsNum; i++ {
+		field := structValue.Field(i)
+		fieldName := structType.Field(i).Name
+
+		if fieldName == "Jan" {
+			continue
+		}
+
+		if isSet := field.IsValid() && !field.IsZero(); !isSet {
+			err = fmt.Errorf("%s is not set; ", fieldName)
+			return err
+		}
+	}
+	return nil
 }
 
 func (p Product) GetName() string {

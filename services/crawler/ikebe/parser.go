@@ -60,8 +60,12 @@ func (parser IkebeParser) ProductList(r io.ReadCloser, u string) (scrape.Product
 			logger.Info("Not Found price")
 			return
 		}
-
-		products = append(products, NewIkebeProduct(name, productId, url.String(), "", int64(p)))
+		product, err := NewIkebeProduct(name, productId, url.String(), "", int64(p))
+		if err != nil {
+			logger.Error("error", err)
+			return
+		}
+		products = append(products, product)
 	})
 
 	nextPath, exist := doc.Find(".product_pager-bottom .next a").Attr("href")

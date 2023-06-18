@@ -72,7 +72,11 @@ func (p RakutenParser) ProductList(r io.ReadCloser, u string) (scrape.Products, 
 			logger.Info("Not Found point", "name", name, "url", URL.String())
 		}
 
-		product := NewRakutenProduct(name, productId, URL.String(), "", shopId, price, point)
+		product, err := NewRakutenProduct(name, productId, URL.String(), "", shopId, price, point)
+		if err != nil {
+			logger.Error("error", err)
+			return
+		}
 		product.calcPrice()
 
 		products = append(products, product)

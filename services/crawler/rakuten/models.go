@@ -15,11 +15,16 @@ type RakutenProduct struct {
 }
 
 func NewRakutenProduct(
-	name, productCode, url, jan, shopCode string, price, point int64) *RakutenProduct {
-	return &RakutenProduct{
-		Product: *scrape.NewProduct(name, productCode, url, jan, shopCode, price),
-		point:   point,
+	name, productCode, url, jan, shopCode string, price, point int64) (*RakutenProduct, error) {
+
+	p, err := scrape.NewProduct(name, productCode, url, jan, shopCode, price)
+	if err != nil {
+		return nil, err
 	}
+	return &RakutenProduct{
+		Product: *p,
+		point:   point,
+	}, nil
 }
 
 func (r *RakutenProduct) calcPrice() {

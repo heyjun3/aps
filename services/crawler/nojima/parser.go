@@ -63,7 +63,12 @@ func (p NojimaParser) ProductList(r io.ReadCloser, requestURL string) (scrape.Pr
 			logger.Info("Not Found price", "name", "url", URL.String())
 			return
 		}
-		products = append(products, NewNojimaProduct(name, productCode, URL.String(), jan, price))
+		product, err := NewNojimaProduct(name, productCode, URL.String(), jan, price)
+		if err != nil {
+			logger.Error("error", err)
+			return
+		}
+		products = append(products, product)
 	})
 
 	isLastPage := true

@@ -15,10 +15,14 @@ type KaagoProduct struct {
 	scrape.Product
 }
 
-func NewKaagoProduct(name, productCode, url, jan, shopCode string, price int64) *KaagoProduct {
-	return &KaagoProduct{
-		Product: *scrape.NewProduct(name, productCode, url, jan, shopCode, price),
+func NewKaagoProduct(name, productCode, url, jan, shopCode string, price int64) (*KaagoProduct, error) {
+	p, err := scrape.NewProduct(name, productCode, url, jan, shopCode, price)
+	if err != nil {
+		return nil, err
 	}
+	return &KaagoProduct{
+		Product: *p,
+	}, nil
 }
 
 func CreateTable(db *bun.DB, ctx context.Context) error {

@@ -11,10 +11,37 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/exp/slices"
 )
 
 func main() {
-	testRequest()
+	person()
+}
+
+func contains() {
+	items := []string{"a", "b", "c"}
+	r := slices.Contains(items, "b")
+	fmt.Println(r)
+}
+
+func validateZeroValues(v any) (err error) {
+	structType := reflect.TypeOf(v)
+	structValue := reflect.ValueOf(v)
+	fieldsNum := structValue.NumField()
+
+	fmt.Println(structType.Name())
+
+	for i := 0; i < fieldsNum; i++ {
+		field := structValue.Field(i)
+		fieldName := structType.Field(i).Name
+
+		if isSet := field.IsValid() && !field.IsZero(); !isSet {
+			err = fmt.Errorf("%s is not set; ", fieldName)
+			return err
+		}
+	}
+	return nil
 }
 
 func checkDefaultValue() {
@@ -64,10 +91,10 @@ func person() {
 	p1 := Person{
 		name:   "John",
 		colors: []string{"red"},
-		age:    1,
+		age:    0,
 		email:  "test",
 	}
-	err := ValidatePerson(p1)
+	err := validateZeroValues(p1)
 	fmt.Println(err)
 }
 

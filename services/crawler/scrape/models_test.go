@@ -35,7 +35,7 @@ func TestGetProduct(t *testing.T) {
 			productCode: "p1",
 			shopCode:    "shop1",
 		},
-		want:    NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
+		want:    util.OmitError(NewProduct("test", "p1", "google.com", "111", "shop1", 9999)),
 		wantErr: false,
 	}, {
 		name: "get none product",
@@ -50,10 +50,10 @@ func TestGetProduct(t *testing.T) {
 	}}
 
 	pre := Products{
-		NewProduct("name", "test", "https://test.com", "1111", "shop", 1111),
-		NewProduct("name", "test1", "https://test.com", "2222", "shop", 11),
-		NewProduct("name", "test2", "https://test.com", "", "shop", 2),
-		NewProduct("test", "p1", "google.com", "111", "shop1", 9999),
+		util.OmitError(NewProduct("name", "test", "https://test.com", "1111", "shop", 1111)),
+		util.OmitError(NewProduct("name", "test1", "https://test.com", "2222", "shop", 11)),
+		util.OmitError(NewProduct("name", "test2", "https://test.com", "", "shop", 2)),
+		util.OmitError(NewProduct("test", "p1", "google.com", "111", "shop1", 9999)),
 	}
 	repo.BulkUpsert(ctx, conn, pre)
 
@@ -91,11 +91,11 @@ func TestBulkUpsert(t *testing.T) {
 			conn: conn,
 			ctx:  ctx,
 			products: Products{
-				NewProduct("test", "test", "https://test.com", "1111", "test", 1111),
-				NewProduct("test", "test1", "https://test.com", "1111", "test", 1111),
-				NewProduct("test", "test2", "https://test.com", "1111", "test", 1111),
-				NewProduct("test", "test3", "https://test.com", "1111", "test", 1111),
-				NewProduct("test", "test4", "https://test.com", "1111", "test", 1111),
+				util.OmitError(NewProduct("test", "test", "https://test.com", "1111", "test", 1111)),
+				util.OmitError(NewProduct("test", "test1", "https://test.com", "1111", "test", 1111)),
+				util.OmitError(NewProduct("test", "test2", "https://test.com", "1111", "test", 1111)),
+				util.OmitError(NewProduct("test", "test3", "https://test.com", "1111", "test", 1111)),
+				util.OmitError(NewProduct("test", "test4", "https://test.com", "1111", "test", 1111)),
 			},
 		},
 		wantErr: false,
@@ -136,11 +136,11 @@ func TestGet(t *testing.T) {
 			codes: []string{"test", "test1", "test2", "test3", "test4"},
 		},
 		want: Products{
-			NewProduct("name", "test", "https://test.com", "1111", "shop", 1111),
-			NewProduct("name", "test1", "https://test.com", "2222", "shop", 11),
-			NewProduct("name", "test2", "https://test.com", "", "shop", 2),
-			NewProduct("name", "test3", "https://test.com", "", "shop", 2),
-			NewProduct("name", "test4", "https://test.com", "", "shop", 2),
+			util.OmitError(NewProduct("name", "test", "https://test.com", "1111", "shop", 1111)),
+			util.OmitError(NewProduct("name", "test1", "https://test.com", "2222", "shop", 11)),
+			util.OmitError(NewProduct("name", "test2", "https://test.com", "", "shop", 2)),
+			util.OmitError(NewProduct("name", "test3", "https://test.com", "", "shop", 2)),
+			util.OmitError(NewProduct("name", "test4", "https://test.com", "", "shop", 2)),
 		},
 		wantErr: false,
 	}, {
@@ -151,7 +151,7 @@ func TestGet(t *testing.T) {
 			codes: []string{"test2"},
 		},
 		want: Products{
-			NewProduct("name", "test2", "https://test.com", "", "shop", 2),
+			util.OmitError(NewProduct("name", "test2", "https://test.com", "", "shop", 2)),
 		},
 		wantErr: false,
 	}, {
@@ -166,15 +166,15 @@ func TestGet(t *testing.T) {
 	}}
 
 	pre := Products{
-		NewProduct("name", "test", "https://test.com", "1111", "shop", 1111),
-		NewProduct("name", "test1", "https://test.com", "2222", "shop", 11),
-		NewProduct("name", "test2", "https://test.com", "", "shop", 2),
-		NewProduct("name", "test3", "https://test.com", "", "shop", 2),
-		NewProduct("name", "test4", "https://test.com", "", "shop", 2),
-		NewProduct("name", "test5", "https://test.com", "", "shop", 2),
-		NewProduct("name", "test6", "https://test.com", "", "shop", 2),
-		NewProduct("name", "test7", "https://test.com", "", "shop", 2),
-		NewProduct("name", "test8", "https://test.com", "", "shop", 2),
+		util.OmitError(NewProduct("name", "test", "https://test.com", "1111", "shop", 1111)),
+		util.OmitError(NewProduct("name", "test1", "https://test.com", "2222", "shop", 11)),
+		util.OmitError(NewProduct("name", "test2", "https://test.com", "", "shop", 2)),
+		util.OmitError(NewProduct("name", "test3", "https://test.com", "", "shop", 2)),
+		util.OmitError(NewProduct("name", "test4", "https://test.com", "", "shop", 2)),
+		util.OmitError(NewProduct("name", "test5", "https://test.com", "", "shop", 2)),
+		util.OmitError(NewProduct("name", "test6", "https://test.com", "", "shop", 2)),
+		util.OmitError(NewProduct("name", "test7", "https://test.com", "", "shop", 2)),
+		util.OmitError(NewProduct("name", "test8", "https://test.com", "", "shop", 2)),
 	}
 	repo.BulkUpsert(ctx, conn, pre)
 
@@ -196,30 +196,30 @@ func TestMappingProducts(t *testing.T) {
 
 	t.Run("happy path", func(t *testing.T) {
 		p := Products{
-			NewProduct("test", "test", "http://test.jp", "", "test_shop", 1111),
-			NewProduct("test1", "test1", "http://test.jp", "", "test_shop", 1111),
-			NewProduct("test2", "test2", "http://test.jp", "", "test_shop", 1111),
+			util.OmitError(NewProduct("test", "test", "http://test.jp", "", "test_shop", 1111)),
+			util.OmitError(NewProduct("test1", "test1", "http://test.jp", "", "test_shop", 1111)),
+			util.OmitError(NewProduct("test2", "test2", "http://test.jp", "", "test_shop", 1111)),
 		}
 
 		dbp := Products{
-			NewProduct("test", "test", "test", "4444", "test_shop", 4444),
-			NewProduct("test", "test1", "test1", "555", "test_shop", 4444),
-			NewProduct("test", "test2", "test2", "7777", "test_shop", 4444),
+			util.OmitError(NewProduct("test", "test", "test", "4444", "test_shop", 4444)),
+			util.OmitError(NewProduct("test", "test1", "test1", "555", "test_shop", 4444)),
+			util.OmitError(NewProduct("test", "test2", "test2", "7777", "test_shop", 4444)),
 		}
 
 		result := p.MapProducts(dbp)
 
 		assert.Equal(t, 3, len(result))
-		assert.Equal(t, NewProduct("test", "test", "http://test.jp", "4444", "test_shop", 1111), result[0])
-		assert.Equal(t, NewProduct("test1", "test1", "http://test.jp", "555", "test_shop", 1111), result[1])
-		assert.Equal(t, NewProduct("test2", "test2", "http://test.jp", "7777", "test_shop", 1111), result[2])
+		assert.Equal(t, util.OmitError(NewProduct("test", "test", "http://test.jp", "4444", "test_shop", 1111)), result[0])
+		assert.Equal(t, util.OmitError(NewProduct("test1", "test1", "http://test.jp", "555", "test_shop", 1111)), result[1])
+		assert.Equal(t, util.OmitError(NewProduct("test2", "test2", "http://test.jp", "7777", "test_shop", 1111)), result[2])
 	})
 
 	t.Run("product is empty", func(t *testing.T) {
 		p := Products{}
 		dbp := Products{
-			NewProduct("test", "test", "test", "11111", "test_shop", 4444),
-			NewProduct("test", "test", "test1", "55555", "test_shop", 4444),
+			util.OmitError(NewProduct("test", "test", "test", "11111", "test_shop", 4444)),
+			util.OmitError(NewProduct("test", "test", "test1", "55555", "test_shop", 4444)),
 		}
 
 		result := p.MapProducts(dbp)
@@ -230,9 +230,9 @@ func TestMappingProducts(t *testing.T) {
 
 	t.Run("db product is empty", func(t *testing.T) {
 		p := Products{
-			NewProduct("test", "test", "http://test.jp", "", "test_shop", 1111),
-			NewProduct("test1", "test1", "http://test.jp", "", "test_shop", 1111),
-			NewProduct("test2", "test2", "http://test.jp", "", "test_shop", 1111),
+			util.OmitError(NewProduct("test", "test", "http://test.jp", "", "test_shop", 1111)),
+			util.OmitError(NewProduct("test1", "test1", "http://test.jp", "", "test_shop", 1111)),
+			util.OmitError(NewProduct("test2", "test2", "http://test.jp", "", "test_shop", 1111)),
 		}
 		db := Products{}
 
@@ -246,7 +246,7 @@ func TestMappingProducts(t *testing.T) {
 func TestGenerateMessage(t *testing.T) {
 	f := "ikebe_20220301_120303"
 	t.Run("generate message", func(t *testing.T) {
-		p := NewProduct("test", "test", "https://test.com", "4444", "test_shop", 6000)
+		p := util.OmitError(NewProduct("test", "test", "https://test.com", "4444", "test_shop", 6000))
 
 		m, err := p.GenerateMessage(f)
 
@@ -256,7 +256,7 @@ func TestGenerateMessage(t *testing.T) {
 	})
 
 	t.Run("Jan code isn't Valid", func(t *testing.T) {
-		p := NewProduct("TEST", "test", "https://test.com", "", "test_shop", 5000)
+		p := util.OmitError(NewProduct("TEST", "test", "https://test.com", "", "test_shop", 5000))
 
 		m, err := p.GenerateMessage(f)
 
@@ -265,7 +265,7 @@ func TestGenerateMessage(t *testing.T) {
 	})
 
 	t.Run("Price isn't valid", func(t *testing.T) {
-		p := NewProduct("TEST", "test", "https://test.com", "", "test_shop", 5000)
+		p := util.OmitError(NewProduct("TEST", "test", "https://test.com", "", "test_shop", 5000))
 		p.Price = 0
 
 		m, err := p.GenerateMessage(f)
@@ -275,7 +275,7 @@ func TestGenerateMessage(t *testing.T) {
 	})
 
 	t.Run("URL isn't valid", func(t *testing.T) {
-		p := NewProduct("TEST", "test", "https://test.com", "", "test_shop", 5000)
+		p := util.OmitError(NewProduct("TEST", "test", "https://test.com", "", "test_shop", 5000))
 		p.URL = ""
 
 		m, err := p.GenerateMessage(f)
