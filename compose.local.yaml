@@ -52,6 +52,7 @@ services:
     restart: always
     environment:
       - TZ=Asia/Tokyo
+      - DB_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server/${POSTGRES_DB}:5432?sslmode=disable
     entrypoint: tail -f /dev/null
     ports:
      - 1323:1323
