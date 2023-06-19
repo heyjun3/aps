@@ -2,10 +2,18 @@ package product
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/driver/pgdriver"
 )
+
+func OpenDB(dsn string) *bun.DB {
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
+	return bun.NewDB(sqldb, pgdialect.New())
+}
 
 type Product struct {
 	bun.BaseModel `bun:"table:mws_products"`
@@ -28,8 +36,18 @@ type ProductRepository struct {
 	DB *bun.DB
 }
 
-func (p ProductRepository) GetFilenames(ctx context.Context) ([]Product, error) {
-	var products []Product
-	err := p.DB.NewSelect().DistinctOn("filename").Model(&products).Scan(ctx)
-	return products, err
+func (p ProductRepository) Save(ctx context.Context, products []Product) (error) {
+	_, err := p.DB.NewInsert().Model(&products).Exec(ctx)
+	return err
+}
+
+func (p ProductRepository) GetFilenames(ctx context.Context) ([]string, error) {
+	var filenames []string
+	err := p.DB.NewSelect().Model((*Product)(nil)).Column("filename").DistinctOn("filename").Order("filename ASC").Scan(ctx, &filenames)
+	return filenames, err
+}
+
+func (p ProductRepository) DeleteByFilename(ctx context.Context, filename string) error {
+	_, err := p.DB.NewDelete().Model((*Product)(nil)).Where("filename = ?", filename).Exec(ctx)
+	return err
 }
