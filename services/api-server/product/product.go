@@ -18,7 +18,7 @@ func OpenDB(dsn string) *bun.DB {
 type Product struct {
 	bun.BaseModel `bun:"table:mws_products"`
 	Asin          string `bun:"asin,pk"`
-	Filename      string `bun:"filename,pk"`
+	Filename      string `bun:"filename,pk" json:"filename"`
 	Title         string
 	Jan           string
 	Unit          int64
