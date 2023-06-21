@@ -6,8 +6,6 @@ import (
 	"api-server/handler"
 )
 
-
-
 func main() {
 	e := echo.New()
 	e.GET("/api/list", handler.GetFilenames)

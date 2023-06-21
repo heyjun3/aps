@@ -53,6 +53,7 @@ services:
     environment:
       - TZ=Asia/Tokyo
       - DB_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/${POSTGRES_DB}?sslmode=disable
+      - TEST_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/test?sslmode=disable
     entrypoint: tail -f /dev/null
     ports:
      - 1323:1323

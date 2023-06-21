@@ -13,7 +13,16 @@ import (
 	"api-server/product"
 )
 
+type Res struct {
+	Message string `json:"message"`
+}
+
+type FileListRes struct {
+	List []string `json:"list"`
+}
+
 var db *bun.DB
+
 func init() {
 	dsn := os.Getenv("DB_DSN")
 	if dsn == "" {
@@ -28,9 +37,9 @@ func GetFilenames(c echo.Context) error {
 	filenames, err := repo.GetFilenames(ctx)
 	if err != nil {
 		fmt.Println(err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "error"})
+		return c.JSON(http.StatusInternalServerError, Res{"error"})
 	}
-	return c.JSON(http.StatusOK, filenames)
+	return c.JSON(http.StatusOK, FileListRes{filenames})
 }
 
 func DeleteProducts(c echo.Context) error {
@@ -39,7 +48,7 @@ func DeleteProducts(c echo.Context) error {
 	err := repo.DeleteByFilename(ctx, c.Param("filename"))
 	if err != nil {
 		fmt.Println(err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "error"})
+		return c.JSON(http.StatusInternalServerError, Res{"error"})
 	}
-	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	return c.JSON(http.StatusOK, Res{"ok"})
 }

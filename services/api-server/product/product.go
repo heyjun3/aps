@@ -19,26 +19,37 @@ type Product struct {
 	bun.BaseModel `bun:"table:mws_products"`
 	Asin          string `bun:"asin,pk"`
 	Filename      string `bun:"filename,pk" json:"filename"`
-	Title         string
-	Jan           string
-	Unit          int64
-	Price         int64
-	Cost          int64
-	FeeRate       float64
-	ShippingFee   int64 `bun:"shipping_fee"`
-	Profit        int64
-	ProfitRate    float64   `bun:"profit_rate"`
-	CreatedAt     time.Time `bun:"created_at"`
-	URL           string    `bun:"url"`
+	Title         *string
+	Jan           *string
+	Unit          *int64
+	Price         *int64
+	Cost          *int64
+	FeeRate       *float64
+	ShippingFee   *int64 `bun:"shipping_fee"`
+	Profit        *int64
+	ProfitRate    *float64  `bun:"profit_rate"`
+	CreatedAt     time.Time `bun:"created_at,nullzero,notnull,default:current_timestamp"`
+	URL           *string   `bun:"url"`
 }
 
 type ProductRepository struct {
 	DB *bun.DB
 }
 
-func (p ProductRepository) Save(ctx context.Context, products []Product) (error) {
+func (p ProductRepository) Save(ctx context.Context, products []Product) error {
 	_, err := p.DB.NewInsert().Model(&products).Exec(ctx)
 	return err
+}
+
+func (p ProductRepository) GetCounts(ctx context.Context) (map[string]int, error) {
+	var total, price, fee int
+	err := p.DB.NewSelect().
+		Model((*Product)(nil)).
+		ColumnExpr("count(*)").
+		ColumnExpr("count(?)", bun.Ident("price")).
+		ColumnExpr("count(?)", bun.Ident("fee_rate")).
+		Scan(ctx, &total, &price, &fee)
+	return map[string]int{"total": total, "price": price, "fee": fee}, err
 }
 
 func (p ProductRepository) GetFilenames(ctx context.Context) ([]string, error) {
