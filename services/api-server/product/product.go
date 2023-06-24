@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -32,6 +33,11 @@ type Product struct {
 	URL           *string   `bun:"url"`
 }
 
+type ProductWithChart struct {
+	Product
+	Chart ChartData `bun:"render_data,type:jsonb"`
+}
+
 type ProductRepository struct {
 	DB *bun.DB
 }
@@ -56,6 +62,30 @@ func (p ProductRepository) GetFilenames(ctx context.Context) ([]string, error) {
 	var filenames []string
 	err := p.DB.NewSelect().Model((*Product)(nil)).Column("filename").DistinctOn("filename").Order("filename ASC").Scan(ctx, &filenames)
 	return filenames, err
+}
+
+func (p ProductRepository) GetProductWithChart(ctx context.Context, filename string, page, limit int) ([]ProductWithChart, int, error) {
+	if page < 1 {
+		return nil, 0, fmt.Errorf("page is over 1")
+	}
+	offset := (page - 1) * limit
+	var product []ProductWithChart
+	count, err := p.DB.NewSelect().
+		ColumnExpr("p.*").
+		ColumnExpr("k.render_data").
+		TableExpr("mws_products AS p").
+		Join("JOIN keepa_products AS k ON k.asin = p.asin").
+		Where("p.filename = ?", filename).
+		Where("p.profit >= ?", 200).
+		Where("p.profit_rate >= ?", 0.1).
+		Where("p.unit <= ?", 10).
+		Where("k.sales_drops_90 > ?", 3).
+		Where("k.render_data IS NOT NULL").
+		OrderExpr("p.profit DESC").
+		Limit(limit).
+		Offset(offset).
+		ScanAndCount(ctx, &product)
+	return product, count, err
 }
 
 func (p ProductRepository) DeleteByFilename(ctx context.Context, filename string) error {
