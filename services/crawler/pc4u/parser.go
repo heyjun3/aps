@@ -67,7 +67,12 @@ func (p Pc4uParser) ProductList(r io.ReadCloser, u string) (scrape.Products, str
 			isSold = true
 			return
 		}
-		products = append(products, NewPc4uProduct(name, productId, URL.String(), "", price))
+		product, err := NewPc4uProduct(name, productId, URL.String(), "", price)
+		if err != nil {
+			logger.Error("error", err)
+			return
+		}
+		products = append(products, product)
 	})
 
 	if isSold {

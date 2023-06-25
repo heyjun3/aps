@@ -71,9 +71,9 @@ func TestScrapeProductsList(t *testing.T) {
 			service: Service[*Product]{
 				Parser: ParserMock{
 					products: Products{
-						NewProduct("test", "test1", "http://test.jp", "1111", "test", 1111),
-						NewProduct("test", "test3", "http://test.jp", "3333", "test", 3333),
-						NewProduct("test", "test2", "http://test.jp", "2222", "test", 2222),
+						util.OmitError(NewProduct("test", "test1", "http://test.jp", "1111", "test", 1111)),
+						util.OmitError(NewProduct("test", "test3", "http://test.jp", "3333", "test", 3333)),
+						util.OmitError(NewProduct("test", "test2", "http://test.jp", "2222", "test", 2222)),
 					},
 					URL: "",
 				},
@@ -81,8 +81,8 @@ func TestScrapeProductsList(t *testing.T) {
 			URL: "https://google.com",
 		},
 		want: want{
-			first: NewProduct("test", "test1", "http://test.jp", "1111", "test", 1111),
-			last:  NewProduct("test", "test2", "http://test.jp", "2222", "test", 2222),
+			first: util.OmitError(NewProduct("test", "test1", "http://test.jp", "1111", "test", 1111)),
+			last:  util.OmitError(NewProduct("test", "test2", "http://test.jp", "2222", "test", 2222)),
 			len:   3,
 		},
 	}}
@@ -122,19 +122,19 @@ func TestGetProductsBatch(t *testing.T) {
 				Repo: NewProductRepository(&Product{}, []*Product{}),
 			},
 			products: Products{
-				NewProduct("test1", "test1", "http://test.jp", "", "test", 1111),
-				NewProduct("test2", "test2", "http://test.jp", "", "test", 2222),
-				NewProduct("test3", "test3", "http://test.jp", "", "test", 3333),
-				NewProduct("test4", "test4", "http://test.jp", "", "test", 4444),
+				util.OmitError(NewProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
+				util.OmitError(NewProduct("test2", "test2", "http://test.jp", "", "test", 2222)),
+				util.OmitError(NewProduct("test3", "test3", "http://test.jp", "", "test", 3333)),
+				util.OmitError(NewProduct("test4", "test4", "http://test.jp", "", "test", 4444)),
 			},
 			DSN: util.TestDSN(),
 		},
 		want: want{
 			Products{
-				NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111),
-				NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222),
-				NewProduct("test3", "test3", "http://test.jp", "3333", "test", 3333),
-				NewProduct("test4", "test4", "http://test.jp", "4444", "test", 4444),
+				util.OmitError(NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
+				util.OmitError(NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
+				util.OmitError(NewProduct("test3", "test3", "http://test.jp", "3333", "test", 3333)),
+				util.OmitError(NewProduct("test4", "test4", "http://test.jp", "4444", "test", 4444)),
 			},
 		},
 	}, {
@@ -144,17 +144,17 @@ func TestGetProductsBatch(t *testing.T) {
 				Repo: NewProductRepository(&Product{}, []*Product{}),
 			},
 			products: Products{
-				NewProduct("test11", "test11", "http://test.jp", "", "test", 1111),
-				NewProduct("test22", "test22", "http://test.jp", "", "test", 2222),
-				NewProduct("test33", "test33", "http://test.jp", "", "test", 3333),
+				util.OmitError(NewProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
+				util.OmitError(NewProduct("test22", "test22", "http://test.jp", "", "test", 2222)),
+				util.OmitError(NewProduct("test33", "test33", "http://test.jp", "", "test", 3333)),
 			},
 			DSN: util.TestDSN(),
 		},
 		want: want{
 			Products{
-				NewProduct("test11", "test11", "http://test.jp", "", "test", 1111),
-				NewProduct("test22", "test22", "http://test.jp", "", "test", 2222),
-				NewProduct("test33", "test33", "http://test.jp", "", "test", 3333),
+				util.OmitError(NewProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
+				util.OmitError(NewProduct("test22", "test22", "http://test.jp", "", "test", 2222)),
+				util.OmitError(NewProduct("test33", "test33", "http://test.jp", "", "test", 3333)),
 			},
 		},
 	}}
@@ -162,10 +162,10 @@ func TestGetProductsBatch(t *testing.T) {
 	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
 	ps := Products{
-		NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111),
-		NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222),
-		NewProduct("test3", "test3", "http://test.jp", "3333", "test", 3333),
-		NewProduct("test4", "test4", "http://test.jp", "4444", "test", 4444),
+		util.OmitError(NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
+		util.OmitError(NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
+		util.OmitError(NewProduct("test3", "test3", "http://test.jp", "3333", "test", 3333)),
+		util.OmitError(NewProduct("test4", "test4", "http://test.jp", "4444", "test", 4444)),
 	}
 	ProductRepository[*Product]{}.BulkUpsert(ctx, conn, ps)
 
@@ -203,17 +203,17 @@ func TestGetProducts(t *testing.T) {
 				Repo: NewProductRepository(&Product{}, []*Product{}),
 			},
 			products: Products{
-				NewProduct("test1", "test1", "http://test.jp", "", "test", 1111),
-				NewProduct("test2", "test2", "http://test.jp", "", "test", 2222),
-				NewProduct("test3", "test3", "http://test.jp", "", "test", 3333),
+				util.OmitError(NewProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
+				util.OmitError(NewProduct("test2", "test2", "http://test.jp", "", "test", 2222)),
+				util.OmitError(NewProduct("test3", "test3", "http://test.jp", "", "test", 3333)),
 			},
 			DSN: util.TestDSN(),
 		},
 		want: want{
 			products: Products{
-				NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111),
-				NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222),
-				NewProduct("test3", "test3", "http://test.jp", "", "test", 3333),
+				util.OmitError(NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
+				util.OmitError(NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
+				util.OmitError(NewProduct("test3", "test3", "http://test.jp", "", "test", 3333)),
 			},
 		},
 	}}
@@ -221,9 +221,9 @@ func TestGetProducts(t *testing.T) {
 	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*Product)(nil))
 	pre := Products{
-		NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111),
-		NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222),
-		NewProduct("test3", "test3", "http://test.jp", "", "test", 3333),
+		util.OmitError(NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
+		util.OmitError(NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
+		util.OmitError(NewProduct("test3", "test3", "http://test.jp", "", "test", 3333)),
 	}
 	ProductRepository[*Product]{}.BulkUpsert(ctx, conn, pre)
 
@@ -265,15 +265,15 @@ func TestScrapeProduct(t *testing.T) {
 				},
 			},
 			products: Products{
-				NewProduct("test1", "test1", "http://test.jp", "", "test", 1111),
-				NewProduct("test2", "test2", "http://test.jp", "", "test", 2222),
+				util.OmitError(NewProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
+				util.OmitError(NewProduct("test2", "test2", "http://test.jp", "", "test", 2222)),
 			},
 			client: ClientMock{"html/test_scrape_products_list.html"},
 		},
 		want: want{
 			products: Products{
-				NewProduct("test1", "test1", "http://test.jp", "99999", "test", 1111),
-				NewProduct("test2", "test2", "http://test.jp", "99999", "test", 2222),
+				util.OmitError(NewProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
+				util.OmitError(NewProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
 			},
 		},
 	}}
@@ -310,17 +310,17 @@ func TestSaveProduct(t *testing.T) {
 		args: args{
 			service: Service[*Product]{},
 			products: Products{
-				NewProduct("test1", "test1", "http://test.jp", "99999", "test", 1111),
-				NewProduct("test2", "test2", "http://test.jp", "99999", "test", 2222),
-				NewProduct("test3", "test3", "http://test.jp", "99999", "test", 3333),
+				util.OmitError(NewProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
+				util.OmitError(NewProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
+				util.OmitError(NewProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
 			},
 			DSN: util.TestDSN(),
 		},
 		want: want{
 			products: Products{
-				NewProduct("test1", "test1", "http://test.jp", "99999", "test", 1111),
-				NewProduct("test2", "test2", "http://test.jp", "99999", "test", 2222),
-				NewProduct("test3", "test3", "http://test.jp", "99999", "test", 3333),
+				util.OmitError(NewProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
+				util.OmitError(NewProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
+				util.OmitError(NewProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
 			},
 		},
 	}}
@@ -366,9 +366,9 @@ func TestSendMessage(t *testing.T) {
 		args: args{
 			service: Service[*Product]{},
 			products: Products{
-				NewProduct("test1", "test1", "http://test.jp", "99999", "test", 1111),
-				NewProduct("test2", "test2", "http://test.jp", "99999", "test", 2222),
-				NewProduct("test3", "test3", "http://test.jp", "99999", "test", 3333),
+				util.OmitError(NewProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
+				util.OmitError(NewProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
+				util.OmitError(NewProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
 			},
 			client:   MQMock{},
 			siteName: "test",

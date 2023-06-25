@@ -64,8 +64,13 @@ func (p ArkParser) ProductList(r io.ReadCloser, u string) (scrape.Products, stri
 		}
 		coupon, _ := scrape.PullOutNumber(s.Find(".price_diff_2.auto_coupon").Text())
 		discountedPrice := price - coupon
-
-		products = append(products, NewArkProduct(name, productId, URL.String(), "", discountedPrice))
+		
+		product, err := NewArkProduct(name, productId, URL.String(), "", discountedPrice)
+		if err != nil {
+			logger.Error("error", err)
+			return
+		}
+		products = append(products, product)
 	})
 
 	path, exist := doc.Find("#listnavi_next a[href]").Attr("href")

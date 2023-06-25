@@ -13,10 +13,14 @@ type NojimaProduct struct {
 	scrape.Product
 }
 
-func NewNojimaProduct(name, productCode, url, jan string, price int64) *NojimaProduct {
-	return &NojimaProduct{
-		Product: *scrape.NewProduct(name, productCode, url, jan, "nojima", price),
+func NewNojimaProduct(name, productCode, url, jan string, price int64) (*NojimaProduct, error) {
+	p, err := scrape.NewProduct(name, productCode, url, jan, "nojima", price)
+	if err != nil {
+		return nil, err
 	}
+	return &NojimaProduct{
+		Product: *p,
+	}, err
 }
 
 func CreateTable(conn *bun.DB, ctx context.Context) error {

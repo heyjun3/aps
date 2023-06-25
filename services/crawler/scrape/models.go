@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -37,12 +38,12 @@ type Product struct {
 	URL         string
 }
 
-func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Product {
+func NewProduct(name, productCode, url, jan, shopCode string, price int64) (*Product, error) {
 	janPtr := &jan
 	if jan == "" {
 		janPtr = nil
 	}
-	return &Product{
+	p := &Product{
 		Name:        name,
 		Jan:         janPtr,
 		Price:       price,
@@ -50,19 +51,39 @@ func NewProduct(name, productCode, url, jan, shopCode string, price int64) *Prod
 		ProductCode: productCode,
 		URL:         url,
 	}
+	if err := p.validateZeroValues(); err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
 func (p Product) GenerateMessage(filename string) ([]byte, error) {
-	message := message{
-		Filename: filename,
-		Jan:      p.Jan,
-		Price:    p.Price,
-		URL:      p.URL,
-	}
-	if err := message.validation(); err != nil {
+	message, err := NewMessage(filename, p.URL, p.Jan, p.Price)
+	if err != nil {
 		return nil, err
 	}
 	return json.Marshal(message)
+}
+
+func (p Product)validateZeroValues() (err error) {
+	structType := reflect.TypeOf(p)
+	structValue := reflect.ValueOf(p)
+	fieldsNum := structValue.NumField()
+
+	for i := 0; i < fieldsNum; i++ {
+		field := structValue.Field(i)
+		fieldName := structType.Field(i).Name
+
+		if fieldName == "Jan" {
+			continue
+		}
+
+		if isSet := field.IsValid() && !field.IsZero(); !isSet {
+			err = fmt.Errorf("%s is not set; ", fieldName)
+			return err
+		}
+	}
+	return nil
 }
 
 func (p Product) GetName() string {
@@ -142,6 +163,19 @@ type message struct {
 	Jan      *string `json:"jan"`
 	Price    int64   `json:"cost"`
 	URL      string  `json:"url"`
+}
+
+func NewMessage(filename, url string, jan *string, price int64) (*message, error) {
+	m := message{
+		Filename: filename,
+		Jan: jan,
+		Price: price,
+		URL: url,
+	}
+	if err := m.validation(); err != nil {
+		return nil, err
+	}
+	return &m, nil
 }
 
 func (m *message) validation() error {

@@ -44,6 +44,25 @@ services:
       - go-pkg:/go/pkg
       - go-pkg:/go/bin
 
+  api-server-dev:
+    build:
+      context: .
+      dockerfile: ./services/api-server/Dockerfile.local
+    container_name: api-server-dev
+    restart: always
+    environment:
+      - TZ=Asia/Tokyo
+      - DB_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/${POSTGRES_DB}?sslmode=disable
+      - TEST_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/test?sslmode=disable
+    entrypoint: tail -f /dev/null
+    ports:
+     - 5000:1323
+    volumes:
+      - ./services/api-server:/go/src
+      - api-server-pkg:/go/pkg
+      - api-server-pkg:/go/bin
+
 volumes:
   go-pkg:
+  api-server-pkg:
   

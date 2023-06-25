@@ -23,20 +23,20 @@ func TestProductList(t *testing.T) {
 
 		assert.Equal(t, 50, len(products))
 		assert.Equal(t, "https://www.ark-pc.co.jp/search/?offset=50&limit=50&nouki=1", url)
-		first := NewArkProduct(
+		first := util.OmitError(NewArkProduct(
 			"CMSX16GX5M1A4800C40",
 			"11755303",
 			"https://www.ark-pc.co.jp/i/11755303/",
 			"",
 			8980,
-		)
-		last := NewArkProduct(
+		))
+		last := util.OmitError(NewArkProduct(
 			"Loupedeck Live",
 			"50284987",
 			"https://www.ark-pc.co.jp/i/50284987/",
 			"",
 			39600,
-		)
+		))
 
 		assert.Equal(t, first, products[0])
 		assert.Equal(t, last, products[len(products)-1])
@@ -55,20 +55,20 @@ func TestProductList(t *testing.T) {
 		assert.Equal(t, 4, len(products))
 		assert.Equal(t, "", url)
 
-		first := NewArkProduct(
+		first := util.OmitError(NewArkProduct(
 			"AINEX YH-3020A チップ用ヒートシンク30mm角",
 			"40000501",
 			"https://www.ark-pc.co.jp/i/40000501/",
 			"",
 			440,
-		)
-		last := NewArkProduct(
+		))
+		last := util.OmitError(NewArkProduct(
 			"SteelSeries QcK+ (Qck L)",
 			"50190022",
 			"https://www.ark-pc.co.jp/i/50190022/",
 			"",
 			1840,
-		)
+		))
 
 		assert.Equal(t, first, products[0])
 		assert.Equal(t, last, products[len(products)-1])

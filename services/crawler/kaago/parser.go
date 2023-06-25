@@ -50,7 +50,12 @@ func (p KaagoParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrap
 		}
 		u.Scheme = scheme
 		u.Host = host
-		products = append(products, NewKaagoProduct(p.Name, p.ProductCode, u.String(), p.ProductCode, p.ShopCode, p.Price))
+		product, err := NewKaagoProduct(p.Name, p.ProductCode, u.String(), p.ProductCode, p.ShopCode, p.Price)
+		if err != nil {
+			logger.Error("error", err)
+			continue
+		}
+		products = append(products, product)
 	}
 
 	nextReq, err := generateRequest(resp.CurrentPage)

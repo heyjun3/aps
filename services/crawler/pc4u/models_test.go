@@ -34,19 +34,19 @@ func TestGetPc4uProductsByProductCode(t *testing.T) {
 			codes: []string{"test_code", "test1", "test2"},
 		},
 		want: scrape.Products{
-			NewPc4uProduct("test", "test1", "https://google.com", "", 1111),
-			NewPc4uProduct("test", "test2", "https://google.com", "", 2222),
-			NewPc4uProduct("test", "test_code", "https://google.com", "", 7777),
+			util.OmitError(NewPc4uProduct("test", "test1", "https://google.com", "", 1111)),
+			util.OmitError(NewPc4uProduct("test", "test2", "https://google.com", "", 2222)),
+			util.OmitError(NewPc4uProduct("test", "test_code", "https://google.com", "", 7777)),
 		},
 		wantErr: false,
 	}}
 
 	ps := scrape.Products{
-		NewPc4uProduct("test", "test_code", "https://google.com", "", 7777),
-		NewPc4uProduct("test", "code", "https://google.com", "", 7777),
-		NewPc4uProduct("test", "test", "https://google.com", "", 7777),
-		NewPc4uProduct("test", "test1", "https://google.com", "", 1111),
-		NewPc4uProduct("test", "test2", "https://google.com", "", 2222),
+		util.OmitError(NewPc4uProduct("test", "test_code", "https://google.com", "", 7777)),
+		util.OmitError(NewPc4uProduct("test", "code", "https://google.com", "", 7777)),
+		util.OmitError(NewPc4uProduct("test", "test", "https://google.com", "", 7777)),
+		util.OmitError(NewPc4uProduct("test", "test1", "https://google.com", "", 1111)),
+		util.OmitError(NewPc4uProduct("test", "test2", "https://google.com", "", 2222)),
 	}
 	err := s.Repo.BulkUpsert(ctx, conn, ps)
 	if err != nil {
@@ -73,7 +73,7 @@ func TestUpsert(t *testing.T) {
 	s := NewScrapeService()
 
 	t.Run("upsert pc4u product", func(t *testing.T) {
-		p := NewPc4uProduct("test", "test", "test url", "1111", 9000)
+		p := util.OmitError(NewPc4uProduct("test", "test", "test url", "1111", 9000))
 
 		err := s.Repo.BulkUpsert(ctx, conn, scrape.Products{p})
 

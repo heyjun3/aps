@@ -15,7 +15,7 @@ func TestArkGetByProductCodes(t *testing.T) {
 	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*ArkProduct)(nil))
 	s := NewScrapeService()
-	p := scrape.Products{NewArkProduct("test", "test_code", "https://google.com", "", 1111)}
+	p := scrape.Products{util.OmitError(NewArkProduct("test", "test_code", "https://google.com", "", 1111))}
 
 	type args struct {
 		conn  *bun.DB
@@ -81,13 +81,13 @@ func TestBulkUpsert(t *testing.T) {
 			conn: conn,
 			ctx:  ctx,
 			products: scrape.Products{
-				NewArkProduct("test", "test_code", "https://google.com", "", 3333),
-				NewArkProduct("test", "test", "https://google.com", "", 11111),
-				NewArkProduct("test", "code", "https://google.com", "", 9999),
-				NewArkProduct("test1", "code1", "https://google.com", "", 9999),
-				NewArkProduct("test2", "code3", "https://google.com", "", 9999),
-				NewArkProduct("test3", "code4", "https://google.com", "", 9999),
-				NewArkProduct("test4", "code6", "https://google.com", "", 9999),
+				util.OmitError(NewArkProduct("test", "test_code", "https://google.com", "", 3333)),
+				util.OmitError(NewArkProduct("test", "test", "https://google.com", "", 11111)),
+				util.OmitError(NewArkProduct("test", "code", "https://google.com", "", 9999)),
+				util.OmitError(NewArkProduct("test1", "code1", "https://google.com", "", 9999)),
+				util.OmitError(NewArkProduct("test2", "code3", "https://google.com", "", 9999)),
+				util.OmitError(NewArkProduct("test3", "code4", "https://google.com", "", 9999)),
+				util.OmitError(NewArkProduct("test4", "code6", "https://google.com", "", 9999)),
 			},
 		},
 		wantErr: false,
