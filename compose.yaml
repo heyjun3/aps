@@ -179,20 +179,6 @@ services:
       - postgresql-server
       - redis-server
 
-  # uwsgi:
-  #   build:
-  #     context: .
-  #     dockerfile: ./docker/python/Dockerfile
-  #   container_name: uwsgi
-  #   restart: always
-  #   environment:
-  #     - TZ=Asia/Tokyo
-  #   ports:
-  #     - 5000:5000
-  #   entrypoint: uwsgi --ini ./ApiServer.ini
-  #   depends_on:
-  #     - postgresql-server
-
   go-crawler:
     build:
       context: .
