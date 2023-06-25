@@ -163,7 +163,6 @@ func TestGetProductWithChart(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := ProductRepository{DB: db}
 			ps, total ,err := repo.GetProductWithChart(tt.args.ctx, tt.args.filename, tt.args.page, tt.args.limit)
-
 			assert.Equal(t, tt.want.count, len(ps))
 			assert.Equal(t, tt.want.total, total)
 			if tt.wantErr {

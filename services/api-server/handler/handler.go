@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -15,7 +16,7 @@ import (
 )
 
 type Res struct {
-	Message string `json:"message"`
+	Message string `json:"status"`
 }
 
 type FileListRes struct {
@@ -25,6 +26,17 @@ type FileListRes struct {
 type StatusRes struct {
 	Keepa map[string]int `json:"keepa"`
 	Mws   map[string]int `json:"mws"`
+}
+
+type ProductWithChart struct {
+	product.Product
+	product.ChartData
+}
+
+type ChartRes struct {
+	Charts      []ProductWithChart `json:"chart_data"`
+	CurrentPage int                `json:"current_page"`
+	MaxPage     int                `json:"max_page"`
 }
 
 var db *bun.DB
@@ -45,15 +57,28 @@ func GetCharts(c echo.Context) error {
 	filename := c.Param("filename")
 	page, err := strconv.Atoi(c.QueryParam("page"))
 	if filename == "" || err != nil {
+		fmt.Println(err)
 		return c.JSON(http.StatusBadRequest, Res{"error"})
 	}
-	
+	limit := 100
 	ctx := context.Background()
-	charts, total, err := productRepo.GetProductWithChart(ctx, filename, page, 100)
+	charts, total, err := productRepo.GetProductWithChart(ctx, filename, page, limit)
 	if err != nil {
+		fmt.Println(err)
 		return c.JSON(http.StatusInternalServerError, Res{"error"})
 	}
-	
+
+	maxPage := int(math.Ceil((float64(total) / float64(limit))))
+	if page > maxPage {
+		fmt.Println("page over max pages")
+		return c.JSON(http.StatusNotFound, Res{"error"})
+	}
+
+	products := make([]ProductWithChart, len(charts))
+	for i := 0; i < len(charts); i++ {
+		products[i] = ProductWithChart{charts[i].Product, charts[i].Chart}
+	}
+	return c.JSON(http.StatusOK, ChartRes{products, page, maxPage})
 }
 
 func GetFilenames(c echo.Context) error {
@@ -73,13 +98,11 @@ func GetStatusCounts(c echo.Context) error {
 		fmt.Println(err)
 		return c.JSON(http.StatusInternalServerError, Res{"error"})
 	}
-	fmt.Println(keepa)
 	mws, err := productRepo.GetCounts(ctx)
 	if err != nil {
 		fmt.Println(err)
 		return c.JSON(http.StatusInternalServerError, Res{"error"})
 	}
-	fmt.Println(mws)
 	return c.JSON(http.StatusOK, StatusRes{keepa, mws})
 }
 
