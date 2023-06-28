@@ -88,6 +88,10 @@ func GetFilenames(c echo.Context) error {
 		fmt.Println(err)
 		return c.JSON(http.StatusInternalServerError, Res{"error"})
 	}
+
+	if len(filenames) <= 0 {
+		return c.JSON(http.StatusOK, FileListRes{[]string{}})
+	}
 	return c.JSON(http.StatusOK, FileListRes{filenames})
 }
 
