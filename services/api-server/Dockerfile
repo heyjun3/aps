@@ -8,4 +8,6 @@ RUN go build -o server
 
 FROM gcr.io/distroless/base-debian11:latest
 WORKDIR /app
-COPY --from=builder /app/server /app/server
+COPY --chown=notroot:notroot --from=builder /app/server /app/server
+USER notroot
+ENTRYPOINT [ "/app/server" ]
