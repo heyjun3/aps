@@ -19,7 +19,7 @@ func createTestData(db *bun.DB) {
 	products := make([]Product, count)
 	for i := 0; i < count; i++ {
 		p := Product{Asin: "aaa" + fmt.Sprint(i), Filename: "aaa", Profit: po[int64](200),
-					ProfitRate: po[float64](0.1), Unit: po[int64](1)}
+			ProfitRate: po[float64](0.1), Unit: po[int64](1)}
 		products[i] = p
 	}
 	keepas := make([]Keepa, count)
@@ -140,20 +140,20 @@ func TestGetProductWithChart(t *testing.T) {
 	createTestData(db)
 
 	type args struct {
-		ctx context.Context
+		ctx      context.Context
 		filename string
-		page int
-		limit int
+		page     int
+		limit    int
 	}
 	type want struct {
 		count int
 		total int
 	}
 
-	tests := []struct{
-		name string
-		args args
-		want want
+	tests := []struct {
+		name    string
+		args    args
+		want    want
 		wantErr bool
 	}{
 		{"get product with chart", args{context.Background(), "aaa", 1, 100}, want{100, 150}, false},
@@ -162,7 +162,7 @@ func TestGetProductWithChart(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := ProductRepository{DB: db}
-			ps, total ,err := repo.GetProductWithChart(tt.args.ctx, tt.args.filename, tt.args.page, tt.args.limit)
+			ps, total, err := repo.GetProductWithChart(tt.args.ctx, tt.args.filename, tt.args.page, tt.args.limit)
 			assert.Equal(t, tt.want.count, len(ps))
 			assert.Equal(t, tt.want.total, total)
 			if tt.wantErr {

@@ -18,16 +18,16 @@ func OpenDB(dsn string) *bun.DB {
 
 type Product struct {
 	bun.BaseModel `bun:"table:mws_products"`
-	Asin          string `bun:"asin,pk" json:"asin"`
-	Filename      string `bun:"filename,pk" json:"filename"`
-	Title         *string `json:"title"`
-	Jan           *string `json:"jan"`
-	Unit          *int64 `json:"unit"`
-	Price         *int64 `json:"price"`
-	Cost          *int64 `json:"cost"`
-	FeeRate       *float64 `json:"fee_rate"`
-	ShippingFee   *int64 `bun:"shipping_fee" json:"shipping_fee"`
-	Profit        *int64 `json:"profit"`
+	Asin          string    `bun:"asin,pk" json:"asin"`
+	Filename      string    `bun:"filename,pk" json:"filename"`
+	Title         *string   `json:"title"`
+	Jan           *string   `json:"jan"`
+	Unit          *int64    `json:"unit"`
+	Price         *int64    `json:"price"`
+	Cost          *int64    `json:"cost"`
+	FeeRate       *float64  `json:"fee_rate"`
+	ShippingFee   *int64    `bun:"shipping_fee" json:"shipping_fee"`
+	Profit        *int64    `json:"profit"`
 	ProfitRate    *float64  `bun:"profit_rate" json:"profit_rate"`
 	CreatedAt     time.Time `bun:"created_at,nullzero,notnull,default:current_timestamp"`
 	URL           *string   `bun:"url" json:"url"`
