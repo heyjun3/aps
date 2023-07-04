@@ -1,4 +1,5 @@
 import time
+import datetime
 from pathlib import Path
 from typing import List
 
@@ -28,14 +29,16 @@ class RegisterService(object):
         logger.info({"action": "start_register", "status": "run"})
         add = self.client.open(title).worksheet(name)
         records = add.get_all_records()
-
+        
+        self._validate_records(records)
         for record in records:
-            res = await self.spapi.create_new_sku(record.get("SKU"), record.get("PRICE"),
+            sku = self._generate_sku(record)
+            res = await self.spapi.create_new_sku(sku, record.get("PRICE"),
                                             record.get("ASIN"), settings.CONDITION_NOTE)
             time.sleep(interval_sec)
             if res.get("status") == "ACCEPTED":
                 logger.info({"action": "start_register", "message": "register request is accepted",
-                                "sku": record.get("SKU")})
+                                "sku": sku})
                 continue
             logger.error({"action": "start_register", "message": "register request is failed",
                           "value": record, "response": res})
@@ -48,6 +51,9 @@ class RegisterService(object):
         add = self.client.open(title).worksheet(get_sheet)
         records = add.get_all_records()
 
+        self._validate_records(records)
+        for record in records:
+            record["SKU"] = self._generate_sku(record)
         inventories = []
         for i in range(0, len(records), 50):
             skus = [record.get("SKU") for record in records[i:i+50]]
@@ -81,3 +87,13 @@ class RegisterService(object):
         keyfile = ServiceAccountCredentials.from_json_keyfile_name(path, SCOPE)
         return gspread.authorize(keyfile)
     
+    def _validate_records(self, records: List[dict]) -> bool:
+        for record in records:
+            if not all([record.get(key) for key in ["NAME", "ASIN", "JAN", "DIVISION", "PRICE", "COST"]]):
+                raise Exception("validation error")
+            
+        return True
+
+    def _generate_sku(self, record: dict) -> str:
+        date = datetime.datetime.now().strftime("%Y%m%d")
+        return '-'.join([record.get(key) for key in ["JAN", "DIVISION", "COST", date]])
