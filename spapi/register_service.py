@@ -96,4 +96,4 @@ class RegisterService(object):
 
     def _generate_sku(self, record: dict) -> str:
         date = datetime.datetime.now().strftime("%Y%m%d")
-        return '-'.join([record.get(key) for key in ["JAN", "DIVISION", "COST", date]])
+        return '-'.join([str(record.get(key)) for key in ["JAN", "DIVISION", "COST"]] + [date])
