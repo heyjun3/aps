@@ -9,6 +9,8 @@ import (
 	"os"
 	"strconv"
 
+	"golang.org/x/exp/slog"
+
 	"github.com/labstack/echo/v4"
 	"github.com/uptrace/bun"
 
@@ -57,7 +59,7 @@ func GetCharts(c echo.Context) error {
 	filename := c.Param("filename")
 	page, err := strconv.Atoi(c.QueryParam("page"))
 	if filename == "" || err != nil {
-		fmt.Println(err)
+		slog.Error("error", err)
 		return c.JSON(http.StatusBadRequest, Res{"error"})
 	}
 	limit := 100
