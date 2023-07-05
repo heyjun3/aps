@@ -75,7 +75,7 @@ class RegisterService(object):
             fnsku = record.get("FNSKU")
             if not fnsku:
                 continue
-            cell = add.find(record.get("SKU"), in_column=5)
+            cell = add.find(record.get("ASIN"), in_column=3)
             time.sleep(1)
             if cell:
                 add.delete_row(cell.row)
