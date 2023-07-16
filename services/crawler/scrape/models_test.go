@@ -121,7 +121,7 @@ func TestGet(t *testing.T) {
 	type args struct {
 		conn  *bun.DB
 		ctx   context.Context
-		codes []string
+		codes [][]string
 	}
 	tests := []struct {
 		name    string
@@ -133,7 +133,7 @@ func TestGet(t *testing.T) {
 		args: args{
 			conn:  conn,
 			ctx:   ctx,
-			codes: []string{"test", "test1", "test2", "test3", "test4"},
+			codes: [][]string{{"test", "shop"}, {"test1", "shop"}, {"test2", "shop"}, {"test3", "shop"}, {"test4", "shop"}},
 		},
 		want: Products{
 			util.OmitError(NewProduct("name", "test", "https://test.com", "1111", "shop", 1111)),
@@ -148,7 +148,7 @@ func TestGet(t *testing.T) {
 		args: args{
 			conn:  conn,
 			ctx:   ctx,
-			codes: []string{"test2"},
+			codes: [][]string{{"test2", "shop"}},
 		},
 		want: Products{
 			util.OmitError(NewProduct("name", "test2", "https://test.com", "", "shop", 2)),
@@ -159,7 +159,7 @@ func TestGet(t *testing.T) {
 		args: args{
 			conn:  conn,
 			ctx:   ctx,
-			codes: []string{"ttttt", "eeeee"},
+			codes: [][]string{{"ttttt", "shop"}, {"eeeee", "shop"}},
 		},
 		want:    Products(nil),
 		wantErr: false,
@@ -180,7 +180,7 @@ func TestGet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			products, err := repo.GetByProductCodes(tt.args.ctx, tt.args.conn, tt.args.codes...)
+			products, err := repo.GetByProductAndShopCodes(tt.args.ctx, tt.args.conn, tt.args.codes...)
 
 			assert.Equal(t, tt.want, products)
 			if tt.wantErr {

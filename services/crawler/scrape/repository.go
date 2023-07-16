@@ -32,12 +32,12 @@ func (p ProductRepository[T]) GetProduct(ctx context.Context,
 	return product, err
 }
 
-func (p ProductRepository[T]) GetByProductCodes(ctx context.Context, db *bun.DB, codes ...string) (Products, error) {
+func (p ProductRepository[T]) GetByProductAndShopCodes(ctx context.Context, db *bun.DB, codes ...[]string) (Products, error) {
 	products := p.products
 
 	err := db.NewSelect().
 		Model(&products).
-		Where("product_code IN (?)", bun.In(codes)).
+		Where("(product_code, shop_code) IN (?)", bun.In(codes)).
 		Order("product_code ASC").
 		Scan(ctx, &products)
 

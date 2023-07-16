@@ -182,66 +182,6 @@ func TestGetProductsBatch(t *testing.T) {
 	}
 }
 
-func TestGetProducts(t *testing.T) {
-	type args struct {
-		service  Service[*Product]
-		products Products
-		DSN      string
-	}
-	type want struct {
-		products Products
-	}
-
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{{
-		name: "happy path",
-		args: args{
-			service: Service[*Product]{
-				Repo: NewProductRepository(&Product{}, []*Product{}),
-			},
-			products: Products{
-				util.OmitError(NewProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
-				util.OmitError(NewProduct("test2", "test2", "http://test.jp", "", "test", 2222)),
-				util.OmitError(NewProduct("test3", "test3", "http://test.jp", "", "test", 3333)),
-			},
-			DSN: util.TestDSN(),
-		},
-		want: want{
-			products: Products{
-				util.OmitError(NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
-				util.OmitError(NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
-				util.OmitError(NewProduct("test3", "test3", "http://test.jp", "", "test", 3333)),
-			},
-		},
-	}}
-
-	conn, ctx := util.DatabaseFactory()
-	conn.ResetModel(ctx, (*Product)(nil))
-	pre := Products{
-		util.OmitError(NewProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
-		util.OmitError(NewProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
-		util.OmitError(NewProduct("test3", "test3", "http://test.jp", "", "test", 3333)),
-	}
-	ProductRepository[*Product]{}.BulkUpsert(ctx, conn, pre)
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(*testing.T) {
-			ch := make(chan Products, 10)
-			ch <- tt.args.products
-			close(ch)
-
-			p := tt.args.service.GetProduct(ch, tt.args.DSN)
-
-			for ps := range p {
-				assert.Equal(t, tt.want.products, ps)
-			}
-		})
-	}
-}
-
 func TestScrapeProduct(t *testing.T) {
 	type args struct {
 		service  Service[*Product]

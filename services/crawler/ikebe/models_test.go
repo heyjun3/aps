@@ -22,7 +22,7 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 	type args struct {
 		conn  *bun.DB
 		ctx   context.Context
-		codes []string
+		codes [][]string
 	}
 	tests := []struct {
 		name    string
@@ -34,7 +34,7 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 		args: args{
 			conn:  conn,
 			ctx:   ctx,
-			codes: []string{"test_code"},
+			codes: [][]string{{"test_code", "ikebe"}},
 		},
 		want:    p,
 		wantErr: false,
@@ -47,7 +47,7 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			products, err := s.Repo.GetByProductCodes(tt.args.ctx, tt.args.conn, tt.args.codes...)
+			products, err := s.Repo.GetByProductAndShopCodes(tt.args.ctx, tt.args.conn, tt.args.codes...)
 
 			assert.Equal(t, tt.want, products)
 			if tt.wantErr {
@@ -70,7 +70,7 @@ func TestUpsert(t *testing.T) {
 		err := s.Repo.BulkUpsert(ctx, conn, scrape.Products{p})
 
 		assert.Equal(t, nil, err)
-		expectd, _ := s.Repo.GetByProductCodes(ctx, conn, "test")
+		expectd, _ := s.Repo.GetByProductAndShopCodes(ctx, conn, []string{"test", "ikebe"})
 		assert.Equal(t, (expectd[0]).(*IkebeProduct), p)
 	})
 }
