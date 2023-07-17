@@ -25,6 +25,7 @@ type IProduct interface {
 	GetURL() string
 	GetPrice() int64
 	GetShopCode() string
+	GetProductAndShopCode() []string
 	IsValidJan() bool
 	SetJan(string)
 }
@@ -113,6 +114,10 @@ func (p Product) GetShopCode() string {
 	return p.ShopCode
 }
 
+func (p Product) GetProductAndShopCode() []string {
+	return []string{p.ProductCode, p.ShopCode}
+}
+
 func (p Product) IsValidJan() bool {
 	return p.Jan != nil
 }
@@ -133,10 +138,10 @@ func ConvToProducts[T IProduct](products []T) Products {
 	return result
 }
 
-func (p Products) getProductCodes() []string {
-	var codes []string
-	for _, pro := range p {
-		codes = append(codes, pro.GetProductCode())
+func (p Products) getProductAndShopCodes() [][]string{
+	codes := make([][]string, 0, len(p))
+	for _, product := range p {
+		codes = append(codes, product.GetProductAndShopCode())
 	}
 	return codes
 }

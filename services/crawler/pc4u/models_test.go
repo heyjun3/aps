@@ -19,7 +19,7 @@ func TestGetPc4uProductsByProductCode(t *testing.T) {
 	type args struct {
 		conn  *bun.DB
 		ctx   context.Context
-		codes []string
+		codes [][]string
 	}
 	tests := []struct {
 		name    string
@@ -31,7 +31,7 @@ func TestGetPc4uProductsByProductCode(t *testing.T) {
 		args: args{
 			conn:  conn,
 			ctx:   ctx,
-			codes: []string{"test_code", "test1", "test2"},
+			codes: [][]string{{"test_code", "pc4u"}, {"test1", "pc4u"}, {"test2", "pc4u"}},
 		},
 		want: scrape.Products{
 			util.OmitError(NewPc4uProduct("test", "test1", "https://google.com", "", 1111)),
@@ -55,7 +55,7 @@ func TestGetPc4uProductsByProductCode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pros, err := s.Repo.GetByProductCodes(tt.args.ctx, tt.args.conn, tt.args.codes...)
+			pros, err := s.Repo.GetByProductAndShopCodes(tt.args.ctx, tt.args.conn, tt.args.codes...)
 
 			assert.Equal(t, tt.want, pros)
 			if tt.wantErr {
@@ -78,7 +78,7 @@ func TestUpsert(t *testing.T) {
 		err := s.Repo.BulkUpsert(ctx, conn, scrape.Products{p})
 
 		assert.Equal(t, nil, err)
-		expectd, _ := s.Repo.GetByProductCodes(ctx, conn, "test")
+		expectd, _ := s.Repo.GetByProductAndShopCodes(ctx, conn, []string{"test", "pc4u"})
 		assert.Equal(t, (expectd[0]).(*Pc4uProduct), p)
 	})
 }

@@ -24,7 +24,7 @@ func RunServices() {
 	}
 	for _, s := range shops.List {
 		logger.Info("run service", "shop", s.ID, "url", s.URL)
-		NewScrapeService().StartScrapeBySeries(s.URL, "rakuten")
+		NewScrapeService().StartScrape(s.URL, "rakuten")
 	}
 }
 

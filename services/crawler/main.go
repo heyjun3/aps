@@ -58,7 +58,7 @@ func main() {
 	case shop == "pc4u" && url != "":
 		pc4u.NewScrapeService().StartScrape(url, shop)
 	case shop == "rakuten" && url != "":
-		rakuten.NewScrapeService().StartScrapeBySeries(url, shop)
+		rakuten.NewScrapeService().StartScrape(url, shop)
 	case shop == "rakuten" && id == "all":
 		rakuten.RunServices()
 	case shop == "move" && url == "":
