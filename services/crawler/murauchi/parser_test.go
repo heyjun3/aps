@@ -16,7 +16,7 @@ func TestProductListbyReq(t *testing.T) {
 	type want struct {
 		count int
 		first *MurauchiProduct
-		last *MurauchiProduct
+		last  *MurauchiProduct
 	}
 
 	tests := []struct {

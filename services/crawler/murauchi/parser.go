@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	host = "www.murauchi.com"
+	host   = "www.murauchi.com"
 	scheme = "https"
 )
 
@@ -26,7 +26,7 @@ func (p MurauchiParser) ProductListByReq(r io.ReadCloser, req *http.Request) (sc
 	}
 
 	var products scrape.Products
-	doc.Find(".window_item").Each(func(i int, s*goquery.Selection) {
+	doc.Find(".window_item").Each(func(i int, s *goquery.Selection) {
 		nameElem := s.Find("h2 a")
 		name := nameElem.Text()
 		href, exist := nameElem.Attr("href")
