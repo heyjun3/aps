@@ -66,10 +66,22 @@ func (p MurauchiParser) ProductListByReq(r io.ReadCloser, req *http.Request) (sc
 		products = append(products, product)
 	})
 
+	isLastPage := true
+	doc.Find(".search_paging a").Each(func(i int, s *goquery.Selection) {
+		text := s.Text()
+		if strings.Contains(text, "最後") {
+			isLastPage = false
+		}
+	})
+	if isLastPage {
+		logger.Info("next page is nothing")
+		return products, nil
+	}
+
 	nextRequest, err := generateRequestFromPreviousRequest(req)
 	if err != nil {
 		logger.Error("error", err)
-		return nil, nil
+		return products, nil
 	}
 
 	return products, nextRequest

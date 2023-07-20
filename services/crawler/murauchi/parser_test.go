@@ -1,6 +1,7 @@
 package murauchi
 
 import (
+	"io"
 	"net/http"
 	"testing"
 
@@ -12,11 +13,14 @@ import (
 func TestProductListbyReq(t *testing.T) {
 	type args struct {
 		filename string
+		req      *http.Request
 	}
 	type want struct {
 		count int
 		first *MurauchiProduct
 		last  *MurauchiProduct
+		url   string
+		body  string
 	}
 
 	tests := []struct {
@@ -27,6 +31,7 @@ func TestProductListbyReq(t *testing.T) {
 		name: "parse murauchi product list",
 		args: args{
 			filename: "html/test_product_list.html",
+			req:      util.OmitError(generateRequest(0, "1000000000001")),
 		},
 		want: want{
 			count: 112,
@@ -44,6 +49,8 @@ func TestProductListbyReq(t *testing.T) {
 				"",
 				7980,
 			)),
+			url:  "https://www.murauchi.com/MCJ-front-web/WH/front/Default.do%3Ftype=COMMODITY_LIST",
+			body: "categoryNo=1000000000001&handlingType=0&keyword=%E3%80%80&listCount=120&mode=graphic&pageNumber=1&searchType=keyword&sortOrder=&type=COMMODITY_LIST",
 		},
 	}}
 
@@ -54,12 +61,14 @@ func TestProductListbyReq(t *testing.T) {
 				panic(err)
 			}
 			defer res.Body.Close()
-			products, req := MurauchiParser{}.ProductListByReq(res.Body, &http.Request{})
+			products, req := MurauchiParser{}.ProductListByReq(res.Body, tt.args.req)
 
 			assert.Equal(t, tt.want.count, len(products))
 			assert.Equal(t, tt.want.first, products[0])
 			assert.Equal(t, tt.want.last, products[len(products)-1])
-			assert.Equal(t, &http.Request{}, req)
+			assert.Equal(t, tt.want.url, req.URL.String())
+			body, _ := io.ReadAll(req.Body)
+			assert.Equal(t, tt.want.body, string(body))
 		})
 	}
 }
