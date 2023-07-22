@@ -103,9 +103,6 @@ class UpdateChartData(object):
 
         product.price_data[now] = price
         product.rank_data[now] = rank
-        # product.render_data = convert.recharts_data({
-        #                                         'rank_data': product.rank_data,
-        #                                         'price_data': product.price_data,})
         if product.render_data is None:
             logger.error({
                 "action": "mapping_keepa_products_and_parsed_data",
