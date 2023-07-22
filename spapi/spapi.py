@@ -30,8 +30,8 @@ def logger_decorator(func: Callable) -> Callable:
     return _logger_decorator
 
 
-async def request(method: str, url: str, params: dict=None, headers: dict=None, body: dict=None) -> aiohttp.ClientResponse:
-    for _ in range(60):
+async def request(method: str, url: str, params: dict=None, headers: dict=None, body: dict=None, backoff: bool=False) -> aiohttp.ClientResponse:
+    for i in range(60):
         async with aiohttp.request(method, url, params=params, headers=headers, json=body) as response:
             response_json = await response.json()
             logger.info(response.status)
@@ -40,7 +40,11 @@ async def request(method: str, url: str, params: dict=None, headers: dict=None, 
                 return response_json
             elif response.status == 429:
                 logger.error(response_json)
-                await asyncio.sleep(0.1)
+                if backoff:
+                    interval_sec = 0.5 if (sec := i * 0.1) > 1 else sec
+                    await asyncio.sleep(interval_sec)
+                else:
+                    await asyncio.sleep(0.1)
             else:
                 logger.error(response_json)
                 await asyncio.sleep(10)
@@ -154,11 +158,11 @@ class SPAPI(object):
 
         return headers
     
-    async def _request(self, func: Callable) -> dict:
+    async def _request(self, func: Callable, backoff: bool=False) -> dict:
         method, url, query, body = func()
         access_token = await self.get_spapi_access_token()
         headers = self.create_authorization_headers(access_token, method, url, query, body)
-        response = await request(method, url, params=query, body=body, headers=headers)
+        response = await request(method, url, params=query, body=body, headers=headers, backoff=backoff)
         return response
 
     async def get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool=True) -> dict:
@@ -171,7 +175,7 @@ class SPAPI(object):
         return await self._request(partial(self._get_competitive_pricing, asin_list, item_type))
 
     async def get_item_offers(self, asin: str, item_condition: str='New') -> dict:
-        return await self._request(partial(self._get_item_offers, asin, item_condition))
+        return await self._request(partial(self._get_item_offers, asin, item_condition), True)
 
     async def search_catalog_items(self, jan_list: List[str]) -> dict:
         return await self._request(partial(self._search_catalog_items, jan_list))
@@ -186,7 +190,7 @@ class SPAPI(object):
         return await self._request(partial(self._search_catalog_items_v2022_04_01, identifiers, id_type))
 
     async def get_item_offers_batch(self, asin_list: List[str], item_condition: str='NEW', customer_type: str='Consumer') -> dict:
-        return await self._request(partial(self._get_item_offers_batch, asin_list, item_condition, customer_type))
+        return await self._request(partial(self._get_item_offers_batch, asin_list, item_condition, customer_type), True)
 
     async def get_my_fees_estimates(self, asin_list: List[str], id_type: str='ASIN', price_amount: int=10000) -> dict:
         return await self._request(partial(self._get_my_fees_estimates, asin_list, id_type, price_amount))
