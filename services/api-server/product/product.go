@@ -60,7 +60,13 @@ func (p ProductRepository) GetCounts(ctx context.Context) (map[string]int, error
 
 func (p ProductRepository) GetFilenames(ctx context.Context) ([]string, error) {
 	var filenames []string
-	err := p.DB.NewSelect().Model((*Product)(nil)).Column("filename").DistinctOn("filename").Order("filename ASC").Scan(ctx, &filenames)
+	err := p.DB.NewSelect().
+		Model((*Product)(nil)).
+		Column("filename").
+		DistinctOn("filename").
+		Where("profit IS NOT NULL").
+		Order("filename ASC").
+		Scan(ctx, &filenames)
 	return filenames, err
 }
 
