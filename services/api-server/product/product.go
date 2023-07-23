@@ -42,6 +42,20 @@ type ProductRepository struct {
 	DB *bun.DB
 }
 
+type Condition struct {
+	Unit *int64
+	Profit *int64
+	ProfitRate *float64
+}
+
+func NewCondition (profit, unit int64, profit_rate float64) *Condition {
+	return &Condition{
+		Profit: &profit,
+		ProfitRate: &profit_rate,
+		Unit: &unit,
+	}
+}
+
 func (p ProductRepository) Save(ctx context.Context, products []Product) error {
 	_, err := p.DB.NewInsert().Model(&products).Exec(ctx)
 	return err
@@ -92,6 +106,16 @@ func (p ProductRepository) GetProductWithChart(ctx context.Context, filename str
 		Offset(offset).
 		ScanAndCount(ctx, &product)
 	return product, count, err
+}
+
+func (p ProductRepository) DeleteIfCondition(ctx context.Context, condition *Condition) error {
+	_, err := p.DB.NewDelete().
+		Model((*Product)(nil)).
+		WhereOr("unit > ?", condition.Unit).
+		WhereOr("profit < ?", condition.Profit).
+		WhereOr("profit_rate < ?", condition.ProfitRate).
+		Exec(ctx)
+	return err
 }
 
 func (p ProductRepository) DeleteByFilename(ctx context.Context, filename string) error {
