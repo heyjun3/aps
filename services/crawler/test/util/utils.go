@@ -12,6 +12,8 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
 func DatabaseFactory() (*bun.DB, context.Context) {
@@ -34,6 +36,19 @@ func CreateHttpResponse(path string) (*http.Response, error) {
 	}
 	res := &http.Response{
 		Body:    io.NopCloser(bytes.NewReader(b)),
+		Request: &http.Request{},
+	}
+	return res, nil
+}
+
+func CreateHttpResponseOnSjis(path string) (*http.Response, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	reader := transform.NewReader(bytes.NewReader(b), japanese.ShiftJIS.NewEncoder())
+	res := &http.Response{
+		Body:    io.NopCloser(reader),
 		Request: &http.Request{},
 	}
 	return res, nil

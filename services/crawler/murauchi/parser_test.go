@@ -50,7 +50,7 @@ func TestProductListbyReq(t *testing.T) {
 				"",
 				7980,
 			)),
-			url:  "https://www.murauchi.com/MCJ-front-web/WH/front/Default.do%3Ftype=COMMODITY_LIST",
+			url:  "https://www.murauchi.com/MCJ-front-web/WH/front/Default.do",
 			body: "categoryNo=1000000000001&handlingType=0&keyword=%81%40&listCount=120&mode=graphic&pageNumber=1&searchType=keyword&sortOrder=1&type=COMMODITY_LIST",
 		},
 		isLast: false,
@@ -82,7 +82,7 @@ func TestProductListbyReq(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := util.CreateHttpResponse(tt.args.filename)
+			res, err := util.CreateHttpResponseOnSjis(tt.args.filename)
 			if err != nil {
 				panic(err)
 			}
@@ -124,7 +124,7 @@ func TestParseProduct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := util.CreateHttpResponse(tt.args.filename)
+			res, err := util.CreateHttpResponseOnSjis(tt.args.filename)
 			if err != nil {
 				panic(err)
 			}

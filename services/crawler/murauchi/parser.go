@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 
 	"crawler/scrape"
 )
@@ -16,13 +18,14 @@ import (
 const (
 	host   = "www.murauchi.com"
 	scheme = "https"
-	path   = "MCJ-front-web/WH/front/Default.do?type=COMMODITY_LIST"
+	path   = "MCJ-front-web/WH/front/Default.do"
 )
 
 type MurauchiParser struct{}
 
 func (p MurauchiParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
-	doc, err := goquery.NewDocumentFromReader(r)
+	reader := transform.NewReader(r, japanese.ShiftJIS.NewDecoder())
+	doc, err := goquery.NewDocumentFromReader(reader)
 	if err != nil {
 		logger.Error("response parse error", err)
 		return nil, nil

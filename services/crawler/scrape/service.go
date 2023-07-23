@@ -74,6 +74,7 @@ func (s Service[T]) ScrapeProductsList(
 	go func() {
 		defer close(c)
 		for req != nil {
+			logger.Info("request product list", "url", req.URL.String())
 			res, err := client.Request(req)
 			if err != nil {
 				logger.Error("http request error", err)
