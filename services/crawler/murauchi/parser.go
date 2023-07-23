@@ -87,6 +87,14 @@ func (p MurauchiParser) ProductListByReq(r io.ReadCloser, req *http.Request) (sc
 	return products, nextRequest
 }
 
+func (p MurauchiParser) Product(r io.ReadCloser) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		return "", err
+	}
+	return doc.Find("form[name=mail_form] input[name=jan_code]").AttrOr("value", ""), nil
+}
+
 func generateRequestFromPreviousRequest(pre *http.Request) (*http.Request, error) {
 	category := pre.Header.Get("x-category")
 	page := pre.Header.Get("x-current")
@@ -101,14 +109,18 @@ func generateRequestFromPreviousRequest(pre *http.Request) (*http.Request, error
 }
 
 func generateRequest(page int, category string) (*http.Request, error) {
+	keyword, err := scrape.Utf8ToSjis("　")
+	if err != nil {
+		return nil, err
+	}
 	values := map[string]string{
 		"mode":         "graphic",
 		"pageNumber":   fmt.Sprint(page),
 		"searchType":   "keyword",
-		"sortOrder":    "",
+		"sortOrder":    "1",
 		"categoryNo":   category,
 		"type":         "COMMODITY_LIST",
-		"keyword":      "　",
+		"keyword":      keyword,
 		"listCount":    "120",
 		"handlingType": "0",
 	}

@@ -1,8 +1,11 @@
 package murauchi
 
 import (
-	"crawler/scrape"
+	"context"
+
 	"github.com/uptrace/bun"
+
+	"crawler/scrape"
 )
 
 type MurauchiProduct struct {
@@ -18,4 +21,12 @@ func NewMurauchiProduct(name, productCode, url, jan string, price int64) (*Murau
 	return &MurauchiProduct{
 		Product: *p,
 	}, nil
+}
+
+func CreateTable(db *bun.DB, ctx context.Context) error {
+	_, err := db.NewCreateTable().
+		Model((*MurauchiProduct)(nil)).
+		IfNotExists().
+		Exec(ctx)
+	return err
 }

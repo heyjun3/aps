@@ -24,9 +24,10 @@ func TestProductListbyReq(t *testing.T) {
 	}
 
 	tests := []struct {
-		name string
-		args args
-		want want
+		name   string
+		args   args
+		want   want
+		isLast bool
 	}{{
 		name: "parse murauchi product list",
 		args: args{
@@ -50,8 +51,33 @@ func TestProductListbyReq(t *testing.T) {
 				7980,
 			)),
 			url:  "https://www.murauchi.com/MCJ-front-web/WH/front/Default.do%3Ftype=COMMODITY_LIST",
-			body: "categoryNo=1000000000001&handlingType=0&keyword=%E3%80%80&listCount=120&mode=graphic&pageNumber=1&searchType=keyword&sortOrder=&type=COMMODITY_LIST",
+			body: "categoryNo=1000000000001&handlingType=0&keyword=%81%40&listCount=120&mode=graphic&pageNumber=1&searchType=keyword&sortOrder=1&type=COMMODITY_LIST",
 		},
+		isLast: false,
+	}, {
+		name: "parse murauchi last page",
+		args: args{
+			filename: "html/test_product_list_last_page.html",
+			req:      util.OmitError(generateRequest((0), "0000")),
+		},
+		want: want{
+			count: 14,
+			first: util.OmitError(NewMurauchiProduct(
+				"Lenovo レノボ\nThinkPad 90W ACアダプター (X1 Carbon用) 0B46997",
+				"0000012968837",
+				"https://www.murauchi.com/MCJ-front-web/CoD/0000012968837",
+				"",
+				5636,
+			)),
+			last: util.OmitError(NewMurauchiProduct(
+				"サンワサプライ\nPDA-PEN16 入力ペン 3本セット",
+				"0000001629549",
+				"https://www.murauchi.com/MCJ-front-web/CoD/0000001629549",
+				"",
+				481,
+			)),
+		},
+		isLast: true,
 	}}
 
 	for _, tt := range tests {
@@ -66,9 +92,52 @@ func TestProductListbyReq(t *testing.T) {
 			assert.Equal(t, tt.want.count, len(products))
 			assert.Equal(t, tt.want.first, products[0])
 			assert.Equal(t, tt.want.last, products[len(products)-1])
-			assert.Equal(t, tt.want.url, req.URL.String())
-			body, _ := io.ReadAll(req.Body)
-			assert.Equal(t, tt.want.body, string(body))
+			if tt.isLast {
+				assert.Equal(t, (*http.Request)(nil), req)
+			} else {
+				assert.Equal(t, tt.want.url, req.URL.String())
+				body, _ := io.ReadAll(req.Body)
+				assert.Equal(t, tt.want.body, string(body))
+			}
+		})
+	}
+}
+
+func TestParseProduct(t *testing.T) {
+	type args struct {
+		filename string
+	}
+	type want struct {
+		jan string
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  want
+		isErr bool
+	}{{
+		name:  "parse product page",
+		args:  args{"html/test_product.html"},
+		want:  want{"4989027022188"},
+		isErr: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := util.CreateHttpResponse(tt.args.filename)
+			if err != nil {
+				panic(err)
+			}
+			defer res.Body.Close()
+			jan, err := MurauchiParser{}.Product(res.Body)
+
+			logger.Info(jan)
+			assert.Equal(t, tt.want.jan, jan)
+			if tt.isErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

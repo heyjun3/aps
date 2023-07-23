@@ -11,6 +11,7 @@ import (
 	"crawler/config"
 	"crawler/ikebe"
 	"crawler/kaago"
+	"crawler/murauchi"
 	"crawler/nojima"
 	"crawler/pc4u"
 	"crawler/rakuten"
@@ -24,6 +25,7 @@ func init() {
 		pc4u.CreateTable,
 		nojima.CreateTable,
 		kaago.CreateTable,
+		murauchi.CreateTable,
 	}
 	conn := scrape.CreateDBConnection(config.Config.Dsn())
 	ctx := context.Background()
@@ -37,13 +39,15 @@ func init() {
 
 func main() {
 	var (
-		shop string
-		url  string
-		id   string
+		category string
+		id       string
+		shop     string
+		url      string
 	)
+	flag.StringVar(&category, "c", "", "expect category")
+	flag.StringVar(&id, "i", "", "expect crawle shop id")
 	flag.StringVar(&shop, "s", "", "expect crawle shop")
 	flag.StringVar(&url, "u", "", "expect crawle url")
-	flag.StringVar(&id, "i", "", "expect crawle shop id")
 	flag.Parse()
 
 	switch {
@@ -53,6 +57,8 @@ func main() {
 		ikebe.NewScrapeService().StartScrape(url, shop)
 	case shop == "kaago" && url != "":
 		kaago.NewScrapeService(url).StartScrape(url, shop)
+	case shop == "murauchi" && category != "":
+		murauchi.NewScrapeService(category).StartScrape("", shop)
 	case shop == "nojima" && url != "":
 		nojima.NewScrapeService().StartScrape(url, shop)
 	case shop == "pc4u" && url != "":

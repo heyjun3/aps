@@ -16,7 +16,8 @@ import (
 )
 
 func main() {
-	person()
+	u, _ := url.Parse("SEARCH_COMMODITY_BOOKMARK_1=&mode=graphic&pageNumber=1&searchType=keyword&sortOrder=&categoryNo=1000000000001&type=COMMODITY_LIST&keyword=%81%40&listCount=120&handlingType=0")
+	fmt.Println(u.Path)
 }
 
 func contains() {
