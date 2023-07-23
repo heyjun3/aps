@@ -14,6 +14,10 @@ func po[T any](v T) *T {
 	return &v
 }
 
+func Ptr[T any](v T) *T {
+	return &v
+}
+
 func createTestData(db *bun.DB) {
 	count := 150
 	products := make([]Product, count)
@@ -91,9 +95,10 @@ func TestGetFilenames(t *testing.T) {
 		panic(err)
 	}
 	p := []Product{
-		{Asin: "aaa", Filename: "aaa"},
-		{Asin: "bbb", Filename: "bbb"},
-		{Asin: "ccc", Filename: "ccc"},
+		{Asin: "aaa", Filename: "aaa", Profit: Ptr[int64](200)},
+		{Asin: "bbb", Filename: "bbb", Profit: Ptr[int64](200)},
+		{Asin: "ccc", Filename: "ccc", Profit: Ptr[int64](200)},
+		{Asin: "ddd", Filename: "ddd"},
 	}
 	repo := ProductRepository{DB: db}
 	if err := repo.Save(context.Background(), p); err != nil {

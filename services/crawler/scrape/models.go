@@ -66,7 +66,7 @@ func (p Product) GenerateMessage(filename string) ([]byte, error) {
 	return json.Marshal(message)
 }
 
-func (p Product)validateZeroValues() (err error) {
+func (p Product) validateZeroValues() (err error) {
 	structType := reflect.TypeOf(p)
 	structValue := reflect.ValueOf(p)
 	fieldsNum := structValue.NumField()
@@ -138,7 +138,7 @@ func ConvToProducts[T IProduct](products []T) Products {
 	return result
 }
 
-func (p Products) getProductAndShopCodes() [][]string{
+func (p Products) getProductAndShopCodes() [][]string {
 	codes := make([][]string, 0, len(p))
 	for _, product := range p {
 		codes = append(codes, product.GetProductAndShopCode())
@@ -173,9 +173,9 @@ type message struct {
 func NewMessage(filename, url string, jan *string, price int64) (*message, error) {
 	m := message{
 		Filename: filename,
-		Jan: jan,
-		Price: price,
-		URL: url,
+		Jan:      jan,
+		Price:    price,
+		URL:      url,
 	}
 	if err := m.validation(); err != nil {
 		return nil, err

@@ -207,7 +207,7 @@ class MWS(Base, ModelsBase):
     @classmethod
     async def get_asins_by_price_is_None(cls) -> List[str]:
         async with cls.session_scope() as session:
-            stmt = select(cls.asin).where(cls.price == None)
+            stmt = select(cls.asin).where(cls.price == None).order_by(cls.created_at)
             result = await session.execute(stmt)
             return result.scalars().all()
 

@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
 func timeToStr(t time.Time) string {
@@ -24,4 +27,10 @@ func PullOutNumber(s string) (int64, error) {
 		return 0, err
 	}
 	return int64(price), nil
+}
+
+func Utf8ToSjis(s string) (string, error) {
+	encoder := japanese.ShiftJIS.NewEncoder()
+	str, _, err := transform.Bytes(encoder, []byte(s))
+	return string(str), err
 }
