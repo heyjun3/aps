@@ -283,7 +283,7 @@ class RunAmzTask(object):
                 asyncio.ensure_future(SpapiPrices.insert_all_on_conflict_do_update_price(products))
                 await asyncio.sleep(interval_sec)
 
-    async def get_item_offer(self):
+    async def get_item_offer(self, interval_sec: float=0.5):
         logger.info({"action": "get_item_offer", "status": "run"})
 
         for message in self.price_queue.get():
@@ -296,7 +296,7 @@ class RunAmzTask(object):
             product = SPAPIJsonParser.parse_get_item_offers(res)
             asyncio.ensure_future(MWS.bulk_update_prices([product]))
             asyncio.ensure_future(SpapiPrices.insert_all_on_conflict_do_update_price([product]))
-            await time.sleep(0.5)
+            await asyncio.sleep(interval_sec)
 
     async def get_my_fees_estimate(self, interval_sec: int=2) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
