@@ -98,7 +98,8 @@ func TestGetFilenames(t *testing.T) {
 		{Asin: "aaa", Filename: "aaa", Profit: Ptr[int64](200)},
 		{Asin: "bbb", Filename: "bbb", Profit: Ptr[int64](200)},
 		{Asin: "ccc", Filename: "ccc", Profit: Ptr[int64](200)},
-		{Asin: "ddd", Filename: "ddd"},
+		{Asin: "ddd1", Filename: "ddd", Profit: Ptr[int64](200)},
+		{Asin: "ddd2", Filename: "ddd"},
 	}
 	repo := ProductRepository{DB: db}
 	if err := repo.Save(context.Background(), p); err != nil {

@@ -74,11 +74,17 @@ func (p ProductRepository) GetCounts(ctx context.Context) (map[string]int, error
 
 func (p ProductRepository) GetFilenames(ctx context.Context) ([]string, error) {
 	var filenames []string
+	subquery := p.DB.NewSelect().
+		Model((*Product)(nil)).
+		Column("filename").
+		DistinctOn("filename").
+		Where("profit IS NULL")
+
 	err := p.DB.NewSelect().
 		Model((*Product)(nil)).
 		Column("filename").
 		DistinctOn("filename").
-		Where("profit IS NOT NULL").
+		Where("filename NOT IN (?)", subquery).
 		Order("filename ASC").
 		Scan(ctx, &filenames)
 	return filenames, err
