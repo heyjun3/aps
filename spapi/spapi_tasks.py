@@ -274,8 +274,7 @@ class RunAmzTask(object):
                 continue
             
             [self.price_queue.publish(asin) for asin in asins]
-            while True:
-                messages = self.price_queue.receive(count)
+            for messages in self.price_queue.receive(count):
                 if not messages:
                     break
                 resp = await self.client.get_item_offers_batch(messages)
