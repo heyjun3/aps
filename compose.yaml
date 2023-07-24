@@ -116,7 +116,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
-    container_name: spapi-price-server
+    container_name: spapi-price-server-v2
     restart: always
     entrypoint: /usr/local/bin/python /usr/src/app/main.py amz -i price_v2
     environment:
