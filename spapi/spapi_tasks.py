@@ -53,7 +53,7 @@ class UpdateChartDataRequestTask(object):
         while True:
             asins = KeepaProducts.get_products_not_modified()
             if not asins:
-                asins_price = [self.price_queue.basic_get() for _ in range(20)]
+                asins_price = list(filter(None, [self.price_queue.basic_get() for _ in range(20)]))
                 if not asins_price:
                     await asyncio.sleep(sleep_sec)
                     continue
