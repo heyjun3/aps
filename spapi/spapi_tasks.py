@@ -272,8 +272,8 @@ class RunAmzTask(object):
             if not asins:
                 await asyncio.sleep(10)
                 continue
-            
-            [self.price_queue.publish(asin) for asin in asins]
+            if not self.price_queue.get_message_count():
+                [self.price_queue.publish(asin) for asin in asins]
             for messages in self.price_queue.receive(count):
                 if not messages:
                     break
