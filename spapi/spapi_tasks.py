@@ -57,7 +57,7 @@ class UpdateChartDataRequestTask(object):
                 if not asins_price:
                     await asyncio.sleep(sleep_sec)
                     continue
-                res = await self.spapi_client.get_catalog_item(asins_price)
+                res = await self.spapi_client.get_competitive_pricing(asins_price)
                 products = SPAPIJsonParser.parse_get_competitive_pricing(res)
                 asyncio.ensure_future(MWS.bulk_update_prices(products))
                 asyncio.ensure_future(SpapiPrices.insert_all_on_conflict_do_update_price(products))
