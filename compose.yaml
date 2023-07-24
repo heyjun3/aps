@@ -112,6 +112,20 @@ services:
       - redis-server
       - rabbitmq
 
+  spapi-price-server-v2:
+    build:
+      context: .
+      dockerfile: ./docker/python/Dockerfile
+    container_name: spapi-price-server
+    restart: always
+    entrypoint: /usr/local/bin/python /usr/src/app/main.py amz -i price_v2
+    environment:
+      - TZ=Asia/Tokyo
+    depends_on:
+      - postgresql-server
+      - redis-server
+      - rabbitmq
+
   spapi-fees-server:
     build:
       context: .

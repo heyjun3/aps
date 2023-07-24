@@ -40,6 +40,7 @@ class UpdateChartDataRequestTask(object):
 
     def __init__(self) ->  None:
         self.mq = MQ('chart')
+        self.price_queue = MQ("price")
         self.spapi_client = SPAPI()
 
     async def main(self):
@@ -52,7 +53,16 @@ class UpdateChartDataRequestTask(object):
         while True:
             asins = KeepaProducts.get_products_not_modified()
             if not asins:
-                await asyncio.sleep(sleep_sec)
+                asins_price = self.price_queue.receive()
+                if not asins_price:
+                    await asyncio.sleep(sleep_sec)
+                    continue
+                res = await self.spapi_client.get_catalog_item(asins_price)
+                products = SPAPIJsonParser.parse_get_competitive_pricing(res)
+                asyncio.ensure_future(MWS.bulk_update_prices(products))
+                asyncio.ensure_future(SpapiPrices.insert_all_on_conflict_do_update_price(products))
+                await asyncio.sleep(interval_sec)
+                continue
             
             for i in range(0, len(asins), limit_count):
                 response = await self.spapi_client.get_competitive_pricing(asins[i:i+limit_count])
@@ -134,9 +144,10 @@ class UpdateChartData(object):
 
 class RunAmzTask(object):
 
-    def __init__(self, queue_name: str='mws', search_queue: str='search_catalog') -> None:
+    def __init__(self, queue_name: str='mws', search_queue: str='search_catalog', price_queue: str='price') -> None:
         self.mq = MQ(queue_name)
         self.search_catalog_queue = MQ(search_queue)
+        self.price_queue = MQ(price_queue)
         self.client = SPAPI()
         self.cache = Cache(None, 3600)
         self.jan_cache = Cache(None, 3600)
@@ -262,12 +273,30 @@ class RunAmzTask(object):
                 await asyncio.sleep(10)
                 continue
             
-            for i in range(0, len(asins), count):
-                resp = await self.client.get_item_offers_batch(asins[i:i+count])
+            [self.price_queue.publish(asin) for asin in asins]
+            while True:
+                messages = self.price_queue.receive(count)
+                if not messages:
+                    break
+                resp = await self.client.get_item_offers_batch(messages)
                 products = SPAPIJsonParser.parse_get_item_offers_batch(resp)
                 asyncio.ensure_future(MWS.bulk_update_prices(products))
                 asyncio.ensure_future(SpapiPrices.insert_all_on_conflict_do_update_price(products))
                 await asyncio.sleep(interval_sec)
+
+    async def get_item_offer(self):
+        logger.info({"action": "get_item_offer", "status": "run"})
+
+        for message in self.price_queue.get():
+            if message is None:
+                logger.info({"message": "price queue is empty"})
+                time.sleep(10)
+                continue
+            
+            res = await self.client.get_item_offers(message)
+            product = SPAPIJsonParser.parse_get_item_offers(res)
+            asyncio.ensure_future(MWS.bulk_update_prices([product]))
+            asyncio.ensure_future(SpapiPrices.insert_all_on_conflict_do_update_price([product]))
 
     async def get_my_fees_estimate(self, interval_sec: int=2) -> None:
         logger.info('action=get_my_fees_estimate_for_asin status=run')
