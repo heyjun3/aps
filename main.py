@@ -40,6 +40,8 @@ if __name__ == '__main__':
             asyncio.run(RunAmzTask().search_catalog_items_v20220401())
         case ('amz', 'price'):
             asyncio.run(RunAmzTask().get_item_offers_batch())
+        case ('amz', 'price_v2'):
+            asyncio.run(RunAmzTask().get_item_offer())
         case ('amz', 'fees'):
             asyncio.run(RunAmzTask().get_my_fees_estimate())
         case ('buffalo', None):
