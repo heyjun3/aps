@@ -175,7 +175,7 @@ class SPAPI(object):
         return await self._request(partial(self._get_competitive_pricing, asin_list, item_type))
 
     async def get_item_offers(self, asin: str, item_condition: str='New') -> dict:
-        return await self._request(partial(self._get_item_offers, asin, item_condition), True)
+        return await self._request(partial(self._get_item_offers, asin, item_condition))
 
     async def search_catalog_items(self, jan_list: List[str]) -> dict:
         return await self._request(partial(self._search_catalog_items, jan_list))
@@ -190,7 +190,7 @@ class SPAPI(object):
         return await self._request(partial(self._search_catalog_items_v2022_04_01, identifiers, id_type))
 
     async def get_item_offers_batch(self, asin_list: List[str], item_condition: str='NEW', customer_type: str='Consumer') -> dict:
-        return await self._request(partial(self._get_item_offers_batch, asin_list, item_condition, customer_type), True)
+        return await self._request(partial(self._get_item_offers_batch, asin_list, item_condition, customer_type))
 
     async def get_my_fees_estimates(self, asin_list: List[str], id_type: str='ASIN', price_amount: int=10000) -> dict:
         return await self._request(partial(self._get_my_fees_estimates, asin_list, id_type, price_amount))
