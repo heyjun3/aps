@@ -98,6 +98,31 @@ func (p MurauchiParser) Product(r io.ReadCloser) (string, error) {
 	return doc.Find("form[name=mail_form] input[name=jan_code]").AttrOr("value", ""), nil
 }
 
+func (p MurauchiParser) FindCategories(r io.ReadCloser) ([]string, error) {
+	reader := transform.NewReader(r, japanese.EUCJP.NewDecoder())
+	doc, err := goquery.NewDocumentFromReader(reader)
+	if err != nil {
+		return nil, err
+	}
+	categories := []string{}
+	doc.Find("#categories section a").Each(func(i int, s *goquery.Selection) {
+		link, exist := s.Attr("href")
+		if !exist {
+			logger.Info("href tag is not found")
+			return
+		}
+		paths := []string{}
+		for _, path := range strings.Split(link, "/") {
+			if path != "" {
+				paths = append(paths, path)
+			}
+		}
+		category := paths[2]
+		categories = append(categories, category)
+	})
+	return categories, nil
+}
+
 func generateRequestFromPreviousRequest(pre *http.Request) (*http.Request, error) {
 	category := pre.Header.Get("x-category")
 	page := pre.Header.Get("x-current")
