@@ -57,7 +57,8 @@ class MQ(object):
                 logger.error({'message': ex})
                 self.create_mq_channel()
                 continue
-
+            
+            logger.info({"action": "get_message_count", "count": message_count})
             return message_count
 
     def publish(self, value: str):
