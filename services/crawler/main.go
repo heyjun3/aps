@@ -57,6 +57,8 @@ func main() {
 		ikebe.NewScrapeService().StartScrape(url, shop)
 	case shop == "kaago" && url != "":
 		kaago.NewScrapeService(url).StartScrape(url, shop)
+	case shop == "murauchi" && category == "all":
+		murauchi.RunAllCategories()
 	case shop == "murauchi" && category != "":
 		murauchi.NewScrapeService(category).StartScrape("", shop)
 	case shop == "nojima" && url != "":

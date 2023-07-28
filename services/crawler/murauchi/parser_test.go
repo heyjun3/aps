@@ -148,18 +148,18 @@ func TestFindCategories(t *testing.T) {
 	}
 	type want struct {
 		first string
-		last string
+		last  string
 		count int
 	}
-	tests := []struct{
-		name string
-		args args
-		want want
+	tests := []struct {
+		name  string
+		args  args
+		want  want
 		isErr bool
 	}{{
-		name: "parse find categories",
-		args: args{"html/test_top_page.html"},
-		want: want{"1000000020895", "1000000021188", 481},
+		name:  "parse find categories",
+		args:  args{"html/test_top_page.html"},
+		want:  want{"1000000020895", "1000000021188", 481},
 		isErr: false,
 	}}
 
