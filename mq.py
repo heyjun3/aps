@@ -52,7 +52,8 @@ class MQ(object):
         logger.info('action=get_message_count status=run')
         while True:
             try:
-                message_count = self.queue.method.message_count
+                queue = self.channel.queue_declare(self.queue_name, durable=True)
+                message_count = queue.method.message_count
             except AMQPConnectionError as ex:
                 logger.error({'message': ex})
                 self.create_mq_channel()
