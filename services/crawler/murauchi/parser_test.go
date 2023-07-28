@@ -141,3 +141,46 @@ func TestParseProduct(t *testing.T) {
 		})
 	}
 }
+
+func TestFindCategories(t *testing.T) {
+	type args struct {
+		filename string
+	}
+	type want struct {
+		first string
+		last  string
+		count int
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  want
+		isErr bool
+	}{{
+		name:  "parse find categories",
+		args:  args{"html/test_top_page.html"},
+		want:  want{"1000000020895", "1000000021188", 481},
+		isErr: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := util.CreateHttpResponseOnSjis(tt.args.filename)
+			if err != nil {
+				panic(err)
+			}
+			defer res.Body.Close()
+
+			categories, err := MurauchiParser{}.FindCategories(res.Body)
+
+			assert.Equal(t, tt.want.first, categories[0])
+			assert.Equal(t, tt.want.last, categories[len(categories)-1])
+			assert.Equal(t, tt.want.count, len(categories))
+			if tt.isErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
