@@ -43,22 +43,28 @@ type ProductRepository struct {
 }
 
 type Condition struct {
-	Unit *int64
-	Profit *int64
+	Unit       *int64
+	Profit     *int64
 	ProfitRate *float64
 }
 
-func NewCondition (profit, unit int64, profit_rate float64) *Condition {
+func NewCondition(profit, unit int64, profit_rate float64) *Condition {
 	return &Condition{
-		Profit: &profit,
+		Profit:     &profit,
 		ProfitRate: &profit_rate,
-		Unit: &unit,
+		Unit:       &unit,
 	}
 }
 
 func (p ProductRepository) Save(ctx context.Context, products []Product) error {
 	_, err := p.DB.NewInsert().Model(&products).Exec(ctx)
 	return err
+}
+
+func (p ProductRepository) GetProduct(ctx context.Context) ([]Product, error) {
+	var products []Product
+	err := p.DB.NewSelect().Model(&products).Scan(ctx)
+	return products, err
 }
 
 func (p ProductRepository) GetCounts(ctx context.Context) (map[string]int, error) {
@@ -117,9 +123,19 @@ func (p ProductRepository) GetProductWithChart(ctx context.Context, filename str
 func (p ProductRepository) DeleteIfCondition(ctx context.Context, condition *Condition) error {
 	_, err := p.DB.NewDelete().
 		Model((*Product)(nil)).
-		WhereOr("unit > ?", condition.Unit).
 		WhereOr("profit < ?", condition.Profit).
 		WhereOr("profit_rate < ?", condition.ProfitRate).
+		WhereOr("unit > ?", condition.Unit).
+		Exec(ctx)
+	return err
+}
+
+func (p ProductRepository) DeleteIfConditionWithKeepa(ctx context.Context) error {
+	_, err := p.DB.NewDelete().
+		Model((*Product)(nil)).
+		TableExpr("keepa_products as keepa").
+		Where("product.asin = keepa.asin").
+		Where("keepa.sales_drops_90 <= ?", 3).
 		Exec(ctx)
 	return err
 }
