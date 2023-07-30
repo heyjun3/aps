@@ -36,7 +36,7 @@
 0 4 * * 6 /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s rakuten -i all
 0 2 * * 0 /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s kaago -u "https://kaago.com/ajax/catalog/list/init"
 0 1 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s ikebe -u "https://www.ikebe-gakki.com/Form/Product/ProductList.aspx?shop=0&cat=&bid=ec&dpcnt=40&img=1&sort=07&udns=1&fpfl=0&sfl=0&pno=1"
-20 * * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run --rm api-server /app/delete_row
+*/10 * * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run --rm api-server /app/delete_row
 0 * * * * /usr/bin/docker container ls -a | grep -i 'exited (0)' | awk '{print $1}' | xargs /usr/bin/docker rm
 0 3 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spapi -i register
 0 4 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spapi -i check

@@ -353,3 +353,12 @@ func TestDeleteIfConditionWithKeepa(t *testing.T) {
 		})
 	}
 }
+
+func TestRefreshGeneratedColumns(t *testing.T) {
+	db := test.CreateTestDBConnection()
+	t.Run("test", func(t *testing.T) {
+		err := ProductRepository{DB: db}.RefreshGeneratedColumns(context.Background())
+
+		assert.NoError(t, err)
+	})
+}

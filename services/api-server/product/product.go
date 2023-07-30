@@ -12,7 +12,7 @@ import (
 )
 
 func OpenDB(dsn string) *bun.DB {
-	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn), pgdriver.WithTimeout(60*time.Second)))
 	return bun.NewDB(sqldb, pgdialect.New())
 }
 
@@ -142,5 +142,15 @@ func (p ProductRepository) DeleteIfConditionWithKeepa(ctx context.Context) error
 
 func (p ProductRepository) DeleteByFilename(ctx context.Context, filename string) error {
 	_, err := p.DB.NewDelete().Model((*Product)(nil)).Where("filename = ?", filename).Exec(ctx)
+	return err
+}
+
+func (p ProductRepository) RefreshGeneratedColumns(ctx context.Context) error {
+	_, err := p.DB.NewUpdate().
+		Model((*Product)(nil)).
+		Set("created_at = created_at").
+		WhereOr("profit IS NULL").
+		WhereOr("profit_rate IS NULL").
+		Exec(ctx)
 	return err
 }
