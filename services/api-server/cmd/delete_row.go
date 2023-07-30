@@ -15,6 +15,13 @@ func main() {
 	}
 	db := product.OpenDB(dsn)
 	repo := product.ProductRepository{DB: db}
+
+	for _, fn := range []func(ctx context.Context) error{repo.RefreshGeneratedColumns, repo.DeleteIfConditionWithKeepa} {
+		if err := fn(context.Background()); err != nil {
+			panic(err)
+		}
+	}
+
 	condition := product.NewCondition(200, 2, 0.1)
 	if err := repo.DeleteIfCondition(context.Background(), condition); err != nil {
 		log.Fatal(err)

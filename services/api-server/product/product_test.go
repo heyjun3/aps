@@ -1,10 +1,12 @@
 package product
 
 import (
+	"api-server/test"
 	"context"
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/uptrace/bun"
@@ -181,11 +183,7 @@ func TestGetProductWithChart(t *testing.T) {
 }
 
 func TestDeleteByFilename(t *testing.T) {
-	dsn := os.Getenv("TEST_DSN")
-	if dsn == "" {
-		panic(fmt.Errorf("test database dsn is null"))
-	}
-	db := OpenDB(dsn)
+	db := test.CreateTestDBConnection()
 	err := db.ResetModel(context.Background(), &Product{})
 	if err != nil {
 		panic(err)
@@ -224,4 +222,143 @@ func TestDeleteByFilename(t *testing.T) {
 			assert.Equal(t, tt.want, err)
 		})
 	}
+}
+
+func TestDeleteIfCondition(t *testing.T) {
+	db := test.CreateTestDBConnection()
+	err := db.ResetModel(context.Background(), &Product{})
+	if err != nil {
+		panic(err)
+	}
+	now := time.Date(2022, 1, 1, 1, 0, 0, 0, time.Local)
+	products := []Product{
+		{Asin: "test", Filename: "test", CreatedAt: now},
+		{Asin: "test1", Filename: "test", Profit: Ptr(int64(199))},
+		{Asin: "test2", Filename: "test", ProfitRate: Ptr(float64(0.09))},
+		{Asin: "test3", Filename: "test", Unit: Ptr(int64(3))},
+	}
+	repo := ProductRepository{DB: db}
+	if err := repo.Save(context.Background(), products); err != nil {
+		panic(err)
+	}
+
+	type args struct {
+		ctx       context.Context
+		condition Condition
+	}
+	type want struct {
+		count    int
+		products []Product
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  want
+		isErr bool
+	}{{
+		name: "delete rows if condition",
+		args: args{
+			ctx:       context.Background(),
+			condition: *NewCondition(200, 2, 0.1),
+		},
+		want: want{
+			count:    1,
+			products: []Product{{Asin: "test", Filename: "test", CreatedAt: now}},
+		},
+		isErr: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := repo.DeleteIfCondition(tt.args.ctx, &tt.args.condition)
+
+			if tt.isErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			products, err := repo.GetProduct(context.Background())
+			if err != nil {
+				panic(err)
+			}
+			assert.Equal(t, tt.want.count, len(products))
+			assert.Equal(t, tt.want.products, products)
+		})
+	}
+}
+
+func TestDeleteIfConditionWithKeepa(t *testing.T) {
+	db := test.CreateTestDBConnection()
+	for _, model := range []interface{}{(*Product)(nil), (*Keepa)(nil)} {
+		if err := db.ResetModel(context.Background(), model); err != nil {
+			panic(err)
+		}
+	}
+	now := time.Date(2022, 2, 2, 0, 0, 0, 0, time.Local)
+	products := []Product{
+		{Asin: "test", Filename: "test", CreatedAt: now},
+		{Asin: "test1", Filename: "test", CreatedAt: now},
+		{Asin: "test2", Filename: "test", CreatedAt: now},
+		{Asin: "test3", Filename: "test", CreatedAt: now},
+	}
+	repo := ProductRepository{DB: db}
+	if err := repo.Save(context.Background(), products); err != nil {
+		panic(err)
+	}
+
+	keepas := []Keepa{
+		{Asin: "test", Drops: 3},
+		{Asin: "test1", Drops: 4},
+		{Asin: "test2", Drops: 5},
+	}
+	if err := (KeepaRepository{DB: db}).Save(context.Background(), keepas); err != nil {
+		panic(err)
+	}
+
+	type want struct {
+		count    int
+		products []Product
+	}
+	tests := []struct {
+		name  string
+		want  want
+		isErr bool
+	}{{
+		name: "delete row if condition",
+		want: want{
+			count: 3,
+			products: []Product{
+				{Asin: "test1", Filename: "test", CreatedAt: now},
+				{Asin: "test2", Filename: "test", CreatedAt: now},
+				{Asin: "test3", Filename: "test", CreatedAt: now},
+			},
+		},
+		isErr: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := repo.DeleteIfConditionWithKeepa(context.Background())
+			if tt.isErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			products, err := repo.GetProduct(context.Background())
+			if err != nil {
+				panic(err)
+			}
+			assert.Equal(t, tt.want.count, len(products))
+			assert.Equal(t, tt.want.products, products)
+		})
+	}
+}
+
+func TestRefreshGeneratedColumns(t *testing.T) {
+	db := test.CreateTestDBConnection()
+	t.Run("test", func(t *testing.T) {
+		err := ProductRepository{DB: db}.RefreshGeneratedColumns(context.Background())
+
+		assert.NoError(t, err)
+	})
 }
