@@ -4,17 +4,12 @@ import (
 	"api-server/test"
 	"context"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/uptrace/bun"
 )
-
-func po[T any](v T) *T {
-	return &v
-}
 
 func Ptr[T any](v T) *T {
 	return &v
@@ -24,8 +19,8 @@ func createTestData(db *bun.DB) {
 	count := 150
 	products := make([]Product, count)
 	for i := 0; i < count; i++ {
-		p := Product{Asin: "aaa" + fmt.Sprint(i), Filename: "aaa", Profit: po[int64](200),
-			ProfitRate: po[float64](0.1), Unit: po[int64](1)}
+		p := Product{Asin: "aaa" + fmt.Sprint(i), Filename: "aaa", Profit: Ptr[int64](200),
+			ProfitRate: Ptr[float64](0.1), Unit: Ptr[int64](1)}
 		products[i] = p
 	}
 	keepas := make([]Keepa, count)
@@ -44,18 +39,14 @@ func createTestData(db *bun.DB) {
 }
 
 func TestGetCounts(t *testing.T) {
-	dsn := os.Getenv("TEST_DSN")
-	if dsn == "" {
-		panic(fmt.Errorf("test database dsn is null"))
-	}
-	db := OpenDB(dsn)
+	db := test.CreateTestDBConnection()
 	err := db.ResetModel(context.Background(), &Product{})
 	if err != nil {
 		panic(err)
 	}
 	p := []Product{
-		{Asin: "aaa", Filename: "aaa", Price: po[int64](300)},
-		{Asin: "bbb", Filename: "bbb", Price: po[int64](400), FeeRate: po[float64](0.1)},
+		{Asin: "aaa", Filename: "aaa", Price: Ptr[int64](300)},
+		{Asin: "bbb", Filename: "bbb", Price: Ptr[int64](400), FeeRate: Ptr[float64](0.1)},
 		{Asin: "ccc", Filename: "ccc"},
 	}
 	repo := ProductRepository{DB: db}
@@ -87,11 +78,7 @@ func TestGetCounts(t *testing.T) {
 }
 
 func TestGetFilenames(t *testing.T) {
-	dsn := os.Getenv("TEST_DSN")
-	if dsn == "" {
-		panic(fmt.Errorf("test database dsn is null"))
-	}
-	db := OpenDB(dsn)
+	db := test.CreateTestDBConnection()
 	err := db.ResetModel(context.Background(), &Product{})
 	if err != nil {
 		panic(err)
@@ -134,11 +121,7 @@ func TestGetFilenames(t *testing.T) {
 }
 
 func TestGetProductWithChart(t *testing.T) {
-	dsn := os.Getenv("TEST_DSN")
-	if dsn == "" {
-		panic(fmt.Errorf("test database dsn is null"))
-	}
-	db := OpenDB(dsn)
+	db := test.CreateTestDBConnection()
 	if err := db.ResetModel(context.Background(), (*Product)(nil)); err != nil {
 		panic("test database dsn is null")
 	}
