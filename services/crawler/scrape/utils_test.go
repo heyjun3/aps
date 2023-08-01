@@ -1,7 +1,6 @@
 package scrape
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -13,36 +12,54 @@ func TestTimeToStr(t *testing.T) {
 		d := time.Date(2023, 2, 9, 22, 59, 0, 0, time.Local)
 
 		s := timeToStr(d)
-		fmt.Println(s)
+
 		assert.Equal(t, "20230209_225900", s)
 	})
 }
 
 func TestPullOutPrice(t *testing.T) {
-	t.Run("pull out price", func(t *testing.T) {
-		s := " 199,800円"
+	type args struct {
+		str string
+	}
+	type want struct {
+		num int64
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  want
+		isErr bool
+	}{
+		{
+			name:  "pull out price",
+			args:  args{str: " 199,800円"},
+			want:  want{num: 199800},
+			isErr: false,
+		},
+		{
+			name:  "pull out price not digits",
+			args:  args{str: "aaa  fdsagfda"},
+			want:  want{num: 0},
+			isErr: true,
+		},
+		{
+			name:  "blank string",
+			args:  args{str: ""},
+			want:  want{num: 0},
+			isErr: true,
+		},
+	}
 
-		price, err := PullOutNumber(s)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			num, err := PullOutNumber(tt.args.str)
 
-		assert.Equal(t, nil, err)
-		assert.Equal(t, int64(199800), price)
-	})
-
-	t.Run("pull out price not digits", func(t *testing.T) {
-		s := "aaa  fdsagfda"
-
-		price, err := PullOutNumber(s)
-
-		assert.Error(t, err)
-		assert.Equal(t, int64(0), price)
-	})
-
-	t.Run("blank string", func(t *testing.T) {
-		s := ""
-
-		price, err := PullOutNumber(s)
-
-		assert.Error(t, err)
-		assert.Equal(t, int64(0), price)
-	})
+			assert.Equal(t, tt.want.num, num)
+			if tt.isErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
