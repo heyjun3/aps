@@ -11,6 +11,11 @@ import (
 	"crawler/test/util"
 )
 
+func NewTestPc4uProduct(name, productCode, url, jan string, price int64) *Pc4uProduct {
+	p, _ := NewPc4uProduct(name, productCode, url, jan, price)
+	return p
+}
+
 func TestGetPc4uProductsByProductCode(t *testing.T) {
 	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*Pc4uProduct)(nil))
@@ -34,19 +39,19 @@ func TestGetPc4uProductsByProductCode(t *testing.T) {
 			codes: [][]string{{"test_code", "pc4u"}, {"test1", "pc4u"}, {"test2", "pc4u"}},
 		},
 		want: scrape.Products{
-			util.OmitError(NewPc4uProduct("test", "test1", "https://google.com", "", 1111)),
-			util.OmitError(NewPc4uProduct("test", "test2", "https://google.com", "", 2222)),
-			util.OmitError(NewPc4uProduct("test", "test_code", "https://google.com", "", 7777)),
+			NewTestPc4uProduct("test", "test1", "https://google.com", "", 1111),
+			NewTestPc4uProduct("test", "test2", "https://google.com", "", 2222),
+			NewTestPc4uProduct("test", "test_code", "https://google.com", "", 7777),
 		},
 		wantErr: false,
 	}}
 
 	ps := scrape.Products{
-		util.OmitError(NewPc4uProduct("test", "test_code", "https://google.com", "", 7777)),
-		util.OmitError(NewPc4uProduct("test", "code", "https://google.com", "", 7777)),
-		util.OmitError(NewPc4uProduct("test", "test", "https://google.com", "", 7777)),
-		util.OmitError(NewPc4uProduct("test", "test1", "https://google.com", "", 1111)),
-		util.OmitError(NewPc4uProduct("test", "test2", "https://google.com", "", 2222)),
+		NewTestPc4uProduct("test", "test_code", "https://google.com", "", 7777),
+		NewTestPc4uProduct("test", "code", "https://google.com", "", 7777),
+		NewTestPc4uProduct("test", "test", "https://google.com", "", 7777),
+		NewTestPc4uProduct("test", "test1", "https://google.com", "", 1111),
+		NewTestPc4uProduct("test", "test2", "https://google.com", "", 2222),
 	}
 	err := s.Repo.BulkUpsert(ctx, conn, ps)
 	if err != nil {
@@ -73,7 +78,7 @@ func TestUpsert(t *testing.T) {
 	s := NewScrapeService()
 
 	t.Run("upsert pc4u product", func(t *testing.T) {
-		p := util.OmitError(NewPc4uProduct("test", "test", "test url", "1111", 9000))
+		p := NewTestPc4uProduct("test", "test", "test url", "1111", 9000)
 
 		err := s.Repo.BulkUpsert(ctx, conn, scrape.Products{p})
 
