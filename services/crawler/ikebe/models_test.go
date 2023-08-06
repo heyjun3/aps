@@ -14,9 +14,14 @@ import (
 func TestGetIkebeProductsByProductCode(t *testing.T) {
 	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*IkebeProduct)(nil))
+
 	s := NewScrapeService()
 	p := scrape.Products{
-		util.OmitError(NewIkebeProduct("test", "test_code", "https://test.com", "", 1111)),
+		NewTestIkebeProduct("test", "test_code", "https://test.com", "", 1111),
+	}
+	err := s.Repo.BulkUpsert(ctx, conn, p)
+	if err != nil {
+		logger.Error("insert error", err)
 	}
 
 	type args struct {
@@ -40,11 +45,6 @@ func TestGetIkebeProductsByProductCode(t *testing.T) {
 		wantErr: false,
 	}}
 
-	err := s.Repo.BulkUpsert(ctx, conn, p)
-	if err != nil {
-		logger.Error("insert error", err)
-	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			products, err := s.Repo.GetByProductAndShopCodes(tt.args.ctx, tt.args.conn, tt.args.codes...)
@@ -65,7 +65,7 @@ func TestUpsert(t *testing.T) {
 	s := NewScrapeService()
 
 	t.Run("upsert ikebe product", func(t *testing.T) {
-		p := util.OmitError(NewIkebeProduct("test", "test", "test url", "1111", 9000))
+		p := NewTestIkebeProduct("test", "test", "test url", "1111", 9000)
 
 		err := s.Repo.BulkUpsert(ctx, conn, scrape.Products{p})
 
