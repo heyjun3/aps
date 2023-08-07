@@ -167,7 +167,7 @@ func (p ProductRepository) DeleteByFilename(ctx context.Context, filename string
 func (p ProductRepository) RefreshGeneratedColumns(ctx context.Context) error {
 	_, err := p.DB.NewUpdate().
 		Model((*Product)(nil)).
-		Set("created_at = created_at").
+		Set("price = price").
 		WhereOr("profit IS NULL").
 		WhereOr("profit_rate IS NULL").
 		Exec(ctx)
