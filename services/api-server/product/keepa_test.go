@@ -2,20 +2,16 @@ package product
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"api-server/test"
 )
 
 func TestKeepaGetCounts(t *testing.T) {
-	dsn := os.Getenv("TEST_DSN")
-	if dsn == "" {
-		panic(fmt.Errorf("test database dsn is null"))
-	}
-	db := OpenDB(dsn)
+	db := test.CreateTestDBConnection()
 	err := db.ResetModel(context.Background(), &Keepa{})
 	if err != nil {
 		panic(err)
@@ -30,7 +26,7 @@ func TestKeepaGetCounts(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(time.Now())
+
 	tests := []struct {
 		name    string
 		ctx     context.Context

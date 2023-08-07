@@ -9,6 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func NewTestNojimaProduct(name, productCode, url, jan string, price int64) *NojimaProduct {
+	p, err := NewNojimaProduct(name, productCode, url, jan, price)
+	if err != nil {
+		panic(err)
+	}
+	return p
+}
+
 func TestProductList(t *testing.T) {
 	type args struct {
 		filename string
@@ -35,20 +43,20 @@ func TestProductList(t *testing.T) {
 		want: want{
 			count: 60,
 			url:   u.String(),
-			first: util.OmitError(NewNojimaProduct(
+			first: NewTestNojimaProduct(
 				"Canon純正インクイエロー",
 				"4960999905549",
 				"https://online.nojima.co.jp/commodity/1/4960999905549/",
 				"4960999905549",
 				873,
-			)),
-			last: util.OmitError(NewNojimaProduct(
+			),
+			last: NewTestNojimaProduct(
 				"brother純正インクカートリッジ大容量タイプシアン",
 				"4977766788977",
 				"https://online.nojima.co.jp/commodity/1/4977766788977/",
 				"4977766788977",
 				2601,
-			)),
+			),
 		},
 	}, {
 		name: "parse last page",
@@ -58,20 +66,20 @@ func TestProductList(t *testing.T) {
 		want: want{
 			count: 26,
 			url:   "",
-			first: util.OmitError(NewNojimaProduct(
+			first: NewTestNojimaProduct(
 				"BANDAIひろがるスカイ!プリキュアふしぎなミラージュペン",
 				"4549660880431",
 				"https://online.nojima.co.jp/commodity/1/4549660880431/",
 				"4549660880431",
 				1380,
-			)),
-			last: util.OmitError(NewNojimaProduct(
+			),
+			last: NewTestNojimaProduct(
 				"ELSONICDVD-R【1回録画用/4.7GB/1-16倍速/10枚/5mmプラケース】",
 				"0479960012833",
 				"https://online.nojima.co.jp/commodity/1/0479960012833/",
 				"0479960012833",
 				1078,
-			)),
+			),
 		},
 	}}
 	parser := NojimaParser{}

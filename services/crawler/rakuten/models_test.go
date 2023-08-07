@@ -11,6 +11,11 @@ import (
 	"crawler/test/util"
 )
 
+func NewTestRakutenProduct(name, productCode, url, jan, shopCode string, price, point int64) *RakutenProduct {
+	p, _ := NewRakutenProduct(name, productCode, url, jan, shopCode, price, point)
+	return p
+}
+
 func TestGetRakutenProducts(t *testing.T) {
 	conn, ctx := util.DatabaseFactory()
 	conn.ResetModel(ctx, (*RakutenProduct)(nil))
@@ -34,8 +39,8 @@ func TestGetRakutenProducts(t *testing.T) {
 			codes: []string{"test", "code", "test_code"},
 		},
 		want: scrape.Products{
-			util.OmitError(NewRakutenProduct("name", "test", "http://", "4444", "rakuten", 9900, 0)),
-			util.OmitError(NewRakutenProduct("name", "code", "http://", "4444444", "rakuten", 9900, 0)),
+			NewTestRakutenProduct("name", "test", "http://", "4444", "rakuten", 9900, 0),
+			NewTestRakutenProduct("name", "code", "http://", "4444444", "rakuten", 9900, 0),
 		},
 		wantError: false,
 	}, {
@@ -50,8 +55,8 @@ func TestGetRakutenProducts(t *testing.T) {
 	}}
 
 	preProducts := scrape.Products{
-		util.OmitError(NewRakutenProduct("name", "test", "http://", "4444", "rakuten", 9900, 1)),
-		util.OmitError(NewRakutenProduct("name", "code", "http://", "4444444", "rakuten", 9900, 1)),
+		NewTestRakutenProduct("name", "test", "http://", "4444", "rakuten", 9900, 1),
+		NewTestRakutenProduct("name", "code", "http://", "4444444", "rakuten", 9900, 1),
 	}
 	err := s.Repo.BulkUpsert(ctx, conn, preProducts)
 	if err != nil {

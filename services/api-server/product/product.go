@@ -61,6 +61,25 @@ func (p ProductRepository) Save(ctx context.Context, products []Product) error {
 	return err
 }
 
+func (p ProductRepository) Upserts(ctx context.Context, products []Product) error {
+	_, err := p.DB.NewInsert().
+		Model(&products).
+		ExcludeColumn("profit", "profit_rate").
+		On("CONFLICT (asin, filename) DO UPDATE").
+		Set(`
+			title = EXCLUDED.title,
+			jan = EXCLUDED.jan,
+			unit = EXCLUDED.unit,
+			price = EXCLUDED.price,
+			cost = EXCLUDED.cost,
+			fee_rate = EXCLUDED.fee_rate,
+			shipping_fee = EXCLUDED.shipping_fee,
+			url = EXCLUDED.url
+		`).
+		Exec(ctx)
+	return err
+}
+
 func (p ProductRepository) GetProduct(ctx context.Context) ([]Product, error) {
 	var products []Product
 	err := p.DB.NewSelect().Model(&products).Scan(ctx)
@@ -148,7 +167,7 @@ func (p ProductRepository) DeleteByFilename(ctx context.Context, filename string
 func (p ProductRepository) RefreshGeneratedColumns(ctx context.Context) error {
 	_, err := p.DB.NewUpdate().
 		Model((*Product)(nil)).
-		Set("created_at = created_at").
+		Set("price = price").
 		WhereOr("profit IS NULL").
 		WhereOr("profit_rate IS NULL").
 		Exec(ctx)

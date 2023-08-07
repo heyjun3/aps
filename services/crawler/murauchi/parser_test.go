@@ -10,6 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func NewTestMurauchiProduct(name, productCode, url, jan string, price int64) *MurauchiProduct {
+	p, err := NewMurauchiProduct(name, productCode, url, jan, price)
+	if err != nil {
+		panic(err)
+	}
+	return p
+}
+
 func TestProductListbyReq(t *testing.T) {
 	type args struct {
 		filename string
@@ -36,20 +44,20 @@ func TestProductListbyReq(t *testing.T) {
 		},
 		want: want{
 			count: 112,
-			first: util.OmitError(NewMurauchiProduct(
+			first: NewTestMurauchiProduct(
 				"NEC\n超値下げ 15.6型ノートPC (Core i5/8GBメモリ/256GB SSD/Officeなし) PC-VKM44XDFHB8CSEZZY",
 				"0000025905156",
 				"https://www.murauchi.com/MCJ-front-web/CoD/0000025905156",
 				"",
 				69999,
-			)),
-			last: util.OmitError(NewMurauchiProduct(
+			),
+			last: NewTestMurauchiProduct(
 				"NEC\n超値下げ フルHD対応21.5型ワイド液晶ディスプレイ 5年保証 LCD-L221F ホワイト",
 				"0000025912888",
 				"https://www.murauchi.com/MCJ-front-web/CoD/0000025912888",
 				"",
 				7980,
-			)),
+			),
 			url:  "https://www.murauchi.com/MCJ-front-web/WH/front/Default.do",
 			body: "categoryNo=1000000000001&handlingType=0&keyword=%81%40&listCount=120&mode=graphic&pageNumber=1&searchType=keyword&sortOrder=1&type=COMMODITY_LIST",
 		},
@@ -62,20 +70,20 @@ func TestProductListbyReq(t *testing.T) {
 		},
 		want: want{
 			count: 14,
-			first: util.OmitError(NewMurauchiProduct(
+			first: NewTestMurauchiProduct(
 				"Lenovo レノボ\nThinkPad 90W ACアダプター (X1 Carbon用) 0B46997",
 				"0000012968837",
 				"https://www.murauchi.com/MCJ-front-web/CoD/0000012968837",
 				"",
 				5636,
-			)),
-			last: util.OmitError(NewMurauchiProduct(
+			),
+			last: NewTestMurauchiProduct(
 				"サンワサプライ\nPDA-PEN16 入力ペン 3本セット",
 				"0000001629549",
 				"https://www.murauchi.com/MCJ-front-web/CoD/0000001629549",
 				"",
 				481,
-			)),
+			),
 		},
 		isLast: true,
 	}}

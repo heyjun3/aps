@@ -10,6 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func NewTestKaagoProduct(name, productCode, url, jan, shopCode string, price int64) *KaagoProduct {
+	p, err := NewKaagoProduct(name, productCode, url, jan, shopCode, price)
+	if err != nil {
+		panic(err)
+	}
+	return p
+}
+
 func TestProductListByReq(t *testing.T) {
 	type args struct {
 		filename string
@@ -37,22 +45,22 @@ func TestProductListByReq(t *testing.T) {
 			count:       36,
 			currentPage: 2,
 			url:         "https://kaago.com/ajax/catalog/list/init",
-			first: util.OmitError(NewKaagoProduct(
+			first: NewTestKaagoProduct(
 				"S223ATES-W ダイキン ルームエアコン6畳 ホワイト",
 				"9900000004842",
 				"https://kaago.com/seicaplus/S223ATES-W-%E3%83%80%E3%82%A4%E3%82%AD%E3%83%B3-%E3%83%AB%E3%83%BC%E3%83%A0%E3%82%A8%E3%82%A2%E3%82%B3%E3%83%B36%E7%95%B3-%E3%83%9B%E3%83%AF%E3%82%A4%E3%83%88/?itemcode=9900000004842",
 				"9900000004842",
 				"seicaplus",
 				46990,
-			)),
-			last: util.OmitError(NewKaagoProduct(
+			),
+			last: NewTestKaagoProduct(
 				"S71ZTCXP-W ダイキン ルームエアコン23畳 ホワイト 200V",
 				"9900000004160",
 				"https://kaago.com/seica/S71ZTCXP-W-%E3%83%80%E3%82%A4%E3%82%AD%E3%83%B3-%E3%83%AB%E3%83%BC%E3%83%A0%E3%82%A8%E3%82%A2%E3%82%B3%E3%83%B323%E7%95%B3-%E3%83%9B%E3%83%AF%E3%82%A4%E3%83%88-200V/?itemcode=9900000004160",
 				"9900000004160",
 				"seica",
 				146000,
-			)),
+			),
 		},
 	}}
 

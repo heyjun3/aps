@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math"
 	"net/http"
@@ -66,13 +65,13 @@ func GetCharts(c echo.Context) error {
 	ctx := context.Background()
 	charts, total, err := productRepo.GetProductWithChart(ctx, filename, page, limit)
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("error", err)
 		return c.JSON(http.StatusInternalServerError, Res{"error"})
 	}
 
 	maxPage := int(math.Ceil((float64(total) / float64(limit))))
 	if page > maxPage {
-		fmt.Println("page over max pages")
+		slog.Error("page over max page size")
 		return c.JSON(http.StatusNotFound, Res{"error"})
 	}
 
@@ -87,7 +86,7 @@ func GetFilenames(c echo.Context) error {
 	ctx := context.Background()
 	filenames, err := productRepo.GetFilenames(ctx)
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("error", err)
 		return c.JSON(http.StatusInternalServerError, Res{"error"})
 	}
 
@@ -101,12 +100,12 @@ func GetStatusCounts(c echo.Context) error {
 	ctx := context.Background()
 	keepa, err := keepaRepo.GetCounts(ctx)
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("error", err)
 		return c.JSON(http.StatusInternalServerError, Res{"error"})
 	}
 	mws, err := productRepo.GetCounts(ctx)
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("error", err)
 		return c.JSON(http.StatusInternalServerError, Res{"error"})
 	}
 	return c.JSON(http.StatusOK, StatusRes{keepa, mws})
@@ -116,7 +115,7 @@ func DeleteProducts(c echo.Context) error {
 	ctx := context.Background()
 	err := productRepo.DeleteByFilename(ctx, c.Param("filename"))
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("error", err)
 		return c.JSON(http.StatusInternalServerError, Res{"error"})
 	}
 	return c.JSON(http.StatusOK, Res{"ok"})
