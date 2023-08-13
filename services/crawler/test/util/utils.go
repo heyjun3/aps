@@ -3,7 +3,6 @@ package util
 import (
 	"bytes"
 	"context"
-	"crawler/config"
 	"database/sql"
 	"io"
 	"net/http"
@@ -24,9 +23,11 @@ func DatabaseFactory() (*bun.DB, context.Context) {
 }
 
 func TestDSN() string {
-	conf, _ := config.NewConfig("../sqlboiler.toml")
-	conf.Psql.DBname = "test"
-	return conf.Dsn()
+	DSN := os.Getenv("TEST_DSN")
+	if DSN == "" {
+		panic("DNS isn't empty")
+	}
+	return DSN
 }
 
 func CreateHttpResponse(path string) (*http.Response, error) {

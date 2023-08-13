@@ -27,7 +27,7 @@ func init() {
 		kaago.CreateTable,
 		murauchi.CreateTable,
 	}
-	conn := scrape.CreateDBConnection(config.Config.Dsn())
+	conn := scrape.CreateDBConnection(config.DBDsn)
 	ctx := context.Background()
 
 	for _, f := range fs {

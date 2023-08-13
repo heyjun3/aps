@@ -203,7 +203,8 @@ services:
     restart: always
     environment:
       - TZ=Asia/Tokyo
-      - ROOT_PATH=/app
+      - DB_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/${POSTGRES_DB}?sslmode=disable
+      - MQ_DSN=amqp://${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:5674
     entrypoint: tail -f /dev/null
 
   api-server:
