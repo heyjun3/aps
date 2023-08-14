@@ -28,14 +28,16 @@
 0 5 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py super -i new
 0 4 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py super -i bookmark
 0 16 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py pcones
-0 17 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s pc4u -u "https://www.pc4u.co.jp/view/category/outlet"
-0 17 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s nojima -u "https://online.nojima.co.jp/app/catalog/list/init?searchCategoryCode=0&mode=image&pageSize=60&currentPage=1&alignmentSequence=9&searchDispFlg=true&immediateDeliveryDispFlg=1&searchWord=+"
-30 17 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s pc4u -u "https://www.pc4u.co.jp/view/search"
-0 18 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s ark -u "https://www.ark-pc.co.jp/search/?limit=50&nouki=1"
 0 18 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spread_sheet
-0 4 * * 6 /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s rakuten -i all
-0 2 * * 0 /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s kaago -u "https://kaago.com/ajax/catalog/list/init"
-0 1 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo --env ROOT_PATH=/app -d aps-go-crawler /app/go-crawler -s ikebe -u "https://www.ikebe-gakki.com/Form/Product/ProductList.aspx?shop=0&cat=&bid=ec&dpcnt=40&img=1&sort=07&udns=1&fpfl=0&sfl=0&pno=1"
+
+0 17 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s pc4u -u "https://www.pc4u.co.jp/view/category/outlet"
+0 17 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s nojima -u "https://online.nojima.co.jp/app/catalog/list/init?searchCategoryCode=0&mode=image&pageSize=60&currentPage=1&alignmentSequence=9&searchDispFlg=true&immediateDeliveryDispFlg=1&searchWord=+"
+30 17 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s pc4u -u "https://www.pc4u.co.jp/view/search"
+0 18 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s ark -u "https://www.ark-pc.co.jp/search/?limit=50&nouki=1"
+0 4 * * 6 /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s rakuten -i all
+0 2 * * 0 /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s kaago -u "https://kaago.com/ajax/catalog/list/init"
+0 1 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s ikebe -u "https://www.ikebe-gakki.com/Form/Product/ProductList.aspx?shop=0&cat=&bid=ec&dpcnt=40&img=1&sort=07&udns=1&fpfl=0&sfl=0&pno=1"
+
 */10 * * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run --rm api-server /app/delete_row
 0 * * * * /usr/bin/docker container ls -a | grep -i 'exited (0)' | awk '{print $1}' | xargs /usr/bin/docker rm
 0 3 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spapi -i register
