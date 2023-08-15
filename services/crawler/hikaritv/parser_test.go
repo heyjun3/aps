@@ -116,15 +116,15 @@ func TestProduct(t *testing.T) {
 	type want struct {
 		code string
 	}
-	tests := []struct{
-		name string
-		args args
-		want want
+	tests := []struct {
+		name  string
+		args  args
+		want  want
 		isErr bool
 	}{{
-		name: "parse product",
-		args: args{filename: "html/test_product.html"},
-		want: want{code: "4948872414975"},
+		name:  "parse product",
+		args:  args{filename: "html/test_product.html"},
+		want:  want{code: "4948872414975"},
 		isErr: false,
 	}}
 
