@@ -1,6 +1,10 @@
 package hikaritv
 
 import (
+	"context"
+
+	"github.com/uptrace/bun"
+
 	"crawler/scrape"
 )
 
@@ -16,4 +20,12 @@ func NewHikaritvProduct(name, jan, productCode, url string, price int64) (*Hikar
 	return &HikaritvProduct{
 		Product: *p,
 	}, nil
+}
+
+func CreateTable(conn *bun.DB, ctx context.Context) error {
+	_, err := conn.NewCreateTable().
+		Model((*HikaritvProduct)(nil)).
+		IfNotExists().
+		Exec(ctx)
+	return err
 }

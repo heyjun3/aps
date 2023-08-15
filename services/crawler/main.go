@@ -9,6 +9,7 @@ import (
 
 	"crawler/ark"
 	"crawler/config"
+	"crawler/hikaritv"
 	"crawler/ikebe"
 	"crawler/kaago"
 	"crawler/murauchi"
@@ -26,6 +27,7 @@ func init() {
 		nojima.CreateTable,
 		kaago.CreateTable,
 		murauchi.CreateTable,
+		hikaritv.CreateTable,
 	}
 	conn := scrape.CreateDBConnection(config.DBDsn)
 	ctx := context.Background()
@@ -53,6 +55,8 @@ func main() {
 	switch {
 	case shop == "ark" && url != "":
 		ark.NewScrapeService().StartScrape(url, shop)
+	case shop == "hikaritv" && url != "":
+		hikaritv.NewScrapeService().StartScrape(url, shop)
 	case shop == "ikebe" && url != "":
 		ikebe.NewScrapeService().StartScrape(url, shop)
 	case shop == "kaago" && url != "":

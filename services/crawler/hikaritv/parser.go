@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -61,8 +62,9 @@ func (p HikaritvParser) ProductListByReq(r io.ReadCloser, req *http.Request) (sc
 		products = append(products, product)
 	})
 
-	_, exist := doc.Find(".nextLink").Attr("href")
-	if !exist {
+	txt := doc.Find(".nextLink").Text()
+	if txt == "" {
+		logger.Info("Not found next page URL")
 		return products, nil
 	}
 	nextURL, err := url.Parse(req.URL.String())
@@ -84,4 +86,17 @@ func (p HikaritvParser) ProductListByReq(r io.ReadCloser, req *http.Request) (sc
 		return products, nil
 	}
 	return products, nextReq
+}
+
+func (p HikaritvParser) Product(r io.ReadCloser) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		return "", err
+	}
+	re := regexp.MustCompile("[0-9]{12,13}")
+	codes := re.FindAllString(doc.Find(".specTable").Text(), -1)
+	if len(codes) > 0 {
+		return codes[0], nil
+	}
+	return "", fmt.Errorf("not found jan code")
 }
