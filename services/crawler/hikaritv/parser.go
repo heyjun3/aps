@@ -1,9 +1,11 @@
 package hikaritv
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -13,12 +15,11 @@ import (
 )
 
 const (
-	host = "shop.hikaritv.net"
+	host   = "shop.hikaritv.net"
 	scheme = "https"
 )
 
 var logger = config.Logger
-
 
 type HikaritvParser struct {
 	scrape.Parser
@@ -60,5 +61,27 @@ func (p HikaritvParser) ProductListByReq(r io.ReadCloser, req *http.Request) (sc
 		products = append(products, product)
 	})
 
-	return products, nil
+	_, exist := doc.Find(".nextLink").Attr("href")
+	if !exist {
+		return products, nil
+	}
+	nextURL, err := url.Parse(req.URL.String())
+	if err != nil {
+		logger.Error("url parse error", err)
+		return products, nil
+	}
+	query := nextURL.Query()
+	page, err := strconv.Atoi(query.Get("currentPage"))
+	if err != nil {
+		logger.Error("current page convert error", err)
+		return products, nil
+	}
+	query.Set("currentPage", fmt.Sprint(page+1))
+	nextURL.RawQuery = query.Encode()
+	nextReq, err := http.NewRequest("GET", nextURL.String(), nil)
+	if err != nil {
+		logger.Error("faild create request", err)
+		return products, nil
+	}
+	return products, nextReq
 }
