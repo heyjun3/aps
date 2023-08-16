@@ -9,71 +9,85 @@ import (
 )
 
 func TestProductList(t *testing.T) {
-	parser := ArkParser{}
+	type args struct {
+		filename string
+	}
+	type want struct {
+		count int
+		url   string
+		first *ArkProduct
+		last  *ArkProduct
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "parse product list page",
+			args: args{filename: "html/test_product_list.html"},
+			want: want{
+				count: 50,
+				url:   "https://www.ark-pc.co.jp/search/?offset=50&limit=50&nouki=1",
+				first: NewTestArkProduct(
+					"CMSX16GX5M1A4800C40",
+					"11755303",
+					"https://www.ark-pc.co.jp/i/11755303/",
+					"",
+					8980,
+				),
+				last: NewTestArkProduct(
+					"Loupedeck Live",
+					"50284987",
+					"https://www.ark-pc.co.jp/i/50284987/",
+					"",
+					39600,
+				),
+			},
+		},
+		{
+			name: "parse last page",
+			args: args{filename: "html/test_product_list_last.html"},
+			want: want{
+				count: 4,
+				url:   "",
+				first: NewTestArkProduct(
+					"AINEX YH-3020A チップ用ヒートシンク30mm角",
+					"40000501",
+					"https://www.ark-pc.co.jp/i/40000501/",
+					"",
+					440,
+				),
+				last: NewTestArkProduct(
+					"SteelSeries QcK+ (Qck L)",
+					"50190022",
+					"https://www.ark-pc.co.jp/i/50190022/",
+					"",
+					1840,
+				),
+			},
+		},
+	}
 
-	t.Run("parse product list page", func(t *testing.T) {
-		res, err := util.CreateHttpResponse("html/test_product_list.html")
-		if err != nil {
-			logger.Error("error", err)
-			panic(err)
-		}
-		defer res.Body.Close()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := util.CreateHttpResponse(tt.args.filename)
+			if err != nil {
+				panic(err)
+			}
+			defer res.Body.Close()
 
-		products, url := parser.ProductList(res.Body, "")
+			products, url := ArkParser{}.ProductList(res.Body, "")
 
-		assert.Equal(t, 50, len(products))
-		assert.Equal(t, "https://www.ark-pc.co.jp/search/?offset=50&limit=50&nouki=1", url)
-		first := util.OmitError(NewArkProduct(
-			"CMSX16GX5M1A4800C40",
-			"11755303",
-			"https://www.ark-pc.co.jp/i/11755303/",
-			"",
-			8980,
-		))
-		last := util.OmitError(NewArkProduct(
-			"Loupedeck Live",
-			"50284987",
-			"https://www.ark-pc.co.jp/i/50284987/",
-			"",
-			39600,
-		))
+			assert.Equal(t, tt.want.count, len(products))
+			assert.Equal(t, tt.want.url, url)
+			assert.Equal(t, tt.want.first, products[0])
+			assert.Equal(t, tt.want.last, products[len(products)-1])
+		})
+	}
+}
 
-		assert.Equal(t, first, products[0])
-		assert.Equal(t, last, products[len(products)-1])
-	})
-
-	t.Run("parse last page", func(t *testing.T) {
-		res, err := util.CreateHttpResponse("html/test_product_list_last.html")
-		if err != nil {
-			logger.Error("file open error", err)
-			panic(err)
-		}
-		defer res.Body.Close()
-
-		products, url := parser.ProductList(res.Body, "")
-
-		assert.Equal(t, 4, len(products))
-		assert.Equal(t, "", url)
-
-		first := util.OmitError(NewArkProduct(
-			"AINEX YH-3020A チップ用ヒートシンク30mm角",
-			"40000501",
-			"https://www.ark-pc.co.jp/i/40000501/",
-			"",
-			440,
-		))
-		last := util.OmitError(NewArkProduct(
-			"SteelSeries QcK+ (Qck L)",
-			"50190022",
-			"https://www.ark-pc.co.jp/i/50190022/",
-			"",
-			1840,
-		))
-
-		assert.Equal(t, first, products[0])
-		assert.Equal(t, last, products[len(products)-1])
-	})
-
+func TestProductListInCouponPrice(t *testing.T) {
 	t.Run("parse coupon price", func(t *testing.T) {
 		res, err := util.CreateHttpResponse("html/test_coupon_price.html")
 		if err != nil {
@@ -82,7 +96,7 @@ func TestProductList(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		products, url := parser.ProductList(res.Body, "")
+		products, url := ArkParser{}.ProductList(res.Body, "")
 
 		assert.Equal(t, 50, len(products))
 		assert.Equal(t, "https://www.ark-pc.co.jp/search/?offset=2900&limit=50&nouki=1", url)

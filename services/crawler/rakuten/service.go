@@ -1,8 +1,7 @@
 package rakuten
 
 import (
-	"os"
-	"path/filepath"
+	_ "embed"
 
 	"gopkg.in/yaml.v3"
 
@@ -37,14 +36,12 @@ type shops struct {
 	List []shop `yaml:"rakuten"`
 }
 
+//go:embed shop.yaml
+var contents []byte
+
 func getShopList() (*shops, error) {
 	s := shops{}
-	path := os.Getenv("ROOT_PATH")
-	f, err := os.ReadFile(filepath.Join(path, "shop.yaml"))
-	if err != nil {
-		logger.Error("err", err)
-	}
-	if err := yaml.Unmarshal(f, &s); err != nil {
+	if err := yaml.Unmarshal(contents, &s); err != nil {
 		return nil, err
 	}
 

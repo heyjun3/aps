@@ -1,11 +1,8 @@
 package config
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/BurntSushi/toml"
 	"golang.org/x/exp/slog"
 )
 
@@ -45,50 +42,14 @@ var Http HttpConf
 
 func init() {
 	Logger = slog.New(slog.NewJSONHandler(os.Stdout))
-	path := os.Getenv("ROOT_PATH")
-	if path == "" {
-		panic("Not set env ROOT_PATH")
+	DBDsn = os.Getenv("DB_DSN")
+	if DBDsn == "" {
+		panic("DB DSN isn't empty string")
 	}
-	var err error
-	Config, err = NewConfig(filepath.Join(path, "sqlboiler.toml"))
-	if err != nil {
-		panic(err)
+	MQDsn = os.Getenv("MQ_DSN")
+	if MQDsn == "" {
+		panic("MQ DSN isn't empty string")
 	}
-	DBDsn = Config.Dsn()
-	MQDsn = Config.MQDsn()
 
-	Config.RabbitMQ.Host = "192.168.0.5"
-	DstMQDsn = Config.MQDsn()
-	Http = Config.Http
-}
-
-func NewConfig(path string) (config, error) {
-	var Config config
-	_, err := toml.DecodeFile(path, &Config)
-	if err != nil {
-		return Config, err
-	}
-	return Config, nil
-}
-
-func (c config) Dsn() string {
-	return fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		c.Psql.User,
-		c.Psql.Pass,
-		c.Psql.Host,
-		c.Psql.Port,
-		c.Psql.DBname,
-		c.Psql.SSLmode,
-	)
-}
-
-func (c config) MQDsn() string {
-	return fmt.Sprintf(
-		"amqp://%s:%s@%s:%s/",
-		c.RabbitMQ.User,
-		c.RabbitMQ.Pass,
-		c.RabbitMQ.Host,
-		c.RabbitMQ.Port,
-	)
+	Http = HttpConf{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"}
 }
