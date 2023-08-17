@@ -31,6 +31,7 @@
 0 18 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spread_sheet
 #
 0 17 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s pc4u -u "https://www.pc4u.co.jp/view/category/outlet"
+0 17 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s hikaritv -u "https://shop.hikaritv.net/shopping/app/catalog/list/init?searchCategoryCode=0&searchWord=&searchCommodityCode=&searchMethod=0&searchType=0&squeezeSerch=0&hideKeyWord=&hidePriceMin=&hidePriceMax=50000&keywordToggle=&alignmentSequence=3&pageSize=50&mode=image&pageLayout=window&searchMakerName=&pointFacet=&discountRateFacet=&searchPriceStart=&searchPriceEnd=&searchTagCode=&searchCouponCode=&fqGetPoint=&fqStartDateMin=&fqStartDateMax=&fqStartDateName=&fqAverageRating=&banner=&notDisplayFacet=&currentPage=1&fqStockStatus=1"
 0 17 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s nojima -u "https://online.nojima.co.jp/app/catalog/list/init?searchCategoryCode=0&mode=image&pageSize=60&currentPage=1&alignmentSequence=9&searchDispFlg=true&immediateDeliveryDispFlg=1&searchWord=+"
 30 17 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s pc4u -u "https://www.pc4u.co.jp/view/search"
 0 18 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s ark -u "https://www.ark-pc.co.jp/search/?limit=50&nouki=1"
