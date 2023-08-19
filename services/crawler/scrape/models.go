@@ -1,6 +1,7 @@
 package scrape
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -15,6 +16,14 @@ func CreateDBConnection(dsn string) *bun.DB {
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 	conn := bun.NewDB(sqldb, pgdialect.New())
 	return conn
+}
+
+func CreateTable(db *bun.DB, ctx context.Context, p IProduct) error {
+	_, err := db.NewCreateTable().
+		Model(p).
+		IfNotExists().
+		Exec(ctx)
+	return err
 }
 
 type IProduct interface {

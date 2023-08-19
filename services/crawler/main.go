@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/uptrace/bun"
-
 	"crawler/ark"
 	"crawler/config"
 	"crawler/hikaritv"
@@ -20,20 +18,20 @@ import (
 )
 
 func init() {
-	fs := []func(*bun.DB, context.Context) error{
-		ark.CreateTable,
-		ikebe.CreateTable,
-		pc4u.CreateTable,
-		nojima.CreateTable,
-		kaago.CreateTable,
-		murauchi.CreateTable,
-		hikaritv.CreateTable,
+	models := []scrape.IProduct{
+		&ark.ArkProduct{},
+		&ikebe.IkebeProduct{},
+		&pc4u.Pc4uProduct{},
+		&nojima.NojimaProduct{},
+		&kaago.KaagoProduct{},
+		&murauchi.MurauchiProduct{},
+		&hikaritv.HikaritvProduct{},
 	}
 	conn := scrape.CreateDBConnection(config.DBDsn)
 	ctx := context.Background()
 
-	for _, f := range fs {
-		if err := f(conn, ctx); err != nil {
+	for _, model := range models {
+		if err := scrape.CreateTable(conn, ctx, model); err != nil {
 			panic(err)
 		}
 	}
