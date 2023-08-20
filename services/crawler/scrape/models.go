@@ -18,9 +18,9 @@ func CreateDBConnection(dsn string) *bun.DB {
 	return conn
 }
 
-func CreateTable(db *bun.DB, ctx context.Context, p IProduct) error {
+func CreateTable(db *bun.DB, ctx context.Context, model interface{}) error {
 	_, err := db.NewCreateTable().
-		Model(p).
+		Model(model).
 		IfNotExists().
 		Exec(ctx)
 	return err

@@ -18,14 +18,16 @@ import (
 )
 
 func init() {
-	models := []scrape.IProduct{
+	models := []interface{}{
 		&ark.ArkProduct{},
+		&hikaritv.HikaritvProduct{},
 		&ikebe.IkebeProduct{},
-		&pc4u.Pc4uProduct{},
-		&nojima.NojimaProduct{},
 		&kaago.KaagoProduct{},
 		&murauchi.MurauchiProduct{},
-		&hikaritv.HikaritvProduct{},
+		&nojima.NojimaProduct{},
+		&pc4u.Pc4uProduct{},
+		&rakuten.RakutenProduct{},
+		&rakuten.Shop{},
 	}
 	conn := scrape.CreateDBConnection(config.DBDsn)
 	ctx := context.Background()

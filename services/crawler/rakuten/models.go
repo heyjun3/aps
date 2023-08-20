@@ -31,10 +31,20 @@ func (r *RakutenProduct) calcPrice() {
 	r.Price = int64(float64(r.Price)*0.91) - r.point
 }
 
-func CreateTable(conn *bun.DB, ctx context.Context) error {
-	_, err := conn.NewCreateTable().
-		Model((*RakutenProduct)(nil)).
-		IfNotExists().
-		Exec(ctx)
+type Shop struct {
+	bun.BaseModel `bun:"table:shops"`
+	ID            string `bun:",pk"`
+	Name          string
+	URL           string
+}
+
+func GetShops(db *bun.DB, ctx context.Context) ([]Shop, error) {
+	shops := []Shop{}
+	err := db.NewSelect().Model(shops).Scan(ctx, shops)
+	return shops, err
+}
+
+func AddShop(db *bun.DB, ctx context.Context, shop Shop) error {
+	_, err := db.NewInsert().Model(shop).Exec(ctx)
 	return err
 }
