@@ -34,17 +34,20 @@ func (r *RakutenProduct) calcPrice() {
 type Shop struct {
 	bun.BaseModel `bun:"table:shops"`
 	ID            string `bun:",pk"`
+	SiteName      string
 	Name          string
 	URL           string
 }
 
-func GetShops(db *bun.DB, ctx context.Context) ([]Shop, error) {
-	shops := []Shop{}
-	err := db.NewSelect().Model(shops).Scan(ctx, shops)
-	return shops, err
+type ShopRepository struct {}
+
+func (r ShopRepository) Save(db *bun.DB, ctx context.Context, shops []Shop) error {
+	_, err := db.NewInsert().Model(&shops).Exec(ctx)
+	return err
 }
 
-func AddShop(db *bun.DB, ctx context.Context, shop Shop) error {
-	_, err := db.NewInsert().Model(shop).Exec(ctx)
-	return err
+func (r ShopRepository) GetAll(db *bun.DB, ctx context.Context) ([]Shop, error) {
+	shops := []Shop{}
+	err := db.NewSelect().Model(&shops).Scan(ctx)
+	return shops, err
 }
