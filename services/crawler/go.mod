@@ -11,7 +11,6 @@ require (
 	github.com/uptrace/bun/driver/pgdriver v1.1.12
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
 	golang.org/x/text v0.11.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -26,5 +25,6 @@ require (
 	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/net v0.6.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	mellium.im/sasl v0.3.1 // indirect
 )
