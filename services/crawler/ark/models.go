@@ -1,8 +1,6 @@
 package ark
 
 import (
-	"context"
-
 	"github.com/uptrace/bun"
 
 	"crawler/scrape"
@@ -21,12 +19,4 @@ func NewArkProduct(name, productCode, url, jan string, price int64) (*ArkProduct
 type ArkProduct struct {
 	bun.BaseModel `bun:"table:ark_products"`
 	scrape.Product
-}
-
-func CreateTable(conn *bun.DB, ctx context.Context) error {
-	_, err := conn.NewCreateTable().
-		Model((*ArkProduct)(nil)).
-		IfNotExists().
-		Exec(ctx)
-	return err
 }

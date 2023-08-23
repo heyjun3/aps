@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/uptrace/bun"
-
 	"crawler/ark"
 	"crawler/config"
 	"crawler/hikaritv"
@@ -20,20 +18,22 @@ import (
 )
 
 func init() {
-	fs := []func(*bun.DB, context.Context) error{
-		ark.CreateTable,
-		ikebe.CreateTable,
-		pc4u.CreateTable,
-		nojima.CreateTable,
-		kaago.CreateTable,
-		murauchi.CreateTable,
-		hikaritv.CreateTable,
+	models := []interface{}{
+		&ark.ArkProduct{},
+		&hikaritv.HikaritvProduct{},
+		&ikebe.IkebeProduct{},
+		&kaago.KaagoProduct{},
+		&murauchi.MurauchiProduct{},
+		&nojima.NojimaProduct{},
+		&pc4u.Pc4uProduct{},
+		&rakuten.RakutenProduct{},
+		&rakuten.Shop{},
 	}
 	conn := scrape.CreateDBConnection(config.DBDsn)
 	ctx := context.Background()
 
-	for _, f := range fs {
-		if err := f(conn, ctx); err != nil {
+	for _, model := range models {
+		if err := scrape.CreateTable(conn, ctx, model); err != nil {
 			panic(err)
 		}
 	}
@@ -73,6 +73,8 @@ func main() {
 		rakuten.NewScrapeService().StartScrape(url, shop)
 	case shop == "rakuten" && id == "all":
 		rakuten.RunServices()
+	case shop == "rakuten" && id == "daily":
+		rakuten.RunServicesByDaily()
 	case shop == "move" && url == "":
 		scrape.MoveMessages("mws", "mws")
 	default:

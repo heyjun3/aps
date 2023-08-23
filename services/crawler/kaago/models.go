@@ -1,7 +1,6 @@
 package kaago
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 
@@ -23,14 +22,6 @@ func NewKaagoProduct(name, productCode, url, jan, shopCode string, price int64) 
 	return &KaagoProduct{
 		Product: *p,
 	}, nil
-}
-
-func CreateTable(db *bun.DB, ctx context.Context) error {
-	_, err := db.NewCreateTable().
-		Model((*KaagoProduct)(nil)).
-		IfNotExists().
-		Exec(ctx)
-	return err
 }
 
 type KaagoResp struct {

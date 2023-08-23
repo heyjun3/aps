@@ -31,10 +31,48 @@ func (r *RakutenProduct) calcPrice() {
 	r.Price = int64(float64(r.Price)*0.91) - r.point
 }
 
-func CreateTable(conn *bun.DB, ctx context.Context) error {
-	_, err := conn.NewCreateTable().
-		Model((*RakutenProduct)(nil)).
-		IfNotExists().
-		Exec(ctx)
+type Shop struct {
+	bun.BaseModel `bun:"table:shops"`
+	ID            string `bun:",pk"`
+	SiteName      string
+	Name          string
+	URL           string
+	Interval      string
+}
+
+type ShopRepository struct{}
+
+func (r ShopRepository) Save(db *bun.DB, ctx context.Context, shops []Shop) error {
+	_, err := db.NewInsert().Model(&shops).Exec(ctx)
 	return err
+}
+
+func (r ShopRepository) GetAll(db *bun.DB, ctx context.Context) ([]Shop, error) {
+	shops := []Shop{}
+	err := db.NewSelect().Model(&shops).Scan(ctx)
+	return shops, err
+}
+
+func (r ShopRepository) GetByInterval(db *bun.DB, ctx context.Context, interval Interval) ([]Shop, error) {
+	shops := []Shop{}
+	err := db.NewSelect().Model(&shops).Where("interval = ?", interval.String()).Scan(ctx)
+	return shops, err
+}
+
+type Interval int
+
+const (
+	daily Interval = iota
+	weekly
+)
+
+func (i Interval) String() string{
+	switch i {
+	case daily:
+		return "daily"
+	case weekly:
+		return "weekly"
+	default:
+		return "unknown"
+	}
 }

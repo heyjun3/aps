@@ -36,6 +36,7 @@
 30 17 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s pc4u -u "https://www.pc4u.co.jp/view/search"
 0 18 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s ark -u "https://www.ark-pc.co.jp/search/?limit=50&nouki=1"
 0 4 * * 6 /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s rakuten -i all
+0 4 * * 0-5 /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s rakuten -i daily
 0 2 * * 0 /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s kaago -u "https://kaago.com/ajax/catalog/list/init"
 0 1 * * * /usr/bin/docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s ikebe -u "https://www.ikebe-gakki.com/Form/Product/ProductList.aspx?shop=0&cat=&bid=ec&dpcnt=40&img=1&sort=07&udns=1&fpfl=0&sfl=0&pno=1"
 #
