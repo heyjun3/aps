@@ -11,6 +11,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
+	"github.com/uptrace/bun/extra/bundebug"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
 )
@@ -19,6 +20,7 @@ func DatabaseFactory() (*bun.DB, context.Context) {
 	ctx := context.Background()
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(TestDSN())))
 	conn := bun.NewDB(sqldb, pgdialect.New())
+	conn.AddQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(true)))
 	return conn, ctx
 }
 

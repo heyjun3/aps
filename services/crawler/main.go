@@ -73,6 +73,8 @@ func main() {
 		rakuten.NewScrapeService().StartScrape(url, shop)
 	case shop == "rakuten" && id == "all":
 		rakuten.RunServices()
+	case shop == "rakuten" && id == "daily":
+		rakuten.RunServicesByDaily()
 	case shop == "move" && url == "":
 		scrape.MoveMessages("mws", "mws")
 	default:

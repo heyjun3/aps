@@ -26,3 +26,17 @@ func RunServices() {
 		NewScrapeService().StartScrape(s.URL, "rakuten")
 	}
 }
+
+func RunServicesByDaily() {
+	repo := ShopRepository{}
+	db := scrape.CreateDBConnection(config.DBDsn)
+	shops, err := repo.GetByInterval(db, context.Background(), daily)
+	if err != nil {
+		logger.Error("error", err)
+		return
+	}
+	for _, s := range shops {
+		logger.Info("run service", "shop", s.Name, "url", s.URL)
+		NewScrapeService().StartScrape(s.URL, "rakuten")
+	}
+}

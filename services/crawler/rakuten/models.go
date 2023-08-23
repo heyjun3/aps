@@ -37,9 +37,10 @@ type Shop struct {
 	SiteName      string
 	Name          string
 	URL           string
+	Interval      string
 }
 
-type ShopRepository struct {}
+type ShopRepository struct{}
 
 func (r ShopRepository) Save(db *bun.DB, ctx context.Context, shops []Shop) error {
 	_, err := db.NewInsert().Model(&shops).Exec(ctx)
@@ -50,4 +51,28 @@ func (r ShopRepository) GetAll(db *bun.DB, ctx context.Context) ([]Shop, error) 
 	shops := []Shop{}
 	err := db.NewSelect().Model(&shops).Scan(ctx)
 	return shops, err
+}
+
+func (r ShopRepository) GetByInterval(db *bun.DB, ctx context.Context, interval Interval) ([]Shop, error) {
+	shops := []Shop{}
+	err := db.NewSelect().Model(&shops).Where("interval = ?", interval.String()).Scan(ctx)
+	return shops, err
+}
+
+type Interval int
+
+const (
+	daily Interval = iota
+	weekly
+)
+
+func (i Interval) String() string{
+	switch i {
+	case daily:
+		return "daily"
+	case weekly:
+		return "weekly"
+	default:
+		return "unknown"
+	}
 }
