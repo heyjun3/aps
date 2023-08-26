@@ -214,7 +214,7 @@ type RunServiceHistory struct {
 	URL       string    `bun:",notnull"`
 	Status    string    `bun:",notnull"`
 	StartedAt time.Time `bun:",nullzero,notnull,default:current_timestamp"`
-	EndedAt   time.Time
+	EndedAt   time.Time `bun:",nullzero"`
 }
 
 func NewRunServiceHistory(shopName, url, status string) *RunServiceHistory {
