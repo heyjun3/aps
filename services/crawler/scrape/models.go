@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
@@ -203,4 +205,22 @@ func (m *message) validation() error {
 		return fmt.Errorf("url is zero value")
 	}
 	return nil
+}
+
+type RunServiceHistory struct {
+	bun.BaseModel
+	ID        uuid.UUID `bun:",pk,type:uuid,default:gen_random_uuid()"`
+	ShopName  string    `bun:",notnull"`
+	URL       string    `bun:",notnull"`
+	Status    string    `bun:",notnull"`
+	StartedAt time.Time `bun:",nullzero,notnull,default:current_timestamp"`
+	EndedAt   time.Time
+}
+
+func NewRunServiceHistory(shopName, url, status string) *RunServiceHistory {
+	return &RunServiceHistory{
+		ShopName: shopName,
+		URL:      url,
+		Status:   status,
+	}
 }

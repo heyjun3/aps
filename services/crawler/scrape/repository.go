@@ -68,3 +68,18 @@ func (p ProductRepository[T]) BulkUpsert(ctx context.Context, db *bun.DB, ps Pro
 
 	return err
 }
+
+type RunServiceHistoryRepository struct{}
+
+func (r RunServiceHistoryRepository) Save(ctx context.Context, db *bun.DB, history *RunServiceHistory) (*RunServiceHistory, error) {
+	_, err := db.NewInsert().
+		Model(history).
+		On("CONFLICT (id) DO UPDATE").
+		Set("shop_name = EXCLUDED.shop_name").
+		Set("url = EXCLUDED.url").
+		Set("status = EXCLUDED.status").
+		Set("started_at = EXCLUDED.started_at").
+		Set("ended_at = EXCLUDED.ended_at").
+		Exec(ctx, history)
+	return history, err
+}
