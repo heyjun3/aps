@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
+	github.com/google/uuid v1.3.1
 	github.com/rabbitmq/amqp091-go v1.6.1
 	github.com/stretchr/testify v1.8.1
 	github.com/uptrace/bun v1.1.14

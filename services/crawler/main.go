@@ -28,6 +28,7 @@ func init() {
 		&pc4u.Pc4uProduct{},
 		&rakuten.RakutenProduct{},
 		&rakuten.Shop{},
+		&scrape.RunServiceHistory{},
 	}
 	conn := scrape.CreateDBConnection(config.DBDsn)
 	ctx := context.Background()

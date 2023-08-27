@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/uptrace/bun"
+
 	"crawler/config"
 )
 
@@ -46,6 +48,11 @@ func (p Parser) ConvToReq(products Products, url string) (Products, *http.Reques
 }
 
 func (s Service[T]) StartScrape(url, shopName string) {
+	db := CreateDBConnection(config.DBDsn)
+	ctx := context.Background()
+	history := NewRunServiceHistory(shopName, url, "PROGRESS")
+	RunServiceHistoryRepository{}.Save(ctx, db, history)
+
 	client := NewClient()
 	mqClient := NewMQClient(config.MQDsn, "mws")
 	wg := sync.WaitGroup{}
@@ -60,12 +67,15 @@ func (s Service[T]) StartScrape(url, shopName string) {
 	}
 
 	c1 := s.ScrapeProductsList(client, s.EntryReq)
-	c2 := s.GetProductsBatch(c1, config.DBDsn)
+	c2 := s.GetProductsBatch(ctx, db, c1)
 	c3 := s.ScrapeProduct(c2, client)
-	c4 := s.SaveProduct(c3, config.DBDsn)
+	c4 := s.SaveProduct(ctx, db, c3)
 	s.SendMessage(c4, mqClient, shopName, &wg)
 
 	wg.Wait()
+	history.Status = "DONE"
+	history.EndedAt = time.Now()
+	RunServiceHistoryRepository{}.Save(ctx, db, history)
 }
 
 func (s Service[T]) ScrapeProductsList(
@@ -90,15 +100,13 @@ func (s Service[T]) ScrapeProductsList(
 	return c
 }
 
-func (s Service[T]) GetProductsBatch(c chan Products, dsn string) chan Products {
+func (s Service[T]) GetProductsBatch(ctx context.Context, db *bun.DB, c chan Products) chan Products {
 	send := make(chan Products, 100)
 	go func() {
 		defer close(send)
-		ctx := context.Background()
-		conn := CreateDBConnection(dsn)
 
 		for p := range c {
-			dbProduct, err := s.Repo.GetByProductAndShopCodes(ctx, conn, p.getProductAndShopCodes()...)
+			dbProduct, err := s.Repo.GetByProductAndShopCodes(ctx, db, p.getProductAndShopCodes()...)
 			if err != nil {
 				logger.Error("db get product error", err)
 				continue
@@ -138,15 +146,13 @@ func (s Service[T]) ScrapeProduct(
 	return send
 }
 
-func (s Service[T]) SaveProduct(ch chan Products, dsn string) chan IProduct {
+func (s Service[T]) SaveProduct(ctx context.Context, db *bun.DB, ch chan Products) chan IProduct {
 
 	send := make(chan IProduct, 100)
 	go func() {
 		defer close(send)
-		ctx := context.Background()
-		conn := CreateDBConnection(dsn)
 		for p := range ch {
-			err := s.Repo.BulkUpsert(ctx, conn, p)
+			err := s.Repo.BulkUpsert(ctx, db, p)
 			if err != nil {
 				logger.Error("product upsert error", err)
 				continue

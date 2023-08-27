@@ -176,13 +176,13 @@ func TestGetByInterval(t *testing.T) {
 		panic(err)
 	}
 
-	tests := []struct{
-		name string
+	tests := []struct {
+		name     string
 		interval Interval
-		shops []Shop
-		isErr bool
+		shops    []Shop
+		isErr    bool
 	}{{
-		name: "get shop by interval string",
+		name:     "get shop by interval string",
 		interval: daily,
 		shops: []Shop{
 			{ID: "test", SiteName: "site_test", Name: "test", URL: "http://test.com", Interval: "daily"},

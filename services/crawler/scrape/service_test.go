@@ -1,6 +1,7 @@
 package scrape
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/uptrace/bun"
 
 	"crawler/test/util"
 )
@@ -102,10 +104,13 @@ func TestScrapeProductsList(t *testing.T) {
 }
 
 func TestGetProductsBatch(t *testing.T) {
+	db, ctx := util.DatabaseFactory()
+
 	type args struct {
 		service  Service[*Product]
 		products Products
-		DSN      string
+		ctx      context.Context
+		db       *bun.DB
 	}
 	type want struct {
 		products Products
@@ -127,7 +132,8 @@ func TestGetProductsBatch(t *testing.T) {
 				(NewTestProduct("test3", "test3", "http://test.jp", "", "test", 3333)),
 				(NewTestProduct("test4", "test4", "http://test.jp", "", "test", 4444)),
 			},
-			DSN: util.TestDSN(),
+			ctx: ctx,
+			db:  db,
 		},
 		want: want{
 			Products{
@@ -148,7 +154,8 @@ func TestGetProductsBatch(t *testing.T) {
 				(NewTestProduct("test22", "test22", "http://test.jp", "", "test", 2222)),
 				(NewTestProduct("test33", "test33", "http://test.jp", "", "test", 3333)),
 			},
-			DSN: util.TestDSN(),
+			ctx: ctx,
+			db:  db,
 		},
 		want: want{
 			Products{
@@ -159,15 +166,14 @@ func TestGetProductsBatch(t *testing.T) {
 		},
 	}}
 
-	conn, ctx := util.DatabaseFactory()
-	conn.ResetModel(ctx, (*Product)(nil))
+	db.ResetModel(ctx, (*Product)(nil))
 	ps := Products{
 		(NewTestProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
 		(NewTestProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
 		(NewTestProduct("test3", "test3", "http://test.jp", "3333", "test", 3333)),
 		(NewTestProduct("test4", "test4", "http://test.jp", "4444", "test", 4444)),
 	}
-	ProductRepository[*Product]{}.BulkUpsert(ctx, conn, ps)
+	ProductRepository[*Product]{}.BulkUpsert(ctx, db, ps)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
@@ -175,7 +181,7 @@ func TestGetProductsBatch(t *testing.T) {
 			ch <- tt.args.products
 			close(ch)
 
-			c := tt.args.service.GetProductsBatch(ch, tt.args.DSN)
+			c := tt.args.service.GetProductsBatch(tt.args.ctx, tt.args.db, ch)
 
 			assert.Equal(t, tt.want.products, <-c)
 		})
@@ -232,10 +238,13 @@ func TestScrapeProduct(t *testing.T) {
 }
 
 func TestSaveProduct(t *testing.T) {
+	db, ctx := util.DatabaseFactory()
+
 	type args struct {
 		service  Service[*Product]
 		products Products
-		DSN      string
+		ctx      context.Context
+		db       *bun.DB
 	}
 	type want struct {
 		products Products
@@ -254,7 +263,8 @@ func TestSaveProduct(t *testing.T) {
 				(NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
 				(NewTestProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
 			},
-			DSN: util.TestDSN(),
+			ctx: ctx,
+			db:  db,
 		},
 		want: want{
 			products: Products{
@@ -271,7 +281,7 @@ func TestSaveProduct(t *testing.T) {
 			ch <- tt.args.products
 			close(ch)
 
-			c := tt.args.service.SaveProduct(ch, tt.args.DSN)
+			c := tt.args.service.SaveProduct(tt.args.ctx, tt.args.db, ch)
 
 			var products Products
 			for p := range c {

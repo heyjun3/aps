@@ -66,7 +66,7 @@ const (
 	weekly
 )
 
-func (i Interval) String() string{
+func (i Interval) String() string {
 	switch i {
 	case daily:
 		return "daily"
