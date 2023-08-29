@@ -35,7 +35,7 @@ async def request(method: str, url: str, params: dict=None, headers: dict=None, 
         async with aiohttp.request(method, url, params=params, headers=headers, json=body) as response:
             response_json = await response.json()
             logger.info(response.status)
-            if response.status == 200 and response is not None or response.status == 400:
+            if (200 <= response.status < 300) and response is not None or response.status == 400:
                 response_json = await response.json()
                 return response_json
             elif response.status == 429:
