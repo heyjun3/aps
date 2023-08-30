@@ -28,6 +28,9 @@ class FeedsAPI(SPAPI):
     
     async def create_feed(self, feed_type: str, document_id: str) -> dict:
         return await self._request(partial(self._create_feed, feed_type, document_id))
+    
+    async def get_feed(self, feed_id: str) -> dict:
+        return await self._request(partial(self._get_feed, feed_id))
 
     def _create_feed_document(self, content_type: str, encoding: str = 'UTF-8') -> dict:
         logger.info({'action': '_create_feed_document', 'status': 'run'})
@@ -58,3 +61,13 @@ class FeedsAPI(SPAPI):
 
         logger.info({'action': '_create_feed', 'status': 'done'})
         return (method, url, None, body)
+    
+    def _get_feed(self, feed_id: str) -> tuple:
+        logger.info({'action': '_get_feed', 'status': 'run'})
+
+        method = 'GET'
+        path = f'/feeds/2021-06-30/feeds/{feed_id}'
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
+
+        logger.info({'action': '_get_feed', 'status': 'done'})
+        return (method, url, None, None)
