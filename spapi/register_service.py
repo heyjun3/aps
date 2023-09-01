@@ -101,7 +101,8 @@ class RegisterService(object):
         res = await self.feed_client.create_feed_document('text/tsv', 'UTF-8')
 
         logger.info({'action': '_register_points', 'send_tsv': send_tsv})
-        requests.put(res['url'], data=send_tsv, headers={'content-type': 'text/tsv; charset=UTF-8'})
+        requests.put(res['url'], data=send_tsv, headers={
+                     'content-type': 'text/tsv; charset=UTF-8'})
 
         r = await self.feed_client.create_feed('POST_FLAT_FILE_OFFER_POINTS_PREFERENCE_DATA', res['feedDocumentId'])
         while True:
