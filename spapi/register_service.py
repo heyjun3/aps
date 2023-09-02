@@ -88,6 +88,12 @@ class RegisterService(object):
             if cell:
                 add.delete_row(cell.row)
 
+        point_record = [[record.get('SKU'), record.get('POINT')] for record in records if record.get(
+            'FNSKU') is not None and record.get('POINT') is not None]
+
+        if point_record:
+            self._register_points(point_record)
+
         logger.info({"action": "check_registerd", "status": "done"})
 
     async def _register_points(self, items: list[list]):
