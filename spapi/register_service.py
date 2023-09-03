@@ -92,7 +92,7 @@ class RegisterService(object):
             'FNSKU') is not None and record.get('POINT') is not None]
 
         if point_record:
-            self._register_points(point_record)
+            await self._register_points(point_record)
 
         logger.info({"action": "check_registerd", "status": "done"})
 
