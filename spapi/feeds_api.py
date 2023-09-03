@@ -29,13 +29,6 @@ class FeedsAPI(SPAPI):
     def __init__(self) -> None:
         super().__init__()
 
-    async def upload_feed(self, url: str, filename: str, file: StringIO, content_type: str) -> Response:
-        access_token = await self.get_spapi_access_token()
-        headers = self.create_authorization_headers(access_token, 'POST', url)
-        res = requests.post(url, headers=headers, files={
-                            'file': (filename, file, content_type)})
-        return res
-
     @logger_decorator_with_response
     async def create_feed_document(self, content_type: str, encoding: str):
         return await self._request(partial(self._create_feed_document, content_type, encoding))
