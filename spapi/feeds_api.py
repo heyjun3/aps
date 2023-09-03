@@ -1,10 +1,7 @@
 import urllib.parse
 from functools import partial
-from io import StringIO
 from typing import Callable
 
-import requests
-from requests import Response
 
 import settings
 import log_settings
@@ -13,15 +10,17 @@ from spapi.spapi import SPAPI
 logger = log_settings.get_logger(__name__)
 
 
-def logger_decorator_with_response(func: Callable) -> Callable:
-    async def _logger_decorator(self, *args, **kwargs):
-        logger.info({'action': func.__name__, 'status': 'run',
-                    'args': args, 'kwargs': kwargs})
-        result = await func(self, *args, **kwargs)
-        logger.info({'action': func.__name__,
-                    'status': 'done', 'response': result})
-        return result
-    return _logger_decorator
+def async_logger(logger) -> Callable:
+    def _inner(func: Callable) -> Callable:
+        async def _logger_decorator(self, *args, **kwargs):
+            logger.info({'action': func.__name__, 'status': 'run',
+                        'args': args, 'kwargs': kwargs})
+            result = await func(self, *args, **kwargs)
+            logger.info({'action': func.__name__,
+                        'status': 'done', 'response': result})
+            return result
+        return _logger_decorator
+    return _inner
 
 
 class FeedsAPI(SPAPI):
@@ -29,19 +28,19 @@ class FeedsAPI(SPAPI):
     def __init__(self) -> None:
         super().__init__()
 
-    @logger_decorator_with_response
+    @async_logger(logger)
     async def create_feed_document(self, content_type: str, encoding: str):
         return await self._request(partial(self._create_feed_document, content_type, encoding))
 
-    @logger_decorator_with_response
+    @async_logger(logger)
     async def create_feed(self, feed_type: str, document_id: str) -> dict:
         return await self._request(partial(self._create_feed, feed_type, document_id))
 
-    @logger_decorator_with_response
+    @async_logger(logger)
     async def get_feed(self, feed_id: str) -> dict:
         return await self._request(partial(self._get_feed, feed_id))
 
-    @logger_decorator_with_response
+    @async_logger(logger)
     async def get_feed_document(self, document_id: str) -> dict:
         return await self._request(partial(self._get_feed_document, document_id))
 
