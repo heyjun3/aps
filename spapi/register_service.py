@@ -96,6 +96,7 @@ class RegisterService(object):
 
         logger.info({"action": "check_registerd", "status": "done"})
 
+    # INFO show spapi feeds usecase page
     async def _register_points(self, items: list[list]):
         logger.info({'action': '_register_points', 'status': 'run'})
         header = ['sku', 'points_percent']
