@@ -1,26 +1,13 @@
 import urllib.parse
 from functools import partial
-from typing import Callable
 
 
 import settings
 import log_settings
 from spapi.spapi import SPAPI
+from spapi.utils import async_logger
 
 logger = log_settings.get_logger(__name__)
-
-
-def async_logger(logger) -> Callable:
-    def _inner(func: Callable) -> Callable:
-        async def _logger_decorator(self, *args, **kwargs):
-            logger.info({'action': func.__name__, 'status': 'run',
-                        'args': args, 'kwargs': kwargs})
-            result = await func(self, *args, **kwargs)
-            logger.info({'action': func.__name__,
-                        'status': 'done', 'response': result})
-            return result
-        return _logger_decorator
-    return _inner
 
 
 class FeedsAPI(SPAPI):
