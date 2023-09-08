@@ -15,7 +15,7 @@ import (
 
 const (
 	scheme = "https"
-	host = "www.pc-bomber.co.jp"
+	host   = "www.pc-bomber.co.jp"
 )
 
 type BomberParser struct{}
@@ -28,12 +28,12 @@ func (p BomberParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scra
 	}
 
 	var products scrape.Products
-	doc.Find(".pane-main .block-thumbnail-h--goods .js-enhanced-ecommerce-item").Each(func(i int, s *goquery.Selection) {
+	doc.Find(".pane-main .block-thumbnail-h--goods.js-enhanced-ecommerce-item").Each(func(i int, s *goquery.Selection) {
 		nameElem := s.Find(".js-enhanced-ecommerce-goods-name")
 		name := nameElem.Text()
 		path, exist := nameElem.Attr("href")
 		URL, err := url.Parse(path)
-		if !exist || err != nil{
+		if !exist || err != nil {
 			logger.Info("not found url", "name", name, "error", err)
 			return
 		}
