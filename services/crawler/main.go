@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"crawler/ark"
+	"crawler/bomber"
 	"crawler/config"
 	"crawler/hikaritv"
 	"crawler/ikebe"
@@ -20,6 +21,7 @@ import (
 func init() {
 	models := []interface{}{
 		&ark.ArkProduct{},
+		&bomber.BomberProduct{},
 		&hikaritv.HikaritvProduct{},
 		&ikebe.IkebeProduct{},
 		&kaago.KaagoProduct{},
@@ -56,6 +58,8 @@ func main() {
 	switch {
 	case shop == "ark" && url != "":
 		ark.NewScrapeService().StartScrape(url, shop)
+	case shop == "bomber" && url != "":
+		bomber.NewScrapeService().StartScrape(url, shop)
 	case shop == "hikaritv" && url != "":
 		hikaritv.NewScrapeService().StartScrape(url, shop)
 	case shop == "ikebe" && url != "":

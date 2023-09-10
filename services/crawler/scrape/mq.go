@@ -2,6 +2,7 @@ package scrape
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -46,7 +47,6 @@ func (mq MQClient) createMQConnection() (*amqp.Channel, *amqp.Connection, error)
 
 func (mq MQClient) CreateConsumer() (<-chan amqp.Delivery, *amqp.Channel, error) {
 	ch, _, err := mq.createMQConnection()
-
 	if err != nil {
 		ch.Close()
 		return nil, nil, err
@@ -61,19 +61,30 @@ func (mq MQClient) CreateConsumer() (<-chan amqp.Delivery, *amqp.Channel, error)
 }
 
 func (mq MQClient) Publish(message []byte) error {
-	ch, conn, err := mq.createMQConnection()
-	defer conn.Close()
-	defer ch.Close()
 
-	if err != nil {
-		logger.Error("create connection error", err)
-		return err
+	for i := 0; i < 10; i++ {
+		err := func() error {
+			ch, conn, err := mq.createMQConnection()
+			defer conn.Close()
+			defer ch.Close()
+
+			if err != nil {
+				logger.Error("create connection error", err)
+				return err
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+			defer cancel()
+
+			err = ch.PublishWithContext(ctx, "", mq.queueName, false, false, amqp.Publishing{ContentType: "text/plain", Body: message})
+			return err
+		}()
+		if err != nil {
+			logger.Warn("message publish error retrying", "count", i)
+			continue
+		}
+		return nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	err = ch.PublishWithContext(ctx, "", mq.queueName, false, false, amqp.Publishing{ContentType: "text/plain", Body: message})
-	return err
+	return fmt.Errorf("message publish error")
 }
 
 func MoveMessages(srcQueue, dstQueue string) {
