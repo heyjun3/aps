@@ -60,7 +60,29 @@ func (p BomberParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scra
 		}
 		products = append(products, product)
 	})
-	return products, req
+
+	nextReq, err := p.parseNextPageURL(doc)
+	if err != nil {
+		logger.Error("failed parse next page url", err)
+		return products, nil
+	}
+
+	return products, nextReq
+}
+
+func (p BomberParser) parseNextPageURL(doc *goquery.Document) (*http.Request, error) {
+	path, exist := doc.Find(".pager-next a").Attr("href")
+	if !exist {
+		return nil, fmt.Errorf("not found next page url")
+	}
+	URL, err := url.Parse(path)
+	if err != nil {
+		return nil, err
+	}
+	URL.Scheme = scheme
+	URL.Host = host
+
+	return http.NewRequest("GET", URL.String(), nil)
 }
 
 func (p BomberParser) Product(r io.ReadCloser) (string, error) {
