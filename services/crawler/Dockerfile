@@ -1,4 +1,4 @@
-FROM golang:1.19.4 AS builder
+FROM golang:1.21.1-bookworm AS builder
 
 ARG APP_PATH
 WORKDIR /app
