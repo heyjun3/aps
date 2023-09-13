@@ -3,6 +3,7 @@ module crawler
 go 1.19
 
 require (
+	connectrpc.com/connect v1.11.1
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/google/uuid v1.3.1
 	github.com/rabbitmq/amqp091-go v1.6.1
@@ -13,6 +14,7 @@ require (
 	github.com/uptrace/bun/extra/bundebug v1.1.14
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
 	golang.org/x/text v0.12.0
+	google.golang.org/protobuf v1.31.0
 )
 
 require (

@@ -6,6 +6,6 @@ WORKDIR /app
 COPY ${APP_PATH}/ /app/
 RUN go build -o go-crawler
 
-FROM gcr.io/distroless/base-debian11:latest
+FROM gcr.io/distroless/base-debian12:latest
 WORKDIR /app
 COPY --from=builder /app/go-crawler /app/go-crawler
