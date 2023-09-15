@@ -13,6 +13,7 @@ require (
 	github.com/uptrace/bun/driver/pgdriver v1.1.14
 	github.com/uptrace/bun/extra/bundebug v1.1.14
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
+	golang.org/x/net v0.10.0
 	golang.org/x/text v0.12.0
 	google.golang.org/protobuf v1.31.0
 )
@@ -30,7 +31,6 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	golang.org/x/crypto v0.12.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	mellium.im/sasl v0.3.1 // indirect
