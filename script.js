@@ -1,30 +1,20 @@
-async function scrollBottom(count=100, intervalSec=500) {
+async function scrollBottom(count=100, intervalSec=1000) {
     for(let i = 0; i < count; i++) {
         window.scrollTo(0, document.documentElement.scrollHeight);
         await new Promise((resolve, reject) => setTimeout(resolve, intervalSec))
     }
 }
 
-async function openTab(url, intervalSec = 250) {
+async function openTab(url, intervalSec = 500) {
     const tab = window.open(url, '_blank');
     await new Promise((resolve, reject) => setTimeout(resolve, intervalSec))
-    return tab
+    tab.close()
+    await new Promise((resolve, reject) => setTimeout(resolve, intervalSec))
 }
 
 async function main() {
     const elems = document.querySelectorAll('.link-area.needsclick.append-anchor')
-    const tabs = []
     for (const elem of elems) {
-        const tab = await openTab(elem.href)
-        if (tab) {
-            tabs.push(tab)
-        }
-        if (tabs.length > 10) {
-            tabs.map((tab) => tab.close())
-            tabs.splice(0)
-        }
+        await openTab(elem.href)
     }
-    tabs.map((tab) => tab.close());
 }
-
-main();
