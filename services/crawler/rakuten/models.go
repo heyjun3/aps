@@ -42,13 +42,13 @@ type Shop struct {
 
 type ShopRepository struct{}
 
-func (r ShopRepository) Save(db *bun.DB, ctx context.Context, shops []Shop) error {
+func (r ShopRepository) Save(db *bun.DB, ctx context.Context, shops []*Shop) error {
 	_, err := db.NewInsert().Model(&shops).Exec(ctx)
 	return err
 }
 
-func (r ShopRepository) GetAll(db *bun.DB, ctx context.Context) ([]Shop, error) {
-	shops := []Shop{}
+func (r ShopRepository) GetAll(db *bun.DB, ctx context.Context) ([]*Shop, error) {
+	shops := []*Shop{}
 	err := db.NewSelect().Model(&shops).Scan(ctx)
 	return shops, err
 }

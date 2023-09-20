@@ -93,7 +93,7 @@ func TestShopSave(t *testing.T) {
 	repo := ShopRepository{}
 
 	type args struct {
-		shops []Shop
+		shops []*Shop
 	}
 	tests := []struct {
 		name  string
@@ -102,7 +102,7 @@ func TestShopSave(t *testing.T) {
 	}{{
 		name: "save shops",
 		args: args{
-			shops: []Shop{
+			shops: []*Shop{
 				{ID: "test", SiteName: "site_test", Name: "test", URL: "http://test.com"},
 				{ID: "test1", SiteName: "site_test", Name: "test", URL: "http://test.com"},
 			},
@@ -129,7 +129,7 @@ func TestShopGetAll(t *testing.T) {
 		panic(err)
 	}
 	repo := ShopRepository{}
-	shops := []Shop{
+	shops := []*Shop{
 		{ID: "test", SiteName: "site_test", Name: "test", URL: "http://test.com"},
 		{ID: "test1", SiteName: "site_test", Name: "test", URL: "http://test.com"},
 	}
@@ -140,7 +140,7 @@ func TestShopGetAll(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		shops []Shop
+		shops []*Shop
 		isErr bool
 	}{{
 		"get all shops",
@@ -167,7 +167,7 @@ func TestGetByInterval(t *testing.T) {
 		panic(err)
 	}
 	repo := ShopRepository{}
-	shops := []Shop{
+	shops := []*Shop{
 		{ID: "test", SiteName: "site_test", Name: "test", URL: "http://test.com", Interval: "daily"},
 		{ID: "test1", SiteName: "site_test", Name: "test", URL: "http://test.com", Interval: "weekly"},
 	}
