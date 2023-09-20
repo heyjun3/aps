@@ -35,11 +35,14 @@ const (
 const (
 	// ShopServiceShopListProcedure is the fully-qualified name of the ShopService's ShopList RPC.
 	ShopServiceShopListProcedure = "/shop.v1.ShopService/ShopList"
+	// ShopServiceCreateShopProcedure is the fully-qualified name of the ShopService's CreateShop RPC.
+	ShopServiceCreateShopProcedure = "/shop.v1.ShopService/CreateShop"
 )
 
 // ShopServiceClient is a client for the shop.v1.ShopService service.
 type ShopServiceClient interface {
 	ShopList(context.Context, *connect.Request[v1.ShopListRequest]) (*connect.Response[v1.ShopListResponse], error)
+	CreateShop(context.Context, *connect.Request[v1.CreateShopRequest]) (*connect.Response[v1.CreateShopResponse], error)
 }
 
 // NewShopServiceClient constructs a client for the shop.v1.ShopService service. By default, it uses
@@ -57,12 +60,18 @@ func NewShopServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			baseURL+ShopServiceShopListProcedure,
 			opts...,
 		),
+		createShop: connect.NewClient[v1.CreateShopRequest, v1.CreateShopResponse](
+			httpClient,
+			baseURL+ShopServiceCreateShopProcedure,
+			opts...,
+		),
 	}
 }
 
 // shopServiceClient implements ShopServiceClient.
 type shopServiceClient struct {
-	shopList *connect.Client[v1.ShopListRequest, v1.ShopListResponse]
+	shopList   *connect.Client[v1.ShopListRequest, v1.ShopListResponse]
+	createShop *connect.Client[v1.CreateShopRequest, v1.CreateShopResponse]
 }
 
 // ShopList calls shop.v1.ShopService.ShopList.
@@ -70,9 +79,15 @@ func (c *shopServiceClient) ShopList(ctx context.Context, req *connect.Request[v
 	return c.shopList.CallUnary(ctx, req)
 }
 
+// CreateShop calls shop.v1.ShopService.CreateShop.
+func (c *shopServiceClient) CreateShop(ctx context.Context, req *connect.Request[v1.CreateShopRequest]) (*connect.Response[v1.CreateShopResponse], error) {
+	return c.createShop.CallUnary(ctx, req)
+}
+
 // ShopServiceHandler is an implementation of the shop.v1.ShopService service.
 type ShopServiceHandler interface {
 	ShopList(context.Context, *connect.Request[v1.ShopListRequest]) (*connect.Response[v1.ShopListResponse], error)
+	CreateShop(context.Context, *connect.Request[v1.CreateShopRequest]) (*connect.Response[v1.CreateShopResponse], error)
 }
 
 // NewShopServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -86,10 +101,17 @@ func NewShopServiceHandler(svc ShopServiceHandler, opts ...connect.HandlerOption
 		svc.ShopList,
 		opts...,
 	)
+	shopServiceCreateShopHandler := connect.NewUnaryHandler(
+		ShopServiceCreateShopProcedure,
+		svc.CreateShop,
+		opts...,
+	)
 	return "/shop.v1.ShopService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ShopServiceShopListProcedure:
 			shopServiceShopListHandler.ServeHTTP(w, r)
+		case ShopServiceCreateShopProcedure:
+			shopServiceCreateShopHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -101,4 +123,8 @@ type UnimplementedShopServiceHandler struct{}
 
 func (UnimplementedShopServiceHandler) ShopList(context.Context, *connect.Request[v1.ShopListRequest]) (*connect.Response[v1.ShopListResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shop.v1.ShopService.ShopList is not implemented"))
+}
+
+func (UnimplementedShopServiceHandler) CreateShop(context.Context, *connect.Request[v1.CreateShopRequest]) (*connect.Response[v1.CreateShopResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shop.v1.ShopService.CreateShop is not implemented"))
 }

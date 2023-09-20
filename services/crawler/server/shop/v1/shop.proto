@@ -26,6 +26,15 @@ message ShopListResponse {
     Shops shops = 1;
 }
 
+message CreateShopRequest {
+    repeated Shop shop = 1;
+}
+
+message CreateShopResponse {
+    repeated Shop shop = 1;
+}
+
 service ShopService {
     rpc ShopList(ShopListRequest) returns (ShopListResponse) {}
+    rpc CreateShop(CreateShopRequest) returns (CreateShopResponse) {}
 }

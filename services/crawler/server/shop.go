@@ -34,3 +34,7 @@ func (s *ShopServer) ShopList(ctx context.Context, req *connect.Request[shopv1.S
 	logger.Info("ShopList", "status", "done")
 	return res, nil
 }
+
+func (s *ShopServer) CreateShop(ctx context.Context, req *connect.Request[shopv1.CreateShopRequest]) (*connect.Response[shopv1.CreateShopResponse], error) {
+	return nil, nil
+}
