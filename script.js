@@ -1,4 +1,4 @@
-async function scrollBottom(count=100, intervalSec=1000) {
+async function scrollBottom(count=100, intervalSec=2000) {
     for(let i = 0; i < count; i++) {
         window.scrollTo(0, document.documentElement.scrollHeight);
         await new Promise((resolve, reject) => setTimeout(resolve, intervalSec))
