@@ -45,7 +45,7 @@ func (s *ShopServer) ShopList(ctx context.Context, req *connect.Request[shopv1.S
 }
 
 func (s *ShopServer) CreateShop(ctx context.Context, req *connect.Request[shopv1.CreateShopRequest]) (*connect.Response[shopv1.CreateShopResponse], error) {
-	logger.Info("CreateShop", "args", req.Msg.Shop)
+	logger.Info("CreateShop", "status", "run", "args", req.Msg.Shop)
 	shops := convertShopv1ShopsIntoShops(req.Msg.Shop)
 	repo := rakuten.ShopRepository{}
 	err := repo.Save(db, ctx, shops)
@@ -55,5 +55,6 @@ func (s *ShopServer) CreateShop(ctx context.Context, req *connect.Request[shopv1
 	res := connect.NewResponse(&shopv1.CreateShopResponse{
 		Shop: req.Msg.Shop,
 	})
+	logger.Info("CreateShop", "status", "done")
 	return res, nil
 }
