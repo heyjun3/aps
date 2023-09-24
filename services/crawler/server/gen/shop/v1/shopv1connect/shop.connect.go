@@ -37,12 +37,15 @@ const (
 	ShopServiceShopListProcedure = "/shop.v1.ShopService/ShopList"
 	// ShopServiceCreateShopProcedure is the fully-qualified name of the ShopService's CreateShop RPC.
 	ShopServiceCreateShopProcedure = "/shop.v1.ShopService/CreateShop"
+	// ShopServiceDeleteShopProcedure is the fully-qualified name of the ShopService's DeleteShop RPC.
+	ShopServiceDeleteShopProcedure = "/shop.v1.ShopService/DeleteShop"
 )
 
 // ShopServiceClient is a client for the shop.v1.ShopService service.
 type ShopServiceClient interface {
 	ShopList(context.Context, *connect.Request[v1.ShopListRequest]) (*connect.Response[v1.ShopListResponse], error)
 	CreateShop(context.Context, *connect.Request[v1.CreateShopRequest]) (*connect.Response[v1.CreateShopResponse], error)
+	DeleteShop(context.Context, *connect.Request[v1.DeleteShopRequest]) (*connect.Response[v1.DeleteShopResponse], error)
 }
 
 // NewShopServiceClient constructs a client for the shop.v1.ShopService service. By default, it uses
@@ -65,6 +68,11 @@ func NewShopServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			baseURL+ShopServiceCreateShopProcedure,
 			opts...,
 		),
+		deleteShop: connect.NewClient[v1.DeleteShopRequest, v1.DeleteShopResponse](
+			httpClient,
+			baseURL+ShopServiceDeleteShopProcedure,
+			opts...,
+		),
 	}
 }
 
@@ -72,6 +80,7 @@ func NewShopServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 type shopServiceClient struct {
 	shopList   *connect.Client[v1.ShopListRequest, v1.ShopListResponse]
 	createShop *connect.Client[v1.CreateShopRequest, v1.CreateShopResponse]
+	deleteShop *connect.Client[v1.DeleteShopRequest, v1.DeleteShopResponse]
 }
 
 // ShopList calls shop.v1.ShopService.ShopList.
@@ -84,10 +93,16 @@ func (c *shopServiceClient) CreateShop(ctx context.Context, req *connect.Request
 	return c.createShop.CallUnary(ctx, req)
 }
 
+// DeleteShop calls shop.v1.ShopService.DeleteShop.
+func (c *shopServiceClient) DeleteShop(ctx context.Context, req *connect.Request[v1.DeleteShopRequest]) (*connect.Response[v1.DeleteShopResponse], error) {
+	return c.deleteShop.CallUnary(ctx, req)
+}
+
 // ShopServiceHandler is an implementation of the shop.v1.ShopService service.
 type ShopServiceHandler interface {
 	ShopList(context.Context, *connect.Request[v1.ShopListRequest]) (*connect.Response[v1.ShopListResponse], error)
 	CreateShop(context.Context, *connect.Request[v1.CreateShopRequest]) (*connect.Response[v1.CreateShopResponse], error)
+	DeleteShop(context.Context, *connect.Request[v1.DeleteShopRequest]) (*connect.Response[v1.DeleteShopResponse], error)
 }
 
 // NewShopServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -106,12 +121,19 @@ func NewShopServiceHandler(svc ShopServiceHandler, opts ...connect.HandlerOption
 		svc.CreateShop,
 		opts...,
 	)
+	shopServiceDeleteShopHandler := connect.NewUnaryHandler(
+		ShopServiceDeleteShopProcedure,
+		svc.DeleteShop,
+		opts...,
+	)
 	return "/shop.v1.ShopService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ShopServiceShopListProcedure:
 			shopServiceShopListHandler.ServeHTTP(w, r)
 		case ShopServiceCreateShopProcedure:
 			shopServiceCreateShopHandler.ServeHTTP(w, r)
+		case ShopServiceDeleteShopProcedure:
+			shopServiceDeleteShopHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -127,4 +149,8 @@ func (UnimplementedShopServiceHandler) ShopList(context.Context, *connect.Reques
 
 func (UnimplementedShopServiceHandler) CreateShop(context.Context, *connect.Request[v1.CreateShopRequest]) (*connect.Response[v1.CreateShopResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shop.v1.ShopService.CreateShop is not implemented"))
+}
+
+func (UnimplementedShopServiceHandler) DeleteShop(context.Context, *connect.Request[v1.DeleteShopRequest]) (*connect.Response[v1.DeleteShopResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shop.v1.ShopService.DeleteShop is not implemented"))
 }

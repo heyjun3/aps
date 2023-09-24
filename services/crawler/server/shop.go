@@ -58,3 +58,7 @@ func (s *ShopServer) CreateShop(ctx context.Context, req *connect.Request[shopv1
 	logger.Info("CreateShop", "status", "done")
 	return res, nil
 }
+
+func (s *ShopServer) DeleteShop(ctx context.Context, req *connect.Request[shopv1.DeleteShopRequest]) (*connect.Response[shopv1.DeleteShopResponse], error) {
+	return nil, nil
+}
