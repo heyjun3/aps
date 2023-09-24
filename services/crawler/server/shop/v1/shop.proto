@@ -27,19 +27,19 @@ message ShopListResponse {
 }
 
 message CreateShopRequest {
-    repeated Shop shop = 1;
+    Shops shops = 1;
 }
 
 message CreateShopResponse {
-    repeated Shop shop = 1;
+    Shops shops = 1;
 }
 
 message DeleteShopRequest {
-    repeated string id = 1;
+    repeated string ids = 1;
 }
 
 message DeleteShopResponse {
-    repeated Shop shop = 1;
+    Shops shops = 1;
 }
 
 service ShopService {

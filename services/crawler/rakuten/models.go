@@ -59,6 +59,11 @@ func (r ShopRepository) GetByInterval(db *bun.DB, ctx context.Context, interval 
 	return shops, err
 }
 
+func (r ShopRepository) DeleteShops(ctx context.Context, db *bun.DB, shops []*Shop) error {
+	_, err := db.NewDelete().Model(&shops).WherePK().Exec(ctx)
+	return err
+}
+
 type Interval int
 
 const (

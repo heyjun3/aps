@@ -19,8 +19,10 @@ func main() {
 	res, err := client.CreateShop(
 		context.Background(),
 		connect.NewRequest(&shopv1.CreateShopRequest{
-			Shop: []*shopv1.Shop{
-				{Id: "test", SiteName: "test", Name: "test", Url: "http://test.com", Interval: "daily"},
+			Shops: &shopv1.Shops{
+				Shop: []*shopv1.Shop{
+					{Id: "test", SiteName: "test", Name: "test", Url: "http://test.com", Interval: "daily"},
+				},
 			},
 		}),
 	)

@@ -45,20 +45,35 @@ func (s *ShopServer) ShopList(ctx context.Context, req *connect.Request[shopv1.S
 }
 
 func (s *ShopServer) CreateShop(ctx context.Context, req *connect.Request[shopv1.CreateShopRequest]) (*connect.Response[shopv1.CreateShopResponse], error) {
-	logger.Info("CreateShop", "status", "run", "args", req.Msg.Shop)
-	shops := convertShopv1ShopsIntoShops(req.Msg.Shop)
+	logger.Info("CreateShop", "status", "run", "args", req.Msg.Shops)
+	shops := convertShopv1ShopsIntoShops(req.Msg.Shops.GetShop())
 	repo := rakuten.ShopRepository{}
 	err := repo.Save(db, ctx, shops)
 	if err != nil {
 		return nil, err
 	}
 	res := connect.NewResponse(&shopv1.CreateShopResponse{
-		Shop: req.Msg.Shop,
+		Shops: req.Msg.Shops,
 	})
 	logger.Info("CreateShop", "status", "done")
 	return res, nil
 }
 
 func (s *ShopServer) DeleteShop(ctx context.Context, req *connect.Request[shopv1.DeleteShopRequest]) (*connect.Response[shopv1.DeleteShopResponse], error) {
-	return nil, nil
+	logger.Info("DeleteShop", "status", "run", "args", req.Msg.Ids)
+	shops := []*rakuten.Shop{}
+	for _, id := range req.Msg.Ids {
+		shops = append(shops, &rakuten.Shop{ID: id})
+	}
+	repo := rakuten.ShopRepository{}
+	err := repo.DeleteShops(context.Background(), db, shops)
+	if err != nil {
+		return nil, err
+	}
+	res := connect.NewResponse(&shopv1.DeleteShopResponse{
+		Shops: convertShopsIntoShopv1Shops(shops),
+	})
+
+	logger.Info("DeleteShop", "status", "done")
+	return res, nil
 }
