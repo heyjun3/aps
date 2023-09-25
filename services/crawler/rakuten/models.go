@@ -2,6 +2,7 @@ package rakuten
 
 import (
 	"context"
+	"strings"
 
 	"github.com/uptrace/bun"
 
@@ -43,7 +44,16 @@ type Shop struct {
 type ShopRepository struct{}
 
 func (r ShopRepository) Save(db *bun.DB, ctx context.Context, shops []*Shop) error {
-	_, err := db.NewInsert().Model(&shops).Exec(ctx)
+	_, err := db.NewInsert().
+		Model(&shops).
+		On("CONFLICT (id) DO UPDATE").
+		Set(strings.Join([]string{
+			"site_name = EXCLUDED.site_name",
+			"name = EXCLUDED.name",
+			"url = EXCLUDED.url",
+			"interval = EXCLUDED.interval",
+		}, ",")).
+		Exec(ctx)
 	return err
 }
 
