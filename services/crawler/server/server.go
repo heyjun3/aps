@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 
+	"connectrpc.com/connect"
 	"github.com/uptrace/bun"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -21,11 +22,10 @@ func init() {
 }
 
 func StartServer() {
-	greeter := &GreetServer{}
-	shopServer := &ShopServer{}
+	interceptors := connect.WithInterceptors(NewLoggerInterceptor())
 
-	greetPath, greetHandler := greetv1connect.NewGreetServiceHandler(greeter)
-	shopPath, shopHandler := shopv1connect.NewShopServiceHandler(shopServer)
+	greetPath, greetHandler := greetv1connect.NewGreetServiceHandler(&GreetServer{}, interceptors)
+	shopPath, shopHandler := shopv1connect.NewShopServiceHandler(&ShopServer{}, interceptors)
 
 	mux := http.NewServeMux()
 	mux.Handle(greetPath, greetHandler)
