@@ -3,6 +3,7 @@ package scrape
 import (
 	"context"
 	"reflect"
+	"strings"
 
 	"github.com/uptrace/bun"
 )
@@ -57,12 +58,12 @@ func (p ProductRepository[T]) BulkUpsert(ctx context.Context, db *bun.DB, ps Pro
 	_, err := db.NewInsert().
 		Model(&products).
 		On("CONFLICT (shop_code, product_code) DO UPDATE").
-		Set(`
-			name = EXCLUDED.name,
-			jan = EXCLUDED.jan,
-			price = EXCLUDED.price,
-			url = EXCLUDED.url
-		`).
+		Set(strings.Join([]string{
+			"name = EXCLUDED.name",
+			"jan = EXCLUDED.jan",
+			"price = EXCLUDED.price",
+			"url = EXCLUDED.url",
+		}, ",")).
 		Returning("NULL").
 		Exec(ctx)
 

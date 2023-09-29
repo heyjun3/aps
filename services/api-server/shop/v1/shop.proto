@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package shop.v1;
+
+option go_package = "crawler/server/gen/shop/v1;shopv1";
+
+import "google/protobuf/empty.proto";
+
+message Shop {
+    string id = 1;
+    string site_name = 2;
+    string name = 3;
+    string url = 4;
+    string interval = 5;
+}
+
+message Shops {
+    repeated Shop shop = 1;
+}
+
+message ShopListRequest {
+    google.protobuf.Empty empty = 1;
+}
+
+message ShopListResponse {
+    Shops shops = 1;
+}
+
+message CreateShopRequest {
+    Shops shops = 1;
+}
+
+message CreateShopResponse {
+    Shops shops = 1;
+}
+
+message DeleteShopRequest {
+    repeated string ids = 1;
+}
+
+message DeleteShopResponse {
+    Shops shops = 1;
+}
+
+service ShopService {
+    rpc ShopList(ShopListRequest) returns (ShopListResponse) {}
+    rpc CreateShop(CreateShopRequest) returns (CreateShopResponse) {}
+    rpc DeleteShop(DeleteShopRequest) returns (DeleteShopResponse) {}
+}

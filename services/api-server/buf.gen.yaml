@@ -1,0 +1,12 @@
+version: v1
+plugins:
+  - plugin: go
+    out: shop/gen
+    opt: 
+      - paths=source_relative
+      - Mshop/v1/shop.proto=api-server/shop/gen/shop/v1
+  - plugin: connect-go
+    out: shop/gen
+    opt: 
+      - paths=source_relative
+      - Mshop/v1/shop.proto=api-server/shop/gen/shop/v1
