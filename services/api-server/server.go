@@ -5,6 +5,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"api-server/handler"
+	"api-server/shop"
 )
 
 func main() {
@@ -17,5 +18,7 @@ func main() {
 	e.GET("/api/counts", handler.GetStatusCounts)
 	e.GET("/api/chart_list/:filename", handler.GetCharts)
 	e.DELETE("/api/deleteFile/:filename", handler.DeleteProducts)
+
+	e.GET("/api/shops", shop.GetShops)
 	e.Logger.Fatal(e.Start(":5000"))
 }
