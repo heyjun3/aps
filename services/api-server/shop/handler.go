@@ -34,3 +34,23 @@ func GetShops(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, res.Msg.GetShops())
 }
+
+func CreateShop(c echo.Context) error {
+	shops := shopv1.Shops{}
+	if err := c.Bind(&shops); err != nil {
+		slog.Error("bad request", "detail", err, "request body", c.Request().Body)
+		return c.JSON(http.StatusBadRequest, "bad request")
+	}
+	slog.Info("req body", c.Request().Body)
+	slog.Info("shops", shops.Shop)
+
+	res, err := client.CreateShop(context.Background(), connect.NewRequest(&shopv1.CreateShopRequest{
+		Shops: &shops,
+	}))
+	if err != nil {
+		slog.Error("failed create shop", "detail", err)
+		return c.JSON(http.StatusInternalServerError, "internal server error")
+	}
+	slog.Info("success create shop", "response", res.Msg)
+	return c.JSON(http.StatusOK, nil)
+}

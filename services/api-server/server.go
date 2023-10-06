@@ -20,5 +20,6 @@ func main() {
 	e.DELETE("/api/deleteFile/:filename", handler.DeleteProducts)
 
 	e.GET("/api/shops", shop.GetShops)
+	e.POST("/api/shops", shop.CreateShop)
 	e.Logger.Fatal(e.Start(":5000"))
 }
