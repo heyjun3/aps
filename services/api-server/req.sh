@@ -1,1 +1,1 @@
-curl -X POST -H "Content-Type application/json" -d '{"shop": [{"id": "test", "site_name": "test", "name": "test", "url": "http://", "interval": "daily"}]}' http://localhost:5000/api/shops
+curl -X POST http://localhost:5000/api/shops -H "Content-Type: application/json" -d '{"shop": [{"id": "test", "site_name": "test", "name": "", "url": "http://yahoo.co.jp", "interval": "daily"}]}'
