@@ -7,8 +7,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	shopv1 "crawler/server/gen/shop/v1"
-	"crawler/server/gen/shop/v1/shopv1connect"
+	shopv1 "api-server/shop/gen/shop/v1"
+	"api-server/shop/gen/shop/v1/shopv1connect"
 )
 
 func main() {
