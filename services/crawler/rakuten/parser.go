@@ -37,13 +37,14 @@ func (p RakutenParser) ProductList(r io.ReadCloser, u string) (scrape.Products, 
 	var price int64
 	var products scrape.Products
 	doc.Find(".dui-card.searchresultitem").Each(func(i int, s *goquery.Selection) {
-		name := s.Find(".title-link--3Ho6z").Text()
+		itemBoxElem := s.Find(".title-link--3Ho6z")
+		name := itemBoxElem.Text()
 		if name == "" {
 			logger.Info("Not Found product name")
 			return
 		}
 
-		path, exist := s.Find(".image a").Attr("href")
+		path, exist := itemBoxElem.Attr("href")
 		URL, err := url.Parse(path)
 		if !exist || err != nil {
 			logger.Info("Not Found url", "name", name)
