@@ -11,7 +11,6 @@ import (
 
 	"api-server/handler"
 	"api-server/shop"
-	shopv1 "api-server/shop/gen/shop/v1"
 )
 
 type CustomValidator struct { 
@@ -33,13 +32,8 @@ func main() {
 	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
 		fmt.Fprintf(os.Stdout, "Reqest Body %v\n", string(reqBody))
 	}))
-	rules := map[string]string{
-		"Name": "isdefault",
-	}
 	validate := validator.New()
-	validate.RegisterStructValidationMapRules(map[string]string{"Shops": "required"}, shopv1.Shops{})
-	validate.RegisterStructValidationMapRules(rules, shopv1.Shop{})
-	e.Validator = &CustomValidator{validator: validate}
+	e.Validator = &CustomValidator{validator: shop.AddValidateRules(validate)}
 
 	e.GET("/api/list", handler.GetFilenames)
 	e.GET("/api/counts", handler.GetStatusCounts)
@@ -48,5 +42,6 @@ func main() {
 
 	e.GET("/api/shops", shop.GetShops)
 	e.POST("/api/shops", shop.CreateShop)
+	e.DELETE("/api/shops", shop.DeleteShop)
 	e.Logger.Fatal(e.Start(":5000"))
 }
