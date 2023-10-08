@@ -73,7 +73,7 @@ func CreateShop(c echo.Context) error {
 
 func DeleteShop(c echo.Context) error {
 	type Ids struct {
-		Id []string `json:"ids" validate:"required"`
+		Id []string `json:"ids" validate:"required,min=1"`
 	}
 	ids := new(Ids)
 	if err := c.Bind(ids); err != nil {

@@ -13,7 +13,7 @@ import (
 	"api-server/shop"
 )
 
-type CustomValidator struct { 
+type CustomValidator struct {
 	validator *validator.Validate
 }
 
