@@ -30,7 +30,9 @@ func main() {
 		AllowOrigins: []string{"http://localhost:3000"},
 	}))
 	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
-		fmt.Fprintf(os.Stdout, "Reqest Body %v\n", string(reqBody))
+		if c.Request().Method == http.MethodPost {
+			fmt.Fprintf(os.Stdout, "Reqest Body %v\n", string(reqBody))
+		}
 	}))
 	validate := validator.New()
 	e.Validator = &CustomValidator{validator: shop.AddValidateRules(validate)}
