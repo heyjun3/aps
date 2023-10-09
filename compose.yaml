@@ -218,6 +218,7 @@ services:
     environment:
       - TZ=Asia/Tokyo
       - DB_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/${POSTGRES_DB}?sslmode=disable
+      - SHOP_SERVICE_URL=http://go-crawler:8080
     command: /app/server
     depends_on:
       - postgresql-server
