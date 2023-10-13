@@ -7,7 +7,6 @@ import {
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import Button from "@mui/material/Button";
 import AddIcon from "@mui/icons-material/Add";
-import { v4 as uuidv4 } from "uuid";
 import config from "../config";
 
 const EditToolbar = (props) => {
@@ -16,12 +15,13 @@ const EditToolbar = (props) => {
   const handleClick = () => {
     setRows((oldRows) => [
       {
-        randomId: uuidv4(),
+        randomId: "aa",
         id: "",
         site_name: "",
         name: "",
         interval: "",
         url: "",
+        isNew: true,
       },
       ...oldRows,
     ]);
@@ -40,7 +40,14 @@ export const Shops = () => {
   const [rows, setRows] = useState([]);
 
   const handleDeleteClick = (id) => () => {
-    setRows(rows.filter((row) => row.id !== id));
+    console.log(id)
+    setRows(rows.filter((row) => row.randomId !== id));
+  };
+
+  const processRowUpdate = (newRow) => {
+    const updateRow = { ...newRow, isNew: false };
+    setRows(rows.map((row) => (row.randomId === newRow.randomId ? updateRow : row)));
+    return updateRow;
   };
 
   const columns = [
@@ -67,12 +74,13 @@ export const Shops = () => {
       headerName: "Actions",
       width: 100,
       cellClassName: "actions",
-      getActions: ({ id }) => {
+      getActions: ({ randomId }) => {
+        console.log(randomId)
         return [
           <GridActionsCellItem
             icon={<DeleteIcon />}
             label="Delete"
-            onClick={handleDeleteClick(id)}
+            onClick={handleDeleteClick(randomId)}
             color="inherit"
           />,
         ];
@@ -105,6 +113,7 @@ export const Shops = () => {
         }}
         disableRowSelectionOnClick={true}
         editMode="row"
+        processRowUpdate={processRowUpdate}
       />
     </div>
   );
