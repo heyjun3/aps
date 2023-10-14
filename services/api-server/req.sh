@@ -1,1 +1,2 @@
-curl -X POST http://localhost:5000/api/shops -H "Content-Type: application/json" -d '{"shop": [{"id": "test", "site_name": "test", "name": "", "url": "http://yahoo.co.jp", "interval": "daily"}]}'
+curl -X POST http://localhost:5000/api/shops -H "Content-Type: application/json" -d '{"shop": [{"id": "test", "site_name": "test", "name": "test", "url": "http://yahoo.co.jp", "interval": "daily"}]}'
+# curl -X DELETE http://localhost:5000/api/shops -H "Content-Type: application/json" -d '{"ids": ["", "test"]}'

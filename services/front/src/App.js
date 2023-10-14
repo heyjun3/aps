@@ -7,6 +7,7 @@ import CustomizedInputBase from './components/Search'
 import ApiFecth from './components/ApiFetch';
 import ChartLists from './components/ChartLists'
 import Dashboard from './components/Dashboard';
+import { Shops } from './components/Shop';
 
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/chartList/*" element={<ChartLists />} />
           <Route path="/" element={<CustomizedInputBase />} />
           <Route path="/dashboard" element={<Dashboard/>} />
+          <Route path="/shops" element={<Shops/>} />
         </Routes>
       </BrowserRouter>
     </div>
