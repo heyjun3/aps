@@ -40,6 +40,7 @@ services:
       - DB_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/${POSTGRES_DB}?sslmode=disable
       - TEST_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/test?sslmode=disable
       - MQ_DSN=amqp://${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:5672
+      - HOST=crawler_dev
     entrypoint: tail -f /dev/null
     volumes: 
       - ./services/crawler:/go/src
