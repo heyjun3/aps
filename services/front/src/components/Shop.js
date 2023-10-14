@@ -15,7 +15,6 @@ const EditToolbar = (props) => {
   const handleClick = () => {
     setRows((oldRows) => [
       {
-        randomId: "aa",
         id: "",
         site_name: "",
         name: "",
@@ -39,14 +38,43 @@ const EditToolbar = (props) => {
 export const Shops = () => {
   const [rows, setRows] = useState([]);
 
-  const handleDeleteClick = (id) => () => {
-    console.log(id)
-    setRows(rows.filter((row) => row.randomId !== id));
+  const handleDeleteClick = (id) => async () => {
+    setRows(rows.filter((row) => row.id !== id));
+    const reqBody = { ids: [id] };
+    const res = await fetch(`${config.fqdn}/api/shops`, {
+      method: "DELETE",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(reqBody),
+    });
+    const data = await res.json();
+    if (data != null) {
+      console.warn(data);
+    }
   };
 
-  const processRowUpdate = (newRow) => {
+  const processRowUpdate = async (newRow) => {
     const updateRow = { ...newRow, isNew: false };
-    setRows(rows.map((row) => (row.randomId === newRow.randomId ? updateRow : row)));
+    setRows(
+      rows.map((row) =>
+        row.id === "" ? updateRow : row.id === newRow.id ? updateRow : row
+      )
+    );
+
+    const reqBody = { shop: [updateRow] };
+    const res = await fetch(`${config.fqdn}/api/shops`, {
+      method: "POST",
+      mode: "cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(reqBody),
+    });
+    const body = await res.json();
+    if (body != null) {
+      console.warn(body);
+      return;
+    }
     return updateRow;
   };
 
@@ -74,13 +102,12 @@ export const Shops = () => {
       headerName: "Actions",
       width: 100,
       cellClassName: "actions",
-      getActions: ({ randomId }) => {
-        console.log(randomId)
+      getActions: ({ id }) => {
         return [
           <GridActionsCellItem
             icon={<DeleteIcon />}
             label="Delete"
-            onClick={handleDeleteClick(randomId)}
+            onClick={handleDeleteClick(id)}
             color="inherit"
           />,
         ];
