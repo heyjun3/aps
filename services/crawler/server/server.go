@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 
 	"connectrpc.com/connect"
@@ -32,7 +33,7 @@ func StartServer() {
 	mux.Handle(shopPath, shopHandler)
 
 	http.ListenAndServe(
-		"crawler_dev:8080",
+		fmt.Sprintf("%s:%s", config.Host, "8080"),
 		h2c.NewHandler(mux, &http2.Server{}),
 	)
 }
