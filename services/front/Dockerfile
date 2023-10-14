@@ -5,7 +5,7 @@ ARG APP_PATH
 WORKDIR /app
 
 COPY "${APP_PATH}package*" /app/
-RUN npm install -g npm@8.19.1 && npm install --force
+RUN npm install -g npm@8.19.1 && npm install
 
 COPY "${APP_PATH}" /app/
 RUN npm run build
