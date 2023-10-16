@@ -173,6 +173,9 @@ class SPAPI(object):
 
     async def get_competitive_pricing(self, asin_list: List[str], item_type: str='Asin') -> dict:
         return await self._request(partial(self._get_competitive_pricing, asin_list, item_type))
+    
+    async def get_listing_offers(self, sku: str, item_condition: str = 'New') -> dict:
+        return await self._request(partial(self._get_listing_offers, sku, item_condition))
 
     async def get_item_offers(self, asin: str, item_condition: str='New') -> dict:
         return await self._request(partial(self._get_item_offers, asin, item_condition))
@@ -222,10 +225,11 @@ class SPAPI(object):
         path = '/products/pricing/v0/price'
         url = urllib.parse.urljoin(settings.ENDPOINT, path)
         query = {
-            'Asins': ','.join(asin_list),
+            'Asins' if item_type == 'asin' else 'Skus': ','.join(asin_list),
             'ItemType': item_type,
             'MarketplaceId': self.marketplace_id,
         }
+        logger.info(query)
         body = None
 
         return (method, url, query, body)
@@ -244,6 +248,21 @@ class SPAPI(object):
         body = None
 
         logger.info('action=get_competitive_pricing status=done')
+        return (method, url, query, body)
+    
+    def _get_listing_offers(self, sku: str, item_condition: str = 'New'):
+        logger.info('action=get_listing_offers status=run')
+
+        method = 'GET'
+        path = f'/products/pricing/v0/listings/{sku}/offers'
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
+        query = {
+            'MarketplaceId': self.marketplace_id,
+            'ItemCondition': item_condition,
+        }
+        body = None
+
+        logger.info('action=get_listing_offers status=done')
         return (method, url, query, body)
 
     def _get_item_offers(self, asin: str, item_condition: str='New') -> tuple[str, str, dict, None]:
