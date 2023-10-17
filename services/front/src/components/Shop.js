@@ -8,6 +8,7 @@ import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import Button from "@mui/material/Button";
 import AddIcon from "@mui/icons-material/Add";
 import config from "../config";
+import { Link } from "@mui/material";
 
 const EditToolbar = (props) => {
   const { setRows } = props;
@@ -34,6 +35,15 @@ const EditToolbar = (props) => {
     </GridToolbarContainer>
   );
 };
+
+const RenderLink = (props) => {
+  const {value} = props
+  return (
+    <Link tabIndex={props.tabIndex} href={value} target="_blank">
+      {value}
+    </Link>
+  )
+}
 
 export const Shops = () => {
   const [rows, setRows] = useState([]);
@@ -93,8 +103,9 @@ export const Shops = () => {
     {
       field: "url",
       headerName: "URL",
-      width: 300,
+      flex: 1,
       editable: true,
+      renderCell: RenderLink,
     },
     {
       field: "actions",
