@@ -45,6 +45,17 @@ const RenderName = (props) => {
   );
 };
 
+const RenderLowest = (props) => {
+  const { price, point } = props.value;
+  return (
+    <div>
+      price: {price}
+      <br />
+      point: {point}
+    </div>
+  );
+};
+
 export const Items = () => {
   const [rows, setRows] = useState([]);
 
@@ -59,6 +70,8 @@ export const Items = () => {
         },
         price: 30000,
         point: 3000,
+        lowest: { price: 300000, point: 3000 },
+        update: '2023/01/01'
       },
     ];
     setRows(rows);
@@ -118,9 +131,26 @@ export const Items = () => {
       width: 100,
       flex: 1,
       renderCell: RenderName,
+      aggregable: false,
     },
-    { field: "price", headerName: "Price", width: 100, editable: true },
-    { field: "point", headerName: "Point", width: 100, editable: true },
+    {
+      field: "price",
+      headerName: "Price",
+      width: 90,
+      editable: true,
+    },
+    { field: "point", headerName: "Point", width: 90, editable: true },
+    {
+      field: "lowest",
+      headerName: "Lowest",
+      width: 120,
+      renderCell: RenderLowest,
+    },
+    {
+      field: "update",
+      headerName: "Update",
+      width: 120,
+    },
     // {
     //   field: "actions",
     //   type: "actions",
