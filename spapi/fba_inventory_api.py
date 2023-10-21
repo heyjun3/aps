@@ -18,34 +18,34 @@ class FBAInventoryAPI(SPAPI):
         return await self._request(partial(self._fba_inventory_api_v1, skus))
 
     def _fba_inventory_api_v1(self, skus: List[str]) -> tuple:
-       logger.info({"action": "_fba_inventory_api_v1", "status": "run"})
+        logger.info({"action": "_fba_inventory_api_v1", "status": "run"})
 
-       method = "GET"
-       path = "/fba/inventory/v1/summaries"
-       url = urljoin(settings.ENDPOINT, path)
-       query = {
-           "details": "true",
-           "granularityType": "Marketplace",
-           "granularityId": self.marketplace_id,
-           "sellerSkus": ','.join(skus),
-           "marketplaceIds": self.marketplace_id,
-       }
+        method = "GET"
+        path = "/fba/inventory/v1/summaries"
+        url = urljoin(settings.ENDPOINT, path)
+        query = {
+            "details": "true",
+            "granularityType": "Marketplace",
+            "granularityId": self.marketplace_id,
+            "sellerSkus": ','.join(skus),
+            "marketplaceIds": self.marketplace_id,
+        }
 
-       logger.info({"action": "_fba_inventory_api_v1", "status": "run"})
-       return (method, url, query, None)
+        logger.info({"action": "_fba_inventory_api_v1", "status": "run"})
+        return (method, url, query, None)
 
 
 class FBAInventoryAPIParser(object):
 
     @staticmethod
-    def parse_fba_inventory_api_v1(res: dict) -> List[dict]|None:
+    def parse_fba_inventory_api_v1(res: dict) -> List[dict] | None:
         logger.info({"action": "parse_fba_inventory_api_v1", "status": "run"})
 
         items = res.get("payload", {}).get("inventorySummaries")
         if items is None:
             logger.error({"message": "Not Founc inventory summaries"})
             return
-        
+
         products = []
         for item in items:
             sku = item.get("sellerSku")

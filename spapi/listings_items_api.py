@@ -1,7 +1,6 @@
 import urllib.parse
 import time
-from typing import List
-from functools import partial
+from typing import Callable
 
 import aiohttp
 
@@ -18,26 +17,27 @@ class ListingsItemsAPI(SPAPI):
     def __init__(self) -> None:
         super().__init__()
 
-    async def create_new_sku(self, *args, **kwargs):
-        return await self._request(*self._patch_listings_item(*args, **kwargs))
-    
-    async def get_listing_item(self, *args, **kwargs):
-        return await self._request(*self._get_listing_item(*args, **kwargs))
-    
-    async def _request(self, method, url, query, body, retry: int=3, interval_sec: int=2) -> dict:
+    async def _request(self, method, url, query, body, retry: int = 3, interval_sec: int = 2) -> dict:
         token = await self.get_spapi_access_token()
-        headers = self.create_authorization_headers(token, method, url, query, body)
+        headers = self.create_authorization_headers(
+            token, method, url, query, body)
 
         for _ in range(retry):
             async with aiohttp.request(method, url, params=query, headers=headers, json=body) as res:
                 result = await res.json()
                 if res.status == 200:
                     return result
-                
+
                 logger.error({"action": "ListingsItemsAPI request", "message": "request failed",
                               "status_code": res.status, "value": result})
                 time.sleep(interval_sec)
         return {}
+
+    async def create_new_sku(self, *args, **kwargs):
+        return await self._request(*self._patch_listings_item(*args, **kwargs))
+
+    async def get_listing_item(self, *args, **kwargs):
+        return await self._request(*self._get_listing_item(*args, **kwargs))
 
     def _get_listing_item(self, sku: str) -> dict:
         logger.info({'action': 'get_listing_item', 'status': 'run'})
@@ -54,9 +54,9 @@ class ListingsItemsAPI(SPAPI):
         logger.info({'action': 'get_listing_item', 'status': 'done'})
         return (method, url, query, None)
 
-    def _patch_listings_item(self, sku: str, price: float, asin: str, 
-                                  condition_note: str, product_type: str='PRODUCT', 
-                                  condition_type: str='new_new') -> dict:
+    def _patch_listings_item(self, sku: str, price: float, asin: str,
+                             condition_note: str, product_type: str = 'PRODUCT',
+                             condition_type: str = 'new_new') -> dict:
         logger.info({'action': 'patch_listings_item', 'status': 'run'})
 
         method = 'PATCH'
@@ -137,7 +137,7 @@ class ListingsItemsAPI(SPAPI):
         logger.info({'action': 'patch_listing_items', 'action': 'done'})
         return (method, url, query, body)
 
-    def _put_listings_item(self, sku: str, asin: str, price: float, condition_type: str='new_new', condition_note: str=None) -> dict:
+    def _put_listings_item(self, sku: str, asin: str, price: float, condition_type: str = 'new_new', condition_note: str = None) -> dict:
         logger.info({'action': 'put_listings_item', 'status': 'run'})
 
         method = 'PUT'
@@ -150,7 +150,7 @@ class ListingsItemsAPI(SPAPI):
         body = {
             'productType': 'SCREEN_PROTECTOR',
             'attributes': {
-                 'purchasable_offer': [{
+                'purchasable_offer': [{
                     'currency': 'JPY',
                     'our_price': [{
                         'schedule': [{
@@ -191,8 +191,9 @@ class ListingsItemsAPI(SPAPI):
         return (method, url, query, body)
 
     def search_definitions_product_types(self) -> tuple:
-        logger.info({'action': 'search_difinitions_product_types', 'status': 'run'})
-        
+        logger.info(
+            {'action': 'search_difinitions_product_types', 'status': 'run'})
+
         method = 'GET'
         path = '/definitions/2020-09-01/productTypes'
         url = urllib.parse.urljoin(settings.ENDPOINT, path)
@@ -201,11 +202,13 @@ class ListingsItemsAPI(SPAPI):
             'marketplaceIds': self.marketplace_id,
         }
 
-        logger.info({'action': 'search_difinitions_product_types', 'status': 'done'})
+        logger.info(
+            {'action': 'search_difinitions_product_types', 'status': 'done'})
         return (method, url, query, None)
 
     async def get_definitinos_product_type(self, product_type: str) -> dict:
-        logger.info({'action': 'get_difinitions_product_type', 'status': 'run'})
+        logger.info(
+            {'action': 'get_difinitions_product_type', 'status': 'run'})
 
         method = 'GET'
         path = f'/definitions/2020-09-01/productTypes/TELEVISION'
@@ -217,5 +220,6 @@ class ListingsItemsAPI(SPAPI):
 
         response = await self.request(method, url, query)
 
-        logger.info({'action': 'get_difinitions_product_type', 'status': 'done'})
+        logger.info(
+            {'action': 'get_difinitions_product_type', 'status': 'done'})
         return response
