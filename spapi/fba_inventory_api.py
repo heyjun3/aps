@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 
 import settings
 import log_settings
+from spapi.utils import async_logger
 from spapi.spapi import SPAPI
 
 
@@ -16,6 +17,10 @@ class FBAInventoryAPI(SPAPI):
 
     async def fba_inventory_api_v1(self, skus: List[str]) -> dict:
         return await self._request(partial(self._fba_inventory_api_v1, skus))
+
+    @async_logger(logger)
+    async def get_inventory_summaries(self, next_token: str = '') -> dict:
+        return await self._request(partial(self._get_inventory_summaries, next_token))
 
     def _fba_inventory_api_v1(self, skus: List[str]) -> tuple:
         logger.info({"action": "_fba_inventory_api_v1", "status": "run"})
@@ -32,6 +37,21 @@ class FBAInventoryAPI(SPAPI):
         }
 
         logger.info({"action": "_fba_inventory_api_v1", "status": "run"})
+        return (method, url, query, None)
+
+    def _get_inventory_summaries(self, next_token: str = ''):
+
+        method = 'GET'
+        path = "/fba/inventory/v1/summaries"
+        url = urljoin(settings.ENDPOINT, path)
+        query = {
+            "details": "false",
+            "granularityType": "Marketplace",
+            "granularityId": self.marketplace_id,
+            "marketplaceIds": self.marketplace_id,
+            "nextToken": next_token,
+        }
+
         return (method, url, query, None)
 
 
