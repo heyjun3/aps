@@ -47,7 +47,7 @@ services:
       - DB_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/${POSTGRES_DB}?sslmode=disable
       - TEST_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/test?sslmode=disable
       - SHOP_SERVICE_URL=http://crawler_dev:8080
-      - SPAPI_HOST=spapi-server-dev
+      - SPAPI_SERVICE_URL=http://spapi-server-dev:8000
     entrypoint: tail -f /dev/null
     ports:
      - 5000:5000
