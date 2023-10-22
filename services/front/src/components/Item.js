@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import config from "../config";
+// import config from "../config";
 import { Link } from "@mui/material";
 
 const RenderName = (props) => {
