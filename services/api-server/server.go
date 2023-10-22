@@ -11,6 +11,7 @@ import (
 
 	"api-server/handler"
 	"api-server/shop"
+	"api-server/inventory"
 )
 
 type CustomValidator struct {
@@ -45,5 +46,8 @@ func main() {
 	e.GET("/api/shops", shop.GetShops)
 	e.POST("/api/shops", shop.CreateShop)
 	e.DELETE("/api/shops", shop.DeleteShop)
+
+	e.POST("/api/refresh-inventory", inventory.RefreshInventory)
+
 	e.Logger.Fatal(e.Start(":5000"))
 }
