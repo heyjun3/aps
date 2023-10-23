@@ -31,16 +31,6 @@ type Granularity struct {
 	GranularityId   string `json:"granularityId"`
 }
 
-type Inventory struct {
-	Asin            string `json:"asin"`
-	FnSku           string `json:"fnSku"`
-	SellerSku       string `json:"sellerSku"`
-	Condition       string `json:"condition"`
-	LastUpdatedTime string `json:"lastUpdatedTime"`
-	ProductName     string `json:"productName"`
-	TotalQuantity   int    `json:"totalQuantity"`
-}
-
 type Payload struct {
 	Granularity        Granularity `json:"granularity"`
 	InventorySummaries []Inventory `json:"inventorySummaries"`
