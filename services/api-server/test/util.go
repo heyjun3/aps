@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -23,4 +24,10 @@ func CreateTestDBConnection() *bun.DB {
 	)
 
 	return db
+}
+
+func ResetModel(ctx context.Context, db *bun.DB, model interface{}) {
+	if err := db.ResetModel(ctx, model); err != nil {
+		panic(err)
+	}
 }

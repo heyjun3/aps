@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"api-server/database"
 	"api-server/product"
 )
 
@@ -13,7 +14,7 @@ func main() {
 	if dsn == "" {
 		log.Fatal("db dsn is null")
 	}
-	db := product.OpenDB(dsn)
+	db := database.OpenDB(dsn)
 	repo := product.ProductRepository{DB: db}
 
 	for _, fn := range []func(ctx context.Context) error{repo.RefreshGeneratedColumns, repo.DeleteIfConditionWithKeepa} {

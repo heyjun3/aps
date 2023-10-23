@@ -1,25 +1,38 @@
 package inventory
 
 import (
+	"api-server/database"
+	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 
 	"github.com/labstack/echo/v4"
+	"github.com/uptrace/bun"
 	"golang.org/x/exp/slog"
 )
 
 var SpapiServiceURL string
+var db *bun.DB
+var inventoryRepository InventoryRepository
 
 func init() {
 	SpapiServiceURL = os.Getenv("SPAPI_SERVICE_URL")
 	if SpapiServiceURL == "" {
 		panic(errors.New("don't set SPAPI_SERVICE_URL"))
 	}
+	dsn := os.Getenv("DB_DSN")
+	if dsn == "" {
+		panic(errors.New("don't set DB_DSN"))
+	}
+	db = database.OpenDB(dsn)
+	if err := database.CreateTable(context.Background(), db, &Inventory{}); err != nil {
+		panic(err)
+	}
+	inventoryRepository = InventoryRepository{}
 }
 
 type Pagination struct {
@@ -32,8 +45,8 @@ type Granularity struct {
 }
 
 type Payload struct {
-	Granularity        Granularity `json:"granularity"`
-	InventorySummaries []Inventory `json:"inventorySummaries"`
+	Granularity        Granularity  `json:"granularity"`
+	InventorySummaries []*Inventory `json:"inventorySummaries"`
 }
 
 type InventorySummariesResponse struct {
@@ -72,7 +85,10 @@ func RefreshInventory(c echo.Context) error {
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
-		fmt.Println(res.Payload.InventorySummaries)
+		if err := inventoryRepository.Save(context.Background(), db, res.Payload.InventorySummaries); err != nil {
+			slog.Error("failed save inventories", err)
+			return c.JSON(http.StatusInternalServerError, err)
+		}
 		if nextToken == "" {
 			slog.Info("break loop")
 			break

@@ -8,6 +8,7 @@ import (
 
 	"github.com/uptrace/bun/extra/bundebug"
 
+	"api-server/database"
 	"api-server/product"
 )
 
@@ -16,7 +17,7 @@ func main() {
 	if dsn == "" {
 		log.Fatal("db dsn is null")
 	}
-	db := product.OpenDB(dsn)
+	db := database.OpenDB(dsn)
 	db.AddQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(false), bundebug.WithWriter(os.Stdout)))
 	repo := product.ProductRepository{DB: db}
 

@@ -2,19 +2,11 @@ package product
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/dialect/pgdialect"
-	"github.com/uptrace/bun/driver/pgdriver"
 )
-
-func OpenDB(dsn string) *bun.DB {
-	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn), pgdriver.WithTimeout(60*time.Second)))
-	return bun.NewDB(sqldb, pgdialect.New())
-}
 
 type Product struct {
 	bun.BaseModel `bun:"table:mws_products"`

@@ -10,8 +10,8 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"api-server/handler"
-	"api-server/shop"
 	"api-server/inventory"
+	"api-server/shop"
 )
 
 type CustomValidator struct {
