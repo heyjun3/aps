@@ -30,7 +30,7 @@ func TestProductList(t *testing.T) {
 		},
 		want: want{
 			count: 45,
-			url: "https://search.rakuten.co.jp/search/mall/?p=2&sid=233405",
+			url:   "https://search.rakuten.co.jp/search/mall/?p=2&sid=233405",
 			first: NewTestRakutenProduct(
 				"CORSAIR コルセアCorsair SF750 PLATINUM 750W PC電源ユニット 80PLUS PLATINUM CP-9020186-JP(2476065)代引不可 送料無料",
 				"itm0015775592",
