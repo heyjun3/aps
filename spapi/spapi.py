@@ -16,6 +16,7 @@ import aiohttp
 
 import settings
 import log_settings
+from spapi.utils import async_logger
 
 
 logger = log_settings.get_logger(__name__)
@@ -168,6 +169,7 @@ class SPAPI(object):
     async def get_my_fees_estimate_for_asin(self, asin: str, price: int=10000, is_fba: bool=True) -> dict:
         return await self._request(partial(self._get_my_fees_estimate_for_asin, asin, price, is_fba))
 
+    @async_logger(logger)
     async def get_pricing(self, asin_list: List[str], item_type: str='Asin') -> dict:
         return await self._request(partial(self._get_pricing, asin_list, item_type))
 
@@ -221,6 +223,12 @@ class SPAPI(object):
         return (method, url, query, body)
 
     def _get_pricing(self, asin_list: list, item_type: str='Asin') -> tuple[str, str, dict, None]:
+        if len(asin_list) > 20:
+            raise TooMatchParameterException
+        
+        if not item_type in ['Asin', 'Sku']:
+            raise BadItemTypeException
+
         method = 'GET'
         path = '/products/pricing/v0/price'
         url = urllib.parse.urljoin(settings.ENDPOINT, path)
@@ -631,4 +639,7 @@ class QuotaException(Exception):
     pass
 
 class TooMatchParameterException(Exception):
+    pass
+
+class BadItemTypeException(Exception):
     pass
