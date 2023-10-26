@@ -2,6 +2,11 @@ package inventory
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/uptrace/bun"
 )
@@ -34,4 +39,29 @@ func (i InventoryService) UpdateQuantity(ctx context.Context, db *bun.DB, invent
 		updateInventories = append(updateInventories, inventoryInDB)
 	}
 	return inventoryRepository.Save(ctx, db, updateInventories)
+}
+
+func (i InventoryService) UpdatePricing() error {
+	skus := []string{"4719512109847-N-1756-20231001"}
+	query := url.Values{}
+	query.Set("ids", strings.Join(skus, ","))
+	query.Set("id_type", "Sku")
+	URL, err := url.Parse(SpapiServiceURL)
+	if err != nil {
+		return err
+	}
+	URL.Path = "get-pricing"
+	URL.RawQuery = query.Encode()
+	res, err := http.Get(URL.String())
+	if err != nil {
+		return err
+	}
+
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(body))
+	return nil
 }
