@@ -29,6 +29,21 @@ func (i *Inventory) SetTotalQuantity(quantity int) {
 	i.TotalQuantity = quantity
 }
 
+type Cursor struct {
+	Start string
+	End   string
+}
+
+func NewCursor(inventories []*Inventory) Cursor {
+	if len(inventories) == 0 {
+		return Cursor{}
+	}
+	return Cursor{
+		Start: inventories[0].SellerSku,
+		End:   inventories[len(inventories)-1].SellerSku,
+	}
+}
+
 type InventoryRepository struct{}
 
 func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories []*Inventory) error {
@@ -62,9 +77,25 @@ func (r InventoryRepository) GetAll(ctx context.Context, db *bun.DB) ([]*Invento
 
 func (r InventoryRepository) GetBySellerSKU(ctx context.Context, db *bun.DB, skus []string) ([]*Inventory, error) {
 	var inventories []*Inventory
-	err := db.NewSelect().
+	if err := db.NewSelect().
 		Model(&inventories).
 		Where("seller_sku IN (?)", bun.In(skus)).
-		Scan(ctx)
-	return inventories, err
+		Scan(ctx); err != nil {
+		return nil, err
+	}
+	return inventories, nil
+}
+
+func (r InventoryRepository) GetNextPage(ctx context.Context, db *bun.DB, cursor string, limit int) ([]*Inventory, Cursor, error) {
+	var inventories []*Inventory
+	if err := db.NewSelect().
+		Model(&inventories).
+		Where("seller_sku > ?", cursor).
+		Where("quantity > 0").
+		Order("seller_sku ASC").
+		Limit(limit).
+		Scan(ctx); err != nil {
+		return nil, Cursor{}, err
+	}
+	return inventories, NewCursor(inventories), nil
 }
