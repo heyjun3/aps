@@ -25,22 +25,25 @@ func (i InventoryService) UpdateQuantity(ctx context.Context, db *bun.DB, invent
 	if err != nil {
 		return err
 	}
+	mergeInventories := MergeInventories(inventoriesInDB, inventories, mergeTotalQuantity)
+	return inventoryRepository.Save(ctx, db, mergeInventories)
+}
+
+func MergeInventories(base []*Inventory, merge []*Inventory, fn func(*Inventory, *Inventory) *Inventory) []*Inventory {
 	inventoryMap := make(map[string]*Inventory)
-	for _, inventory := range inventoriesInDB {
+	for _, inventory := range base {
 		inventoryMap[inventory.SellerSku] = inventory
 	}
-
-	updateInventories := []*Inventory{}
-	for _, inventory := range inventories {
-		inventoryInDB := inventoryMap[inventory.SellerSku]
-		if inventoryInDB == nil {
-			updateInventories = append(updateInventories, inventory)
+	mergedInventories := make([]*Inventory, 0, len(merge))
+	for _, inventory := range merge {
+		inventoryForMap := inventoryMap[inventory.SellerSku]
+		if inventoryForMap == nil {
+			mergedInventories = append(mergedInventories, inventory)
 			continue
 		}
-		inventoryInDB.SetTotalQuantity(inventory.TotalQuantity)
-		updateInventories = append(updateInventories, inventoryInDB)
+		mergedInventories = append(mergedInventories, fn(inventoryForMap, inventory))
 	}
-	return inventoryRepository.Save(ctx, db, updateInventories)
+	return mergedInventories
 }
 
 type GetPricingResponse struct {

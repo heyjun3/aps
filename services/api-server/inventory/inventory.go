@@ -25,8 +25,34 @@ type Inventory struct {
 	UpdatedAt       time.Time `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
 }
 
-func (i *Inventory) SetTotalQuantity(quantity int) {
-	i.TotalQuantity = quantity
+func NewInventory(
+	asin, fnSku, sellerSku, condition, lastUpdatedTime, productName string,
+	totalQuantity, price, point, lowestPrice, lowestPoint int,
+) *Inventory {
+	return &Inventory{
+		Asin:            asin,
+		FnSku:           fnSku,
+		SellerSku:       sellerSku,
+		Condition:       condition,
+		LastUpdatedTime: lastUpdatedTime,
+		ProductName:     productName,
+		TotalQuantity:   totalQuantity,
+		Price:           &price,
+		Point:           &point,
+		LowestPrice:     &lowestPrice,
+		LowestPoint:     &lowestPoint,
+	}
+}
+
+func mergeTotalQuantity(base *Inventory, i *Inventory) *Inventory {
+	base.TotalQuantity = i.TotalQuantity
+	return base
+}
+
+func mergePriceAndPoints(base *Inventory, i *Inventory) *Inventory {
+	base.Price = i.Price
+	base.Point = i.Point
+	return base
 }
 
 type Cursor struct {
