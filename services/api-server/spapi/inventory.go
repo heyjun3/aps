@@ -17,13 +17,13 @@ type Granularity struct {
 }
 
 type Inventory struct {
-	Asin            string `json:"asin"`
-	FnSku           string `json:"fnSku"`
-	SellerSku       string `json:"sellerSku"`
-	Condition       string `json:"condition"`
-	LastUpdatedTime string `json:"lastUpdatedTime"`
-	ProductName     string `json:"productName"`
-	TotalQuantity   int    `json:"totalQuantity"`
+	Asin            string `json:"asin" bun:"asin"`
+	FnSku           string `json:"fnSku" bun:"fnsku"`
+	SellerSku       string `json:"sellerSku" bun:"seller_sku,pk"`
+	Condition       string `json:"condition" bun:"condition"`
+	LastUpdatedTime string `json:"lastUpdatedTime" bun:"-"`
+	ProductName     string `json:"productName" bun:"product_name"`
+	TotalQuantity   int    `json:"totalQuantity" bun:"quantity"`
 }
 
 type Payload struct {

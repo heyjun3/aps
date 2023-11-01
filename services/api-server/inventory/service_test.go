@@ -1,19 +1,21 @@
 package inventory
 
 import (
-	"api-server/test"
 	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"api-server/spapi"
+	"api-server/test"
 )
 
 func TestUpdateQuantity(t *testing.T) {
 	db := test.CreateTestDBConnection()
 	test.ResetModel(context.Background(), db, &Inventory{})
 	inventories := []*Inventory{
-		{SellerSku: "sku", TotalQuantity: 0, ProductName: "sku", Price: Ptr[int](100)},
-		{SellerSku: "test", TotalQuantity: 0, ProductName: "test", Price: Ptr[int](200)},
+		{Inventory: &spapi.Inventory{SellerSku: "sku", TotalQuantity: 0, ProductName: "sku"}, Price: Ptr[int](100)},
+		{Inventory: &spapi.Inventory{SellerSku: "test", TotalQuantity: 0, ProductName: "test"}, Price: Ptr[int](200)},
 	}
 	if err := inventoryRepository.Save(context.Background(), db, inventories); err != nil {
 		panic(err)
@@ -27,14 +29,14 @@ func TestUpdateQuantity(t *testing.T) {
 	}{{
 		name: "update quantity",
 		inventories: []*Inventory{
-			{SellerSku: "sku", TotalQuantity: 10},
-			{SellerSku: "test", TotalQuantity: 20},
-			{SellerSku: "test1", TotalQuantity: 20},
+			{Inventory: &spapi.Inventory{SellerSku: "sku", TotalQuantity: 10}},
+			{Inventory: &spapi.Inventory{SellerSku: "test", TotalQuantity: 20}},
+			{Inventory: &spapi.Inventory{SellerSku: "test1", TotalQuantity: 20}},
 		},
 		expectInventories: []*Inventory{
-			{SellerSku: "sku", TotalQuantity: 10, ProductName: "sku", Price: Ptr[int](100)},
-			{SellerSku: "test", TotalQuantity: 20, ProductName: "test", Price: Ptr[int](200)},
-			{SellerSku: "test1", TotalQuantity: 20},
+			{Inventory: &spapi.Inventory{SellerSku: "sku", TotalQuantity: 10, ProductName: "sku"}, Price: Ptr[int](100)},
+			{Inventory: &spapi.Inventory{SellerSku: "test", TotalQuantity: 20, ProductName: "test"}, Price: Ptr[int](200)},
+			{Inventory: &spapi.Inventory{SellerSku: "test1", TotalQuantity: 20}},
 		},
 		wantErr: false,
 	}}

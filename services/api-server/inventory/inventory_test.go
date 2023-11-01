@@ -1,6 +1,7 @@
 package inventory
 
 import (
+	"api-server/spapi"
 	"api-server/test"
 	"context"
 	"fmt"
@@ -22,13 +23,13 @@ func TestSaveInventories(t *testing.T) {
 	}{{
 		name: "save inventories",
 		inventories: []*Inventory{
-			{Asin: "asin", SellerSku: "sku", Condition: "New", Price: Ptr[int](100)},
+			{Inventory: &spapi.Inventory{Asin: "asin", SellerSku: "sku", Condition: "New"}, Price: Ptr[int](100)},
 		},
 		wantErr: false,
 	}, {
 		name: "save inventories",
 		inventories: []*Inventory{
-			{Asin: "asin", SellerSku: "sku", Condition: "New"},
+			{Inventory: &spapi.Inventory{Asin: "asin", SellerSku: "sku", Condition: "New"}},
 		},
 		wantErr: false,
 	}}
@@ -54,8 +55,8 @@ func TestGetBySellerSKU(t *testing.T) {
 	test.ResetModel(context.Background(), db, &Inventory{})
 	repo := InventoryRepository{}
 	inventories := []*Inventory{
-		{SellerSku: "sku", ProductName: "sku"},
-		{SellerSku: "test", ProductName: "test"},
+		{Inventory: &spapi.Inventory{SellerSku: "sku", ProductName: "sku"}},
+		{Inventory: &spapi.Inventory{SellerSku: "test", ProductName: "test"}},
 	}
 	if err := repo.Save(context.Background(), db, inventories); err != nil {
 		panic(err)
@@ -93,7 +94,7 @@ func TestGetNextPage(t *testing.T) {
 	repo := InventoryRepository{}
 	seed := make([]*Inventory, 100)
 	for i := range seed {
-		seed[i] = &Inventory{SellerSku: strconv.Itoa(i + 1), TotalQuantity: 10}
+		seed[i] = &Inventory{Inventory: &spapi.Inventory{SellerSku: strconv.Itoa(i + 1), TotalQuantity: 10}}
 	}
 	if err := repo.Save(context.Background(), db, seed); err != nil {
 		panic(err)
@@ -119,7 +120,7 @@ func TestGetNextPage(t *testing.T) {
 		{
 			name:    "get next page",
 			args:    args{cursor: "10", limit: 20},
-			want:    want{cursor: Cursor{Start: "100", End: "28"}, first: Inventory{SellerSku: "100"}, last: Inventory{SellerSku: "28"}, count: 20},
+			want:    want{cursor: Cursor{Start: "100", End: "28"}, first: Inventory{Inventory: &spapi.Inventory{SellerSku: "100"}}, last: Inventory{Inventory: &spapi.Inventory{SellerSku: "28"}}, count: 20},
 			wantErr: false,
 		},
 		{

@@ -17,4 +17,3 @@ func NewSpapiClient(URL string) (*SpapiClient, error) {
 		URL: u,
 	}, nil
 }
-
