@@ -56,15 +56,6 @@ services:
       - api-server-pkg:/go/pkg
       - api-server-pkg:/go/bin
 
-  # move production
-  # spapi-server-dev:
-  #   build:
-  #     context: .
-  #     dockerfile: ./docker/python/Dockerfile
-  #   container_name: spapi-server-dev
-  #   environment:
-  #     - TZ=Asia/Tokyo
-  #   entrypoint: uvicorn server:app --reload --host spapi-server-dev
   spapi-server-dev:
     build:
       context: .
@@ -74,6 +65,7 @@ services:
       - TZ=Asia/Tokyo
     entrypoint: uvicorn server:app --reload --host spapi-server-dev
     working_dir: /app
+    restart: always
     volumes: 
       - ./:/app
 
