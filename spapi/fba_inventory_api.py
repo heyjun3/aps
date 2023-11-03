@@ -20,7 +20,7 @@ class FBAInventoryAPI(SPAPI):
 
     @async_logger(logger)
     async def get_inventory_summaries(self, next_token: str = '') -> dict:
-        return await self._request(partial(self._get_inventory_summaries, next_token))
+        return await self._request(partial(self._get_inventory_summaries, next_token), backoff=True)
 
     def _fba_inventory_api_v1(self, skus: List[str]) -> tuple:
         logger.info({"action": "_fba_inventory_api_v1", "status": "run"})
