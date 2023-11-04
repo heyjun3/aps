@@ -13,6 +13,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/uptrace/bun"
 
+	"api-server/database"
 	"api-server/product"
 )
 
@@ -49,7 +50,7 @@ func init() {
 	if dsn == "" {
 		log.Fatal("db dsn is null")
 	}
-	db = product.OpenDB(dsn)
+	db = database.OpenDB(dsn)
 	productRepo = product.ProductRepository{DB: db}
 	keepaRepo = product.KeepaRepository{DB: db}
 }

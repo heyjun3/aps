@@ -92,5 +92,7 @@ if __name__ == '__main__':
             asyncio.run(RegisterService(settings.CREDENTIAL_FILE_NAME).start_register("仕入帳_2023", "ADD"))
         case ('spapi', "check"):
             asyncio.run(RegisterService(settings.CREDENTIAL_FILE_NAME).check_registerd("仕入帳_2023", "ADD", "DB"))
+        case ('spapi', "point"):
+            asyncio.run(RegisterService(settings.CREDENTIAL_FILE_NAME).register_points([["4571585642054-B-23980-20231008", 1]]))
         case _:
             sys.stdout.write(f'{task} is not a command')

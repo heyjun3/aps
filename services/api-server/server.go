@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"api-server/handler"
+	"api-server/inventory"
 	"api-server/shop"
 )
 
@@ -45,5 +46,9 @@ func main() {
 	e.GET("/api/shops", shop.GetShops)
 	e.POST("/api/shops", shop.CreateShop)
 	e.DELETE("/api/shops", shop.DeleteShop)
+
+	e.POST("/api/refresh-inventory", inventory.RefreshInventory)
+	e.POST("/api/refresh-pricing", inventory.RefreshPricing)
+
 	e.Logger.Fatal(e.Start(":5000"))
 }

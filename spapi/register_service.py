@@ -92,12 +92,13 @@ class RegisterService(object):
             'FNSKU') is not None and record.get('POINT') is not None]
 
         if point_record:
-            await self._register_points(point_record)
+            await self.register_points(point_record)
 
         logger.info({"action": "check_registerd", "status": "done"})
 
     # INFO show spapi feeds usecase page
-    async def _register_points(self, items: list[list]):
+    # items = [[sku, point(int)]]
+    async def register_points(self, items: list[list]):
         logger.info({'action': '_register_points', 'status': 'run'})
         header = ['sku', 'points_percent']
         rows = [header, *list(filter(lambda x: int(x[1]) <= 100, items))]
@@ -109,7 +110,7 @@ class RegisterService(object):
 
         logger.info({'action': '_register_points', 'send_tsv': send_tsv})
         requests.put(res['url'], data=send_tsv, headers={
-                     'content-type': 'text/tsv; charset=UTF-8'})
+                     'Content-Type': 'text/tsv; charset=UTF-8'})
 
         r = await self.feed_client.create_feed('POST_FLAT_FILE_OFFER_POINTS_PREFERENCE_DATA', res['feedDocumentId'])
         while True:
