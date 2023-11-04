@@ -19,6 +19,7 @@ import (
 var SpapiServiceURL string
 var db *bun.DB
 var inventoryRepository InventoryRepository
+var inventoryService InventoryService
 var spapiClient *spapi.SpapiClient
 
 func init() {
@@ -40,6 +41,7 @@ func init() {
 		panic(err)
 	}
 	inventoryRepository = InventoryRepository{}
+	inventoryService = InventoryService{}
 }
 
 type Pagination struct {
@@ -52,7 +54,7 @@ type Granularity struct {
 }
 
 type Payload struct {
-	Granularity        Granularity  `json:"granularity"`
+	Granularity        Granularity `json:"granularity"`
 	InventorySummaries Inventories `json:"inventorySummaries"`
 }
 
@@ -72,7 +74,7 @@ func RefreshInventory(c echo.Context) error {
 		for _, inventory := range res.Payload.InventorySummaries {
 			inventories = append(inventories, &Inventory{Inventory: inventory})
 		}
-		if err := inventoryRepository.Save(context.Background(), db, inventories); err != nil {
+		if err := inventoryService.UpdateQuantity(context.Background(), db, inventories); err != nil {
 			slog.Error("failed save inventories", err)
 			return c.JSON(http.StatusInternalServerError, err)
 		}
