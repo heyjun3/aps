@@ -1,4 +1,4 @@
-package spapi
+package inventory
 
 import (
 	"encoding/json"
@@ -31,18 +31,18 @@ type Payload struct {
 	InventorySummaries []*Inventory `json:"inventorySummaries"`
 }
 
-type InventorySummariesResponse struct {
+type SummariesResponse struct {
 	Pagination Pagination `json:"pagination"`
 	Payload    Payload    `json:"payload"`
 }
 
-func (c SpapiClient) InventorySummaries(nextToken string) (*InventorySummariesResponse, error) {
+func Summaries(URL *url.URL, nextToken string) (*SummariesResponse, error) {
 	query := url.Values{}
-	query.Set("nest_token", nextToken)
-	c.URL.RawQuery = query.Encode()
-	c.URL.Path = "inventory-summaries"
+	query.Set("next_token", nextToken)
+	URL.RawQuery = query.Encode()
+	URL.Path = "inventory-summaries"
 
-	res, err := http.Get(c.URL.String())
+	res, err := http.Get(URL.String())
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (c SpapiClient) InventorySummaries(nextToken string) (*InventorySummariesRe
 	if err != nil {
 		return nil, err
 	}
-	var response InventorySummariesResponse
+	var response SummariesResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, err
 	}

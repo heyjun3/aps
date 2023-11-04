@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"api-server/spapi"
+	spapi "api-server/spapi/inventory"
 	"api-server/test"
 )
 

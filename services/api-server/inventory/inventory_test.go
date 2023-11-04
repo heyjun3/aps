@@ -1,7 +1,7 @@
 package inventory
 
 import (
-	"api-server/spapi"
+	spapi "api-server/spapi/inventory"
 	"api-server/test"
 	"context"
 	"fmt"
