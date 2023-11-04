@@ -171,7 +171,7 @@ class SPAPI(object):
 
     @async_logger(logger)
     async def get_pricing(self, asin_list: List[str], item_type: str='Asin') -> dict:
-        return await self._request(partial(self._get_pricing, asin_list, item_type))
+        return await self._request(partial(self._get_pricing, asin_list, item_type), backoff=True)
 
     async def get_competitive_pricing(self, asin_list: List[str], item_type: str='Asin') -> dict:
         return await self._request(partial(self._get_competitive_pricing, asin_list, item_type))
@@ -233,7 +233,7 @@ class SPAPI(object):
         path = '/products/pricing/v0/price'
         url = urllib.parse.urljoin(settings.ENDPOINT, path)
         query = {
-            'Asins' if item_type == 'asin' else 'Skus': ','.join(asin_list),
+            'Asins' if item_type == 'Asin' else 'Skus': ','.join(asin_list),
             'ItemType': item_type,
             'MarketplaceId': self.marketplace_id,
         }
