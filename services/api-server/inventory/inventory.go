@@ -52,12 +52,30 @@ func mergePriceAndPoints(base *Inventory, i *Inventory) *Inventory {
 	return base
 }
 
+type Inventories []*Inventory
+
+func (is Inventories) Skus() []string{
+	skus := make([]string, 0, len(is))
+	for _, i := range is {
+		skus = append(skus, i.SellerSku)
+	}
+	return skus
+}
+
+func (is Inventories) Map() map[string]*Inventory {
+	inventoryMap := make(map[string]*Inventory)
+	for _, i := range is {
+		inventoryMap[i.SellerSku] = i
+	}
+	return inventoryMap
+}
+
 type Cursor struct {
 	Start string
 	End   string
 }
 
-func NewCursor(inventories []*Inventory) Cursor {
+func NewCursor(inventories Inventories) Cursor {
 	if len(inventories) == 0 {
 		return Cursor{}
 	}
@@ -69,7 +87,7 @@ func NewCursor(inventories []*Inventory) Cursor {
 
 type InventoryRepository struct{}
 
-func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories []*Inventory) error {
+func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories Inventories) error {
 	_, err := db.NewInsert().
 		Model(&inventories).
 		On("CONFLICT (seller_sku) DO UPDATE").
@@ -89,8 +107,8 @@ func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories [
 	return err
 }
 
-func (r InventoryRepository) GetAll(ctx context.Context, db *bun.DB) ([]*Inventory, error) {
-	var inventories []*Inventory
+func (r InventoryRepository) GetAll(ctx context.Context, db *bun.DB) (Inventories, error) {
+	var inventories Inventories
 	err := db.NewSelect().
 		Model(&inventories).
 		Order("seller_sku").
@@ -98,8 +116,8 @@ func (r InventoryRepository) GetAll(ctx context.Context, db *bun.DB) ([]*Invento
 	return inventories, err
 }
 
-func (r InventoryRepository) GetBySellerSKU(ctx context.Context, db *bun.DB, skus []string) ([]*Inventory, error) {
-	var inventories []*Inventory
+func (r InventoryRepository) GetBySellerSKU(ctx context.Context, db *bun.DB, skus []string) (Inventories, error) {
+	var inventories Inventories
 	if err := db.NewSelect().
 		Model(&inventories).
 		Where("seller_sku IN (?)", bun.In(skus)).
@@ -109,8 +127,8 @@ func (r InventoryRepository) GetBySellerSKU(ctx context.Context, db *bun.DB, sku
 	return inventories, nil
 }
 
-func (r InventoryRepository) GetNextPage(ctx context.Context, db *bun.DB, cursor string, limit int) ([]*Inventory, Cursor, error) {
-	var inventories []*Inventory
+func (r InventoryRepository) GetNextPage(ctx context.Context, db *bun.DB, cursor string, limit int) (Inventories, Cursor, error) {
+	var inventories Inventories
 	if err := db.NewSelect().
 		Model(&inventories).
 		Where("seller_sku > ?", cursor).

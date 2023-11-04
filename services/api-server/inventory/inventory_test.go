@@ -18,17 +18,17 @@ func Ptr[T any](t T) *T {
 func TestSaveInventories(t *testing.T) {
 	tests := []struct {
 		name        string
-		inventories []*Inventory
+		inventories Inventories
 		wantErr     bool
 	}{{
 		name: "save inventories",
-		inventories: []*Inventory{
+		inventories: Inventories{
 			{Inventory: &spapi.Inventory{Asin: "asin", SellerSku: "sku", Condition: "New"}, Price: Ptr[int](100)},
 		},
 		wantErr: false,
 	}, {
 		name: "save inventories",
-		inventories: []*Inventory{
+		inventories: Inventories{
 			{Inventory: &spapi.Inventory{Asin: "asin", SellerSku: "sku", Condition: "New"}},
 		},
 		wantErr: false,
@@ -54,7 +54,7 @@ func TestGetBySellerSKU(t *testing.T) {
 	db := test.CreateTestDBConnection()
 	test.ResetModel(context.Background(), db, &Inventory{})
 	repo := InventoryRepository{}
-	inventories := []*Inventory{
+	inventories := Inventories{
 		{Inventory: &spapi.Inventory{SellerSku: "sku", ProductName: "sku"}},
 		{Inventory: &spapi.Inventory{SellerSku: "test", ProductName: "test"}},
 	}
@@ -65,7 +65,7 @@ func TestGetBySellerSKU(t *testing.T) {
 	tests := []struct {
 		name        string
 		skus        []string
-		inventories []*Inventory
+		inventories Inventories
 		wantErr     bool
 	}{{
 		name:        "get by seller sku",
@@ -92,7 +92,7 @@ func TestGetNextPage(t *testing.T) {
 	db := test.CreateTestDBConnection()
 	test.ResetModel(context.Background(), db, &Inventory{})
 	repo := InventoryRepository{}
-	seed := make([]*Inventory, 100)
+	seed := make(Inventories, 100)
 	for i := range seed {
 		seed[i] = &Inventory{Inventory: &spapi.Inventory{SellerSku: strconv.Itoa(i + 1), TotalQuantity: 10}}
 	}

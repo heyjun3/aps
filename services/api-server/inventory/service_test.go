@@ -13,7 +13,7 @@ import (
 func TestUpdateQuantity(t *testing.T) {
 	db := test.CreateTestDBConnection()
 	test.ResetModel(context.Background(), db, &Inventory{})
-	inventories := []*Inventory{
+	inventories := Inventories{
 		{Inventory: &spapi.Inventory{SellerSku: "sku", TotalQuantity: 0, ProductName: "sku"}, Price: Ptr[int](100)},
 		{Inventory: &spapi.Inventory{SellerSku: "test", TotalQuantity: 0, ProductName: "test"}, Price: Ptr[int](200)},
 	}
@@ -23,17 +23,17 @@ func TestUpdateQuantity(t *testing.T) {
 
 	tests := []struct {
 		name              string
-		inventories       []*Inventory
-		expectInventories []*Inventory
+		inventories       Inventories
+		expectInventories Inventories
 		wantErr           bool
 	}{{
 		name: "update quantity",
-		inventories: []*Inventory{
+		inventories: Inventories{
 			{Inventory: &spapi.Inventory{SellerSku: "sku", TotalQuantity: 10}},
 			{Inventory: &spapi.Inventory{SellerSku: "test", TotalQuantity: 20}},
 			{Inventory: &spapi.Inventory{SellerSku: "test1", TotalQuantity: 20}},
 		},
-		expectInventories: []*Inventory{
+		expectInventories: Inventories{
 			{Inventory: &spapi.Inventory{SellerSku: "sku", TotalQuantity: 10, ProductName: "sku"}, Price: Ptr[int](100)},
 			{Inventory: &spapi.Inventory{SellerSku: "test", TotalQuantity: 20, ProductName: "test"}, Price: Ptr[int](200)},
 			{Inventory: &spapi.Inventory{SellerSku: "test1", TotalQuantity: 20}},

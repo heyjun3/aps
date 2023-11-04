@@ -3,7 +3,6 @@ package inventory
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 
@@ -13,6 +12,7 @@ import (
 
 	"api-server/database"
 	"api-server/spapi"
+	"api-server/spapi/inventory"
 	"api-server/spapi/price"
 )
 
@@ -53,7 +53,7 @@ type Granularity struct {
 
 type Payload struct {
 	Granularity        Granularity  `json:"granularity"`
-	InventorySummaries []*Inventory `json:"inventorySummaries"`
+	InventorySummaries Inventories `json:"inventorySummaries"`
 }
 
 type InventorySummariesResponse struct {
@@ -68,7 +68,7 @@ func RefreshInventory(c echo.Context) error {
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
-		inventories := []*Inventory{}
+		inventories := Inventories{}
 		for _, inventory := range res.Payload.InventorySummaries {
 			inventories = append(inventories, &Inventory{Inventory: inventory})
 		}
@@ -87,7 +87,7 @@ func RefreshInventory(c echo.Context) error {
 }
 
 func RefreshPricing(c echo.Context) error {
-	var inventories []*Inventory
+	var inventories Inventories
 	var cursor Cursor
 	var err error
 	for {
@@ -98,24 +98,27 @@ func RefreshPricing(c echo.Context) error {
 		if len(inventories) == 0 || inventories == nil {
 			return c.JSON(http.StatusOK, "success")
 		}
-		skus := []string{}
-		for _, inventory := range inventories {
-			skus = append(skus, inventory.SellerSku)
-		}
-		res, err := spapiClient.GetPricing(skus, price.Sku)
+
+		res, err := spapiClient.GetPricing(inventories.Skus(), price.Sku)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
+
+		pricing := make(Inventories, 0, len(inventories))
 		for _, payload := range res.Payload {
-			fmt.Println("sku", payload.SellerSKU)
+			inventory := &inventory.Inventory{SellerSku: payload.SellerSKU}
 			offers := payload.Product.Offers
 			if len(offers) == 0 {
-				fmt.Println(payload)
+				pricing = append(pricing, &Inventory{Inventory: inventory})
+				continue
 			}
-			// fmt.Println(offer)
-			// fmt.Println("price", payload.Product.Offers[0].BuyingPrice.ListingPrice.Amount)
-			// fmt.Println("points", payload.Product.Offers[0].BuyingPrice.Points.PointsNumber)
+			price := int(offers[0].BuyingPrice.ListingPrice.Amount)
+			points := int(offers[0].BuyingPrice.Points.PointsNumber)
+			pricing = append(pricing, &Inventory{Price: &price, Point: &points, Inventory: inventory})
 		}
-		return c.JSON(http.StatusOK, "success")
+		mergedInventories := MergeInventories(inventories, pricing, mergePriceAndPoints)
+		if err := inventoryRepository.Save(context.Background(), db, mergedInventories); err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
 	}
 }

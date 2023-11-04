@@ -8,12 +8,8 @@ import (
 
 type InventoryService struct{}
 
-func (i InventoryService) UpdateQuantity(ctx context.Context, db *bun.DB, inventories []*Inventory) error {
-	sellerSkus := []string{}
-	for _, inventory := range inventories {
-		sellerSkus = append(sellerSkus, inventory.SellerSku)
-	}
-
+func (i InventoryService) UpdateQuantity(ctx context.Context, db *bun.DB, inventories Inventories) error {
+	sellerSkus := inventories.Skus()
 	inventoriesInDB, err := inventoryRepository.GetBySellerSKU(ctx, db, sellerSkus)
 	if err != nil {
 		return err
@@ -22,12 +18,9 @@ func (i InventoryService) UpdateQuantity(ctx context.Context, db *bun.DB, invent
 	return inventoryRepository.Save(ctx, db, mergeInventories)
 }
 
-func MergeInventories(dst []*Inventory, src []*Inventory, fn func(*Inventory, *Inventory) *Inventory) []*Inventory {
-	inventoryMap := make(map[string]*Inventory)
-	for _, inventory := range dst {
-		inventoryMap[inventory.SellerSku] = inventory
-	}
-	mergedInventories := make([]*Inventory, 0, len(src))
+func MergeInventories(dst Inventories, src Inventories, fn func(*Inventory, *Inventory) *Inventory) Inventories {
+	inventoryMap := dst.Map()
+	mergedInventories := make(Inventories, 0, len(src))
 	for _, inventory := range src {
 		inventoryForMap := inventoryMap[inventory.SellerSku]
 		if inventoryForMap == nil {
