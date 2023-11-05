@@ -15,8 +15,8 @@ type GetPricingResponse struct {
 }
 
 type Payload struct {
-	Status    string            `json:"status"`
-	SellerSKU string            `json:"SellerSKU"`
+	Status    string  `json:"status"`
+	SellerSKU string  `json:"SellerSKU"`
 	Product   Product `json:"Product"`
 }
 

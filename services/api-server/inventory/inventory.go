@@ -54,7 +54,7 @@ func mergePriceAndPoints(base *Inventory, i *Inventory) *Inventory {
 
 type Inventories []*Inventory
 
-func (is Inventories) Skus() []string{
+func (is Inventories) Skus() []string {
 	skus := make([]string, 0, len(is))
 	for _, i := range is {
 		skus = append(skus, i.SellerSku)

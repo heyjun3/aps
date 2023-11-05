@@ -2,8 +2,8 @@ package main
 
 import (
 	// "api-server/inventory"
-	"fmt"
 	"api-server/spapi"
+	"fmt"
 )
 
 func main() {
