@@ -40,6 +40,8 @@ services:
     build:
       context: .
       dockerfile: ./services/api-server/Dockerfile.local
+      args:
+        APP_PATH: "services/api-server"
     container_name: api-server-dev
     restart: always
     environment:
@@ -48,11 +50,11 @@ services:
       - TEST_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/test?sslmode=disable
       - SHOP_SERVICE_URL=http://crawler_dev:8080
       - SPAPI_SERVICE_URL=http://spapi-server-dev:8000
-    entrypoint: tail -f /dev/null
+    entrypoint: air
     ports:
      - 5000:5000
     volumes:
-      - ./services/api-server:/go/src
+      - ./services/api-server:/app
       - api-server-pkg:/go/pkg
       - api-server-pkg:/go/bin
 
