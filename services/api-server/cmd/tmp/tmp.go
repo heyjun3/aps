@@ -1,14 +1,17 @@
 package main
 
 import (
-	// "api-server/inventory"
-	"api-server/spapi"
-	"fmt"
+	"api-server/database"
+	"api-server/inventory"
+
+	"context"
+	"os"
 )
 
 func main() {
-	// s := inventory.InventoryService{}
-	// s.UpdatePricing()
-	c := spapi.SpapiClient{}
-	fmt.Println(c.URL)
+	dsn := os.Getenv("DB_DSN")
+	db := database.OpenDB(dsn)
+	if err := database.CreateTable(context.Background(), db, &inventory.TmpInventory{CurrentPrice: &inventory.CurrentPrice{}}); err != nil {
+		panic(err)
+	}
 }
