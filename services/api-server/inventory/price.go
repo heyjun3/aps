@@ -15,9 +15,11 @@ type Price struct {
 }
 
 type CurrentPrice struct {
-	bun.BaseModel `bun:"table:prices"`
+	bun.BaseModel `bun:"table:current_prices"`
 	Price
 }
+
+type CurrentPrices []*CurrentPrice
 
 type LowestPrice struct {
 	bun.BaseModel `bun:"table:lowest_prices"`

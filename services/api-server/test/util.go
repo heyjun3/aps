@@ -29,7 +29,7 @@ func init() {
 		log.Fatal(err)
 	}
 	if err := m.Up(); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 }
 
