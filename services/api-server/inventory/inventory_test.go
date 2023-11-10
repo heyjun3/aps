@@ -11,10 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Ptr[T any](t T) *T {
-	return &t
-}
-
 func TestSaveInventories(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -23,13 +19,13 @@ func TestSaveInventories(t *testing.T) {
 	}{{
 		name: "save inventories",
 		inventories: Inventories{
-			{Inventory: &spapi.Inventory{Asin: "asin", SellerSku: "sku", Condition: "New"}, Price: Ptr[int](100)},
+			NewInventory("asin", "fnsku", "sku", "new", "name", 1),
 		},
 		wantErr: false,
 	}, {
 		name: "save inventories",
 		inventories: Inventories{
-			{Inventory: &spapi.Inventory{Asin: "asin", SellerSku: "sku", Condition: "New"}},
+			NewInventory("asin", "fnsku", "sku", "new", "name", 1),
 		},
 		wantErr: false,
 	}}
@@ -55,8 +51,8 @@ func TestGetBySellerSKU(t *testing.T) {
 	test.ResetModel(context.Background(), db, &Inventory{})
 	repo := InventoryRepository{}
 	inventories := Inventories{
-		{Inventory: &spapi.Inventory{SellerSku: "sku", ProductName: "sku"}},
-		{Inventory: &spapi.Inventory{SellerSku: "test", ProductName: "test"}},
+		NewInventory("asin", "fnsku", "sku", "new", "sku", 1),
+		NewInventory("asin", "fnsku", "test", "new", "test", 2),
 	}
 	if err := repo.Save(context.Background(), db, inventories); err != nil {
 		panic(err)
@@ -94,7 +90,7 @@ func TestGetNextPage(t *testing.T) {
 	repo := InventoryRepository{}
 	seed := make(Inventories, 100)
 	for i := range seed {
-		seed[i] = &Inventory{Inventory: &spapi.Inventory{SellerSku: strconv.Itoa(i + 1), TotalQuantity: 10}}
+		seed[i] = NewInventory("asin", "fnsku", strconv.Itoa(i+1), "new", "name", 10)
 	}
 	if err := repo.Save(context.Background(), db, seed); err != nil {
 		panic(err)

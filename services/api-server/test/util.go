@@ -3,18 +3,37 @@ package test
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/uptrace/bun"
 
 	"api-server/database"
 )
 
-func CreateTestDBConnection() *bun.DB {
-	dsn := os.Getenv("TEST_DSN")
+var dsn string
+
+func init() {
+	dsn = os.Getenv("TEST_DSN")
 	if dsn == "" {
 		panic(fmt.Errorf("test database dsn is null"))
 	}
+	m, err := migrate.New(
+		"file://../database/migrations",
+		dsn,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := m.Up(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func CreateTestDBConnection() *bun.DB {
 	return database.OpenDB(dsn)
 }
 

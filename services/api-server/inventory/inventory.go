@@ -1,7 +1,7 @@
 package inventory
 
 import (
-	spapi "api-server/spapi/inventory"
+	inventory "api-server/spapi/inventory"
 	"context"
 	"strings"
 	"time"
@@ -9,47 +9,40 @@ import (
 	"github.com/uptrace/bun"
 )
 
+// type Inventory struct {
+// 	bun.BaseModel `bun:"table:inventories"`
+// 	*spapi.Inventory
+// 	Price       *int      `bun:"price"`
+// 	Point       *int      `bun:"point"`
+// 	LowestPrice *int      `bun:"lowest_price"`
+// 	LowestPoint *int      `bun:"lowest_point"`
+// 	CreatedAt   time.Time `bun:"created_at,nullzero,notnull,default:current_timestamp"`
+// 	UpdatedAt   time.Time `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
+// }
+
 type Inventory struct {
 	bun.BaseModel `bun:"table:inventories"`
-	*spapi.Inventory
-	Price       *int      `bun:"price"`
-	Point       *int      `bun:"point"`
-	LowestPrice *int      `bun:"lowest_price"`
-	LowestPoint *int      `bun:"lowest_point"`
-	CreatedAt   time.Time `bun:"created_at,nullzero,notnull,default:current_timestamp"`
-	UpdatedAt   time.Time `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
+	*inventory.Inventory
+	CurrentPrice *CurrentPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
+	LowestPrice  *LowestPrice  `bun:"rel:has-one,join:seller_sku=seller_sku"`
+	CreatedAt time.Time `bun:"created_at,nullzero,notnull,default:current_timestamp"`
+	UpdatedAt time.Time `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
 }
 
+
 func NewInventory(
-	asin, fnSku, sellerSku, condition, lastUpdatedTime, productName string,
-	totalQuantity, price, point, lowestPrice, lowestPoint int,
+	asin, fnSku, sellerSku, condition, productName string, totalQuantity int,
 ) *Inventory {
 	return &Inventory{
-		Inventory: &spapi.Inventory{
+		Inventory: &inventory.Inventory{
 			Asin:            asin,
 			FnSku:           fnSku,
 			SellerSku:       sellerSku,
 			Condition:       condition,
-			LastUpdatedTime: lastUpdatedTime,
 			ProductName:     productName,
 			TotalQuantity:   totalQuantity,
 		},
-		Price:       &price,
-		Point:       &point,
-		LowestPrice: &lowestPrice,
-		LowestPoint: &lowestPoint,
 	}
-}
-
-func mergeTotalQuantity(base *Inventory, i *Inventory) *Inventory {
-	base.TotalQuantity = i.TotalQuantity
-	return base
-}
-
-func mergePriceAndPoints(base *Inventory, i *Inventory) *Inventory {
-	base.Price = i.Price
-	base.Point = i.Point
-	return base
 }
 
 type Inventories []*Inventory
@@ -97,10 +90,6 @@ func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories I
 			"condition = EXCLUDED.condition",
 			"product_name = EXCLUDED.product_name",
 			"quantity = EXCLUDED.quantity",
-			"price = EXCLUDED.price",
-			"point = EXCLUDED.point",
-			"lowest_price = EXCLUDED.lowest_price",
-			"lowest_point = EXCLUDED.lowest_point",
 			"updated_at = current_timestamp",
 		}, ",")).
 		Exec(ctx)

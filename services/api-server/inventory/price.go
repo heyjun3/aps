@@ -4,8 +4,6 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
-
-	"api-server/spapi/inventory"
 )
 
 type Price struct {
@@ -24,11 +22,4 @@ type CurrentPrice struct {
 type LowestPrice struct {
 	bun.BaseModel `bun:"table:lowest_prices"`
 	Price
-}
-
-type TmpInventory struct {
-	bun.BaseModel `bun:"table:tmp_inventory"`
-	*inventory.Inventory
-	CurrentPrice *CurrentPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
-	LowestPrice  *LowestPrice  `bun:"rel:has-one,join:seller_sku=seller_sku"`
 }
