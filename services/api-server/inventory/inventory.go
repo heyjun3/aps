@@ -2,6 +2,8 @@ package inventory
 
 import (
 	"context"
+	"errors"
+	"reflect"
 	"strings"
 	"time"
 
@@ -9,6 +11,20 @@ import (
 
 	inventory "api-server/spapi/inventory"
 )
+
+func Ptr[T any](v T) *T {
+	return &v
+}
+
+func ValidateNilFieldsOfStruct[T any](value *T) (*T, error) {
+	v := reflect.ValueOf(*value)
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).Interface() == nil {
+			return nil, errors.New("nil field in Struct")
+		}
+	}
+	return value, nil
+}
 
 type Inventory struct {
 	bun.BaseModel `bun:"table:inventories"`
@@ -24,17 +40,35 @@ func NewInventory(
 ) *Inventory {
 	return &Inventory{
 		Inventory: &inventory.Inventory{
-			Asin:          asin,
-			FnSku:         fnSku,
-			SellerSku:     sellerSku,
-			Condition:     condition,
-			ProductName:   productName,
-			TotalQuantity: totalQuantity,
+			Asin:          &asin,
+			FnSku:         &fnSku,
+			SellerSku:     &sellerSku,
+			Condition:     &condition,
+			ProductName:   &productName,
+			TotalQuantity: &totalQuantity,
 		},
 	}
 }
 
+func NewInventoryFromInventory(iv *inventory.Inventory) (*Inventory, error) {
+	value, err := ValidateNilFieldsOfStruct[inventory.Inventory](iv)
+	if err != nil {
+		return nil, err
+	}
+	return &Inventory{
+		Inventory: value,
+	}, err
+}
+
 type Inventories []*Inventory
+
+func (i *Inventories) Skus() []string {
+	skus := make([]string, 0, len(*i))
+	for _, iv := range *i {
+		skus = append(skus, *iv.SellerSku)
+	}
+	return skus
+}
 
 type Cursor struct {
 	Start string
@@ -46,8 +80,8 @@ func NewCursor(inventories Inventories) Cursor {
 		return Cursor{}
 	}
 	return Cursor{
-		Start: inventories[0].SellerSku,
-		End:   inventories[len(inventories)-1].SellerSku,
+		Start: *inventories[0].SellerSku,
+		End:   *inventories[len(inventories)-1].SellerSku,
 	}
 }
 

@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"database/sql"
 	"os"
 	"time"
@@ -19,12 +18,4 @@ func OpenDB(dsn string) *bun.DB {
 		bundebug.NewQueryHook(bundebug.WithVerbose(true), bundebug.WithWriter(os.Stdout)),
 	)
 	return db
-}
-
-func CreateTable(ctx context.Context, db *bun.DB, model interface{}) error {
-	_, err := db.NewCreateTable().
-		Model(model).
-		IfNotExists().
-		Exec(ctx)
-	return err
 }

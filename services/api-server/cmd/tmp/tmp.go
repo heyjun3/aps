@@ -12,7 +12,7 @@ func main() {
 	in := inventory.NewInventory("asin", "fnsku", "sku", "new", "name", 1)
 	in.CurrentPrice = &inventory.CurrentPrice{
 		Price: inventory.Price{
-			Amount: 100,
+			// Amount: 100,
 		},
 	}
 	inventories := inventory.Inventories{

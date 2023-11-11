@@ -2,6 +2,7 @@ package price
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -16,7 +17,7 @@ type GetPricingResponse struct {
 
 type Payload struct {
 	Status    string  `json:"status"`
-	SellerSKU string  `json:"SellerSKU"`
+	SellerSKU *string `json:"SellerSKU"`
 	Product   Product `json:"Product"`
 }
 
@@ -34,12 +35,12 @@ type BuyingPrice struct {
 }
 
 type Price struct {
-	CurrencyCode string  `json:"CurrencyCode"`
-	Amount       float64 `json:"Amount"`
+	CurrencyCode string   `json:"CurrencyCode"`
+	Amount       *float64 `json:"Amount"`
 }
 
 type Points struct {
-	PointsNumber int64 `json:"PointsNumber"`
+	PointsNumber *int64 `json:"PointsNumber"`
 }
 type IdType int
 
@@ -60,6 +61,9 @@ func (t IdType) String() string {
 }
 
 func GetPricing(URL *url.URL, ids []string, idType IdType) (*GetPricingResponse, error) {
+	if len(ids) == 0 {
+		return nil, errors.New("ids must contain at least one letter")
+	}
 	query := url.Values{}
 	query.Set("ids", strings.Join(ids, ","))
 	query.Set("id_type", idType.String())
