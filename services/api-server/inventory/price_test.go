@@ -13,7 +13,7 @@ func TestSavePrices(t *testing.T) {
 	ctx := context.Background()
 	db := test.CreateTestDBConnection()
 	test.ResetModel(ctx, db, &CurrentPrice{})
-	repo := PriceRepository{}
+	repo := PriceRepository[*CurrentPrice]{}
 
 	tests := []struct {
 		name    string
@@ -29,7 +29,7 @@ func TestSavePrices(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := repo.Save(ctx, db, CastIPrices(tt.prices))
+			err := repo.Save(ctx, db, tt.prices)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

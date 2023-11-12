@@ -14,7 +14,7 @@ func Ptr[T any](v T) *T {
 
 func TestIterateFieldsOfStruct(t *testing.T) {
 	type Foo struct {
-		Foo *string
+		Foo *string `bun:"foo"`
 		Bar *string
 	}
 
@@ -22,11 +22,13 @@ func TestIterateFieldsOfStruct(t *testing.T) {
 		foo := Foo{Foo: Ptr("foo"), Bar: Ptr("bar")}
 
 		v := reflect.ValueOf(foo)
-		// types := v.Type()
+		types := v.Type()
 		fmt.Println(v)
 
 		for i := 0; i < v.NumField(); i++ {
-			// t := (types.Field(i).Type)
+			t := (types.Field(i))
+			fmt.Println(t.Name)
+			fmt.Println(t.Tag.Get("bun"))
 			fmt.Println(v.Field(i).Interface() == nil)
 		}
 	})

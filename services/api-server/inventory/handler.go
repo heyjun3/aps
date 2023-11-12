@@ -18,7 +18,7 @@ import (
 var SpapiServiceURL string
 var db *bun.DB
 var inventoryRepository InventoryRepository
-var priceRepository PriceRepository
+var priceRepository PriceRepository[*CurrentPrice]
 var spapiClient *spapi.SpapiClient
 
 func init() {
@@ -37,7 +37,7 @@ func init() {
 	}
 	db = database.OpenDB(dsn)
 	inventoryRepository = InventoryRepository{}
-	priceRepository = PriceRepository{}
+	priceRepository = PriceRepository[*CurrentPrice]{}
 }
 
 func RefreshInventory(c echo.Context) error {
@@ -110,7 +110,7 @@ func RefreshPricing(c echo.Context) error {
 			}
 			prices = append(prices, price)
 		}
-		if err := priceRepository.Save(context.Background(), db, CastIPrices(prices)); err != nil {
+		if err := priceRepository.Save(context.Background(), db, prices); err != nil {
 			slog.Error("error", "detail", err)
 			return c.JSON(http.StatusInternalServerError, err)
 		}

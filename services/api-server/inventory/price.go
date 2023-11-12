@@ -8,17 +8,10 @@ import (
 
 	"github.com/uptrace/bun"
 	"golang.org/x/exp/slices"
-	"golang.org/x/exp/slog"
 )
 
-type IPrice interface{}
-
-func CastIPrices[T *CurrentPrice](prices []T) []IPrice {
-	iprices := make([]IPrice, 0, len(prices))
-	for _, price := range prices {
-		iprices = append(iprices, IPrice(price))
-	}
-	return iprices
+type IPrice interface {
+	GetPrice() *int
 }
 
 var _ IPrice = (*Price)(nil)
@@ -42,8 +35,13 @@ func NewPrice(sku *string, price, point *int) (*Price, error) {
 	}, nil
 }
 
+func (p *Price) GetPrice() *int {
+	return p.Amount
+}
+
 var _ IPrice = (*CurrentPrice)(nil)
 
+type CurrentPrices []*CurrentPrice
 type CurrentPrice struct {
 	bun.BaseModel `bun:"table:current_prices"`
 	Price
@@ -58,8 +56,6 @@ func NewCurrentPrice(sku *string, price, point *int) (*CurrentPrice, error) {
 		Price: *p,
 	}, nil
 }
-
-type CurrentPrices []*CurrentPrice
 
 var _ IPrice = (*LowestPrice)(nil)
 
@@ -78,9 +74,9 @@ func NewLowestPrice(sku *string, price, point *int) (*LowestPrice, error) {
 	}, nil
 }
 
-type PriceRepository struct{}
+type PriceRepository[T IPrice] struct{}
 
-func (r PriceRepository) Save(ctx context.Context, db *bun.DB, prices []IPrice) error {
+func (r PriceRepository[T]) Save(ctx context.Context, db *bun.DB, prices []T) error {
 	_, err := db.NewInsert().
 		Model(&prices).
 		On("CONFLICT (seller_sku) DO UPDATE").
@@ -91,6 +87,5 @@ func (r PriceRepository) Save(ctx context.Context, db *bun.DB, prices []IPrice) 
 		}, ",")).
 		Returning("NULL").
 		Exec(ctx)
-	slog.Error("error", "detail", err)
 	return err
 }
