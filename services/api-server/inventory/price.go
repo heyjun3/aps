@@ -59,6 +59,7 @@ func NewCurrentPrice(sku *string, price, point *int) (*CurrentPrice, error) {
 
 var _ IPrice = (*LowestPrice)(nil)
 
+type LowestPrices []*LowestPrice
 type LowestPrice struct {
 	bun.BaseModel `bun:"table:lowest_prices"`
 	Price

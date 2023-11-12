@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS current_prices (
+CREATE TABLE IF NOT EXISTS lowest_prices (
     seller_sku varchar PRIMARY KEY REFERENCES inventories (seller_sku) ON DELETE CASCADE,
     amount bigint NOT NULL,
     point bigint NOT NULL,
