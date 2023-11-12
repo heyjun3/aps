@@ -90,7 +90,7 @@ func RefreshPricing(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 
-		prices := make([]*CurrentPrice, 0, len(inventories))
+		prices := make(CurrentPrices, 0, len(inventories))
 		for _, payload := range res.Payload {
 			offers := payload.Product.Offers
 			if len(offers) == 0 {
@@ -110,7 +110,7 @@ func RefreshPricing(c echo.Context) error {
 			}
 			prices = append(prices, price)
 		}
-		if err := priceRepository.Save(context.Background(), db, prices); err != nil {
+		if err := priceRepository.Save(context.Background(), db, CastIPrices(prices)); err != nil {
 			slog.Error("error", "detail", err)
 			return c.JSON(http.StatusInternalServerError, err)
 		}

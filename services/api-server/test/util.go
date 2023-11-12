@@ -42,3 +42,10 @@ func ResetModel(ctx context.Context, db *bun.DB, model interface{}) {
 		panic(err)
 	}
 }
+
+func OmitErr[T any](v *T, err error) *T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}

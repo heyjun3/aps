@@ -13,6 +13,14 @@ import (
 
 type IPrice interface{}
 
+func CastIPrices[T *CurrentPrice](prices []T) []IPrice {
+	iprices := make([]IPrice, 0, len(prices))
+	for _, price := range prices {
+		iprices = append(iprices, IPrice(price))
+	}
+	return iprices
+}
+
 var _ IPrice = (*Price)(nil)
 
 type Price struct {
@@ -72,7 +80,7 @@ func NewLowestPrice(sku *string, price, point *int) (*LowestPrice, error) {
 
 type PriceRepository struct{}
 
-func (r PriceRepository) Save(ctx context.Context, db *bun.DB, prices []*CurrentPrice) error {
+func (r PriceRepository) Save(ctx context.Context, db *bun.DB, prices []IPrice) error {
 	_, err := db.NewInsert().
 		Model(&prices).
 		On("CONFLICT (seller_sku) DO UPDATE").
