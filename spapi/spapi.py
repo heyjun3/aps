@@ -242,7 +242,7 @@ class SPAPI(object):
 
         return (method, url, query, body)
 
-    def _get_competitive_pricing(self, asin_list: list, item_type: str='Asin') -> tuple[str, str, dict, None]:
+    def _get_competitive_pricing(self, id_list: list, item_type: str='Asin') -> tuple[str, str, dict, None]:
         logger.info('action=get_competitive_pricing status=run')
 
         method = 'GET'
@@ -250,7 +250,7 @@ class SPAPI(object):
         url = urllib.parse.urljoin(settings.ENDPOINT, path)
         query = {
             'MarketplaceId': self.marketplace_id,
-            'Asins': ','.join(asin_list),
+            'Asins' if item_type == 'Asin' else 'Skus': ','.join(id_list),
             'ItemType': item_type,
         }
         body = None
