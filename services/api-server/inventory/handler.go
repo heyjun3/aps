@@ -12,13 +12,13 @@ import (
 
 	"api-server/database"
 	"api-server/spapi"
-	"api-server/spapi/inventory"
 	"api-server/spapi/price"
 )
 
 var SpapiServiceURL string
 var db *bun.DB
 var inventoryRepository InventoryRepository
+var priceRepository PriceRepository[*CurrentPrice]
 var spapiClient *spapi.SpapiClient
 
 func init() {
@@ -36,29 +36,8 @@ func init() {
 		panic(errors.New("don't set DB_DSN"))
 	}
 	db = database.OpenDB(dsn)
-	if err := database.CreateTable(context.Background(), db, &Inventory{}); err != nil {
-		panic(err)
-	}
 	inventoryRepository = InventoryRepository{}
-}
-
-type Pagination struct {
-	NextToken string `json:"nextToken"`
-}
-
-type Granularity struct {
-	GranularityType string `json:"granularityType"`
-	GranularityId   string `json:"granularityId"`
-}
-
-type Payload struct {
-	Granularity        Granularity  `json:"granularity"`
-	InventorySummaries Inventories `json:"inventorySummaries"`
-}
-
-type InventorySummariesResponse struct {
-	Pagination Pagination `json:"pagination"`
-	Payload    Payload    `json:"payload"`
+	priceRepository = PriceRepository[*CurrentPrice]{}
 }
 
 func RefreshInventory(c echo.Context) error {
@@ -70,7 +49,12 @@ func RefreshInventory(c echo.Context) error {
 		}
 		inventories := Inventories{}
 		for _, inventory := range res.Payload.InventorySummaries {
-			inventories = append(inventories, &Inventory{Inventory: inventory})
+			iv, err := NewInventoryFromInventory(inventory)
+			if err != nil {
+				slog.Warn(err.Error(), "struct", *inventory, "sku", inventory.SellerSku)
+				continue
+			}
+			inventories = append(inventories, iv)
 		}
 		if err := inventoryRepository.Save(context.Background(), db, inventories); err != nil {
 			slog.Error("failed save inventories", err)
@@ -93,6 +77,7 @@ func RefreshPricing(c echo.Context) error {
 	for {
 		inventories, cursor, err = inventoryRepository.GetNextPage(context.Background(), db, cursor.End, 20)
 		if err != nil {
+			slog.Error("error", "detail", err)
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 		if len(inventories) == 0 || inventories == nil {
@@ -101,23 +86,32 @@ func RefreshPricing(c echo.Context) error {
 
 		res, err := spapiClient.GetPricing(inventories.Skus(), price.Sku)
 		if err != nil {
+			slog.Error("error", "detail", err)
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 
-		pricing := make(Inventories, 0, len(inventories))
+		prices := make(CurrentPrices, 0, len(inventories))
 		for _, payload := range res.Payload {
-			inventory := &inventory.Inventory{SellerSku: payload.SellerSKU}
 			offers := payload.Product.Offers
 			if len(offers) == 0 {
-				pricing = append(pricing, &Inventory{Inventory: inventory})
 				continue
 			}
-			price := int(offers[0].BuyingPrice.ListingPrice.Amount)
-			points := int(offers[0].BuyingPrice.Points.PointsNumber)
-			pricing = append(pricing, &Inventory{Price: &price, Point: &points, Inventory: inventory})
+			sku := payload.SellerSKU
+			amount := offers[0].BuyingPrice.ListingPrice.Amount
+			points := offers[0].BuyingPrice.Points.PointsNumber
+			if amount == nil || points == nil {
+				slog.Warn("amount or points is nil. must be not nil", "sku", sku)
+				continue
+			}
+			price, err := NewCurrentPrice(sku, Ptr(int(*amount)), Ptr(int(*points)))
+			if err != nil {
+				slog.Error(err.Error(), "sku", sku)
+				continue
+			}
+			prices = append(prices, price)
 		}
-		mergedInventories := MergeInventories(inventories, pricing, mergePriceAndPoints)
-		if err := inventoryRepository.Save(context.Background(), db, mergedInventories); err != nil {
+		if err := priceRepository.Save(context.Background(), db, prices); err != nil {
+			slog.Error("error", "detail", err)
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 	}

@@ -1,73 +1,73 @@
 package inventory
 
 import (
-	spapi "api-server/spapi/inventory"
 	"context"
+	"errors"
+	"reflect"
 	"strings"
 	"time"
 
 	"github.com/uptrace/bun"
+
+	inventory "api-server/spapi/inventory"
 )
+
+func Ptr[T any](v T) *T {
+	return &v
+}
+
+func ValidateNilFieldsOfStruct[T any](value *T) (*T, error) {
+	v := reflect.ValueOf(*value)
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).Interface() == nil {
+			return nil, errors.New("nil field in Struct")
+		}
+	}
+	return value, nil
+}
 
 type Inventory struct {
 	bun.BaseModel `bun:"table:inventories"`
-	*spapi.Inventory
-	Price       *int      `bun:"price"`
-	Point       *int      `bun:"point"`
-	LowestPrice *int      `bun:"lowest_price"`
-	LowestPoint *int      `bun:"lowest_point"`
-	CreatedAt   time.Time `bun:"created_at,nullzero,notnull,default:current_timestamp"`
-	UpdatedAt   time.Time `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
+	*inventory.Inventory
+	CurrentPrice *CurrentPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
+	LowestPrice  *LowestPrice  `bun:"rel:has-one,join:seller_sku=seller_sku"`
+	CreatedAt    time.Time     `bun:"created_at,nullzero,notnull,default:current_timestamp"`
+	UpdatedAt    time.Time     `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
 }
 
 func NewInventory(
-	asin, fnSku, sellerSku, condition, lastUpdatedTime, productName string,
-	totalQuantity, price, point, lowestPrice, lowestPoint int,
+	asin, fnSku, sellerSku, condition, productName string, totalQuantity int,
 ) *Inventory {
 	return &Inventory{
-		Inventory: &spapi.Inventory{
-			Asin:            asin,
-			FnSku:           fnSku,
-			SellerSku:       sellerSku,
-			Condition:       condition,
-			LastUpdatedTime: lastUpdatedTime,
-			ProductName:     productName,
-			TotalQuantity:   totalQuantity,
+		Inventory: &inventory.Inventory{
+			Asin:          &asin,
+			FnSku:         &fnSku,
+			SellerSku:     &sellerSku,
+			Condition:     &condition,
+			ProductName:   &productName,
+			TotalQuantity: &totalQuantity,
 		},
-		Price:       &price,
-		Point:       &point,
-		LowestPrice: &lowestPrice,
-		LowestPoint: &lowestPoint,
 	}
 }
 
-func mergeTotalQuantity(base *Inventory, i *Inventory) *Inventory {
-	base.TotalQuantity = i.TotalQuantity
-	return base
-}
-
-func mergePriceAndPoints(base *Inventory, i *Inventory) *Inventory {
-	base.Price = i.Price
-	base.Point = i.Point
-	return base
+func NewInventoryFromInventory(iv *inventory.Inventory) (*Inventory, error) {
+	value, err := ValidateNilFieldsOfStruct[inventory.Inventory](iv)
+	if err != nil {
+		return nil, err
+	}
+	return &Inventory{
+		Inventory: value,
+	}, err
 }
 
 type Inventories []*Inventory
 
-func (is Inventories) Skus() []string{
-	skus := make([]string, 0, len(is))
-	for _, i := range is {
-		skus = append(skus, i.SellerSku)
+func (i *Inventories) Skus() []string {
+	skus := make([]string, 0, len(*i))
+	for _, iv := range *i {
+		skus = append(skus, *iv.SellerSku)
 	}
 	return skus
-}
-
-func (is Inventories) Map() map[string]*Inventory {
-	inventoryMap := make(map[string]*Inventory)
-	for _, i := range is {
-		inventoryMap[i.SellerSku] = i
-	}
-	return inventoryMap
 }
 
 type Cursor struct {
@@ -80,8 +80,8 @@ func NewCursor(inventories Inventories) Cursor {
 		return Cursor{}
 	}
 	return Cursor{
-		Start: inventories[0].SellerSku,
-		End:   inventories[len(inventories)-1].SellerSku,
+		Start: *inventories[0].SellerSku,
+		End:   *inventories[len(inventories)-1].SellerSku,
 	}
 }
 
@@ -97,10 +97,6 @@ func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories I
 			"condition = EXCLUDED.condition",
 			"product_name = EXCLUDED.product_name",
 			"quantity = EXCLUDED.quantity",
-			"price = EXCLUDED.price",
-			"point = EXCLUDED.point",
-			"lowest_price = EXCLUDED.lowest_price",
-			"lowest_point = EXCLUDED.lowest_point",
 			"updated_at = current_timestamp",
 		}, ",")).
 		Exec(ctx)

@@ -2,32 +2,50 @@ package test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"log"
 	"os"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/dialect/pgdialect"
-	"github.com/uptrace/bun/driver/pgdriver"
-	"github.com/uptrace/bun/extra/bundebug"
+
+	"api-server/database"
 )
 
-func CreateTestDBConnection() *bun.DB {
-	dsn := os.Getenv("TEST_DSN")
+var dsn string
+
+func init() {
+	dsn = os.Getenv("TEST_DSN")
 	if dsn == "" {
 		panic(fmt.Errorf("test database dsn is null"))
 	}
-	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
-	db := bun.NewDB(sqldb, pgdialect.New())
-	db.AddQueryHook(
-		bundebug.NewQueryHook(bundebug.WithVerbose(true), bundebug.WithWriter(os.Stdout)),
+	m, err := migrate.New(
+		"file://../database/migrations",
+		dsn,
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := m.Up(); err != nil {
+		fmt.Println(err)
+	}
+}
 
-	return db
+func CreateTestDBConnection() *bun.DB {
+	return database.OpenDB(dsn)
 }
 
 func ResetModel(ctx context.Context, db *bun.DB, model interface{}) {
 	if err := db.ResetModel(ctx, model); err != nil {
 		panic(err)
 	}
+}
+
+func OmitErr[T any](v *T, err error) *T {
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
