@@ -26,6 +26,6 @@ async def get_pricing(ids: str, id_type: str):
         raise HTTPException(status_code=503, detail="Internal Server Error")
     
 
-@app.get('/get-competitive-pricing')
-async def get_competitive_pricing(ids: str, id_type: str):
-    return await client.get_competitive_pricing(ids, item_type=id_type)
+@app.get('/get-listing-offers-batch')
+async def get_listing_offers_batch(skus: str):
+    return await client.get_listing_offers_batch(skus.split(','))
