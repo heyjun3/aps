@@ -28,3 +28,7 @@ func (c SpapiClient) InventorySummaries(nextToken string) (*inventory.SummariesR
 func (c SpapiClient) GetPricing(ids []string, idType price.IdType) (*price.GetPricingResponse, error) {
 	return price.GetPricing(c.URL, ids, idType)
 }
+
+func (c SpapiClient) GetLowestPricing(skus []string) (*price.GetLowestPricingResponse, error) {
+	return price.GetLowestPricing(c.URL, skus)
+}

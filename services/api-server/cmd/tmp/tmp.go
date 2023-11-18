@@ -1,27 +1,17 @@
 package main
 
 import (
-	"api-server/database"
-	"api-server/inventory"
+	"api-server/spapi"
+	"log"
 
-	"context"
 	"os"
 )
 
 func main() {
-	in := inventory.NewInventory("asin", "fnsku", "sku", "new", "name", 1)
-	in.CurrentPrice = &inventory.CurrentPrice{
-		Price: inventory.Price{
-			// Amount: 100,
-		},
-	}
-	inventories := inventory.Inventories{
-		in,
-	}
-	dsn := os.Getenv("DB_DSN")
-	db := database.OpenDB(dsn)
-	err := inventory.InventoryRepository{}.Save(context.Background(), db, inventories)
+	u := os.Getenv("SPAPI_SERVICE_URL")
+	c, err := spapi.NewSpapiClient(u)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+	c.GetLowestPricing([]string{"4528678022729-N-6426-210307"})
 }
