@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-// import config from "../config";
+import config from "../config";
 import { Link } from "@mui/material";
+
+const RenderSKU = (props) => {
+  const sku = props.value
+  const url = `https://sellercentral-japan.amazon.com/inventory/ref=xx_invmgr_dnav_xx?search:${sku}`
+  return (
+    <Link tabIndex={props.tabIndex} href={url} target="_blank">
+      {sku}
+    </Link>
+  )
+}
 
 const RenderName = (props) => {
   const { name, url } = props.value;
@@ -24,7 +34,7 @@ const RenderLowest = (props) => {
 };
 
 const columns = [
-  { field: "sku", headerName: "SKU", width: 200 },
+  { field: "sellerSku", headerName: "SKU", width: 200, renderCell: RenderSKU },
   {
     field: "itemName",
     headerName: "Name",
@@ -57,21 +67,28 @@ export const Items = () => {
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
-    const rows = [
-      {
-        id: "id",
-        sku: "4710483940767-N-28480-20231016",
-        itemName: {
-          name: "ASRock マザーボード Z790 Pro RS Intel 第12世代 ・ 13世代 CPU ( LGA1700 )対応 Z790チップセット DDR5 ATX マザーボード 【国内正規代理店品】",
-          url: "https://www.amazon.co.jp/dp/B0BJDZ4YZR?ref=myi_title_dp",
-        },
-        price: 30000,
-        point: 3000,
-        lowest: { price: 300000, point: 3000 },
-        update: "2023/01/01",
-      },
-    ];
-    setRows(rows);
+    const fetchInventories = async () => {
+      const res = await fetch(`${config.fqdn}/api/inventories`, {
+        method: "GET",
+        mode: "cors",
+      });
+      const body = await res.json();
+      for (const [i, value] of Object.entries(body)) {
+        value.id = i
+        value.itemName = {
+          name: value.productName,
+          url: `https://www.amazon.co.jp/dp/${value.asin}`
+        }
+        value.price = value.CurrentPrice?.Amount
+        value.point = value.CurrentPrice?.Point
+        value.lowest = {
+          price: value.LowestPrice?.Amount,
+          point: value.LowestPrice?.Point,
+        }
+      }
+      setRows(body);
+    };
+    fetchInventories();
   }, []);
 
   const processRowUpdate = async (newRow) => {
@@ -81,19 +98,6 @@ export const Items = () => {
         row.id === "" ? updateRow : row.id === newRow.id ? updateRow : row
       )
     );
-
-    // const reqBody = { shop: [updateRow] };
-    // const res = await fetch(`${config.fqdn}/api/shops`, {
-    //   method: "POST",
-    //   mode: "cors",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify(reqBody),
-    // });
-    // const body = await res.json();
-    // if (body != null) {
-    //   console.warn(body);
-    //   return;
-    // }
     return updateRow;
   };
 
