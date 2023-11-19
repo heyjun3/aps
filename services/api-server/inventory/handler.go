@@ -19,6 +19,7 @@ var SpapiServiceURL string
 var db *bun.DB
 var inventoryRepository InventoryRepository
 var priceRepository PriceRepository[*CurrentPrice]
+var lowestPriceRepository PriceRepository[*LowestPrice]
 var spapiClient *spapi.SpapiClient
 
 func init() {
@@ -38,6 +39,7 @@ func init() {
 	db = database.OpenDB(dsn)
 	inventoryRepository = InventoryRepository{}
 	priceRepository = PriceRepository[*CurrentPrice]{}
+	lowestPriceRepository = PriceRepository[*LowestPrice]{}
 }
 
 func RefreshInventory(c echo.Context) error {
@@ -111,6 +113,52 @@ func RefreshPricing(c echo.Context) error {
 			prices = append(prices, price)
 		}
 		if err := priceRepository.Save(context.Background(), db, prices); err != nil {
+			slog.Error("error", "detail", err)
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+	}
+}
+
+func RefreshLowestPricing(c echo.Context) error {
+	var inventories Inventories
+	var cursor Cursor
+	var err error
+	for {
+		inventories, cursor, err = inventoryRepository.GetNextPage(context.Background(), db, cursor.End, 20)
+		if err != nil {
+			slog.Error("error", "detail", err)
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		if len(inventories) == 0 || inventories == nil {
+			return c.JSON(http.StatusOK, "success")
+		}
+
+		res, err := spapiClient.GetLowestPricing(inventories.Skus())
+		if err != nil {
+			slog.Error("error", "detail", err)
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		prices := make(LowestPrices, 0, len(inventories))
+		for _, response := range res.Responses {
+			offers := response.Body.Payload.Offers
+			if len(offers) == 0 {
+				continue
+			}
+			sku := response.Body.Payload.SKU
+			amount := offers[0].Price.Amount
+			point := offers[0].Points.PointsNumber
+			if amount == nil || point == nil {
+				slog.Warn("amount or point is nil. must be not nil", "sku", sku, "amount", amount, "point", point)
+				continue
+			}
+			price, err := NewLowestPrice(sku, Ptr(int(*amount)), Ptr(int(*point)))
+			if err != nil {
+				slog.Error(err.Error(), "sku", sku)
+				continue
+			}
+			prices = append(prices, price)
+		}
+		if err := lowestPriceRepository.Save(context.Background(), db, prices); err != nil {
 			slog.Error("error", "detail", err)
 			return c.JSON(http.StatusInternalServerError, err)
 		}

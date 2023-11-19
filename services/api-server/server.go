@@ -49,6 +49,7 @@ func main() {
 
 	e.POST("/api/refresh-inventory", inventory.RefreshInventory)
 	e.POST("/api/refresh-pricing", inventory.RefreshPricing)
+	e.POST("/api/refresh-lowest-pricing", inventory.RefreshLowestPricing)
 
 	e.Logger.Fatal(e.Start(":5000"))
 }

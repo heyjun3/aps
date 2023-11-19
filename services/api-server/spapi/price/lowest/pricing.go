@@ -22,7 +22,7 @@ type Body struct {
 }
 type Payload struct {
 	Offers []Offer `json:"Offers"`
-	SKU    string  `json:"SKU"`
+	SKU    *string  `json:"SKU"`
 }
 type Offer struct {
 	Points Point `json:"Points"`
