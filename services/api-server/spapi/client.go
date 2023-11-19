@@ -5,6 +5,7 @@ import (
 
 	"api-server/spapi/inventory"
 	"api-server/spapi/price"
+	"api-server/spapi/price/lowest"
 )
 
 type SpapiClient struct {
@@ -29,6 +30,6 @@ func (c SpapiClient) GetPricing(ids []string, idType price.IdType) (*price.GetPr
 	return price.GetPricing(c.URL, ids, idType)
 }
 
-func (c SpapiClient) GetLowestPricing(skus []string) (*price.GetLowestPricingResponse, error) {
-	return price.GetLowestPricing(c.URL, skus)
+func (c SpapiClient) GetLowestPricing(skus []string) (*lowest.GetLowestPricingResponse, error) {
+	return lowest.GetLowestPricing(c.URL, skus)
 }
