@@ -47,6 +47,7 @@ func main() {
 	e.POST("/api/shops", shop.CreateShop)
 	e.DELETE("/api/shops", shop.DeleteShop)
 
+	e.GET("/api/inventories", inventory.GetInventories)
 	e.POST("/api/refresh-inventory", inventory.RefreshInventory)
 	e.POST("/api/refresh-pricing", inventory.RefreshPricing)
 	e.POST("/api/refresh-lowest-pricing", inventory.RefreshLowestPricing)

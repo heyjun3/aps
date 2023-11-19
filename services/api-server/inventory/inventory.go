@@ -85,6 +85,10 @@ func NewCursor(inventories Inventories) Cursor {
 	}
 }
 
+type Condition struct {
+	Quantity *int
+}
+
 type InventoryRepository struct{}
 
 func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories Inventories) error {
@@ -103,12 +107,17 @@ func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories I
 	return err
 }
 
-func (r InventoryRepository) GetAll(ctx context.Context, db *bun.DB) (Inventories, error) {
+func (r InventoryRepository) GetByCondition(ctx context.Context, db *bun.DB, condition Condition) (Inventories, error) {
 	var inventories Inventories
-	err := db.NewSelect().
+	query := db.NewSelect().
 		Model(&inventories).
-		Order("seller_sku").
-		Scan(ctx)
+		Relation("CurrentPrice").
+		Relation("LowestPrice").
+		Order("seller_sku")
+	if condition.Quantity != nil {
+		query.Where("quantity > ?", *condition.Quantity)
+	}
+	err := query.Scan(ctx)
 	return inventories, err
 }
 
