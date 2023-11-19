@@ -167,7 +167,7 @@ func RefreshLowestPricing(c echo.Context) error {
 
 func GetInventories(c echo.Context) error {
 	ctx := context.Background()
-	condition := Condition{Quantity: Ptr(0)}
+	condition := Condition{Quantity: Ptr(0), IsNotOnlyLowestPrice: true}
 	inventories, err := inventoryRepository.GetByCondition(ctx, db, condition)
 	if err != nil {
 		slog.Error("get inventories error", "detail", err)

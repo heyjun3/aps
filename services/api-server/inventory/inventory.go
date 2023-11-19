@@ -1,6 +1,7 @@
 package inventory
 
 import (
+	"fmt"
 	"context"
 	"errors"
 	"reflect"
@@ -86,7 +87,8 @@ func NewCursor(inventories Inventories) Cursor {
 }
 
 type Condition struct {
-	Quantity *int
+	Quantity             *int
+	IsNotOnlyLowestPrice bool
 }
 
 type InventoryRepository struct{}
@@ -108,6 +110,7 @@ func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories I
 }
 
 func (r InventoryRepository) GetByCondition(ctx context.Context, db *bun.DB, condition Condition) (Inventories, error) {
+	fmt.Println(condition)
 	var inventories Inventories
 	query := db.NewSelect().
 		Model(&inventories).
@@ -117,6 +120,13 @@ func (r InventoryRepository) GetByCondition(ctx context.Context, db *bun.DB, con
 	if condition.Quantity != nil {
 		query.Where("quantity > ?", *condition.Quantity)
 	}
+	if condition.IsNotOnlyLowestPrice {
+		query.WhereGroup("AND", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.WhereOr("current_price.amount != lowest_price.amount").
+				WhereOr("current_price.point != lowest_price.point")
+		})
+	}
+
 	err := query.Scan(ctx)
 	return inventories, err
 }

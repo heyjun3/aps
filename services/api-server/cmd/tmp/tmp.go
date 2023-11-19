@@ -13,7 +13,7 @@ func main() {
 	db := database.OpenDB(dsn)
 	repo := inventory.InventoryRepository{}
 	quantity := 0
-	iv, err := repo.GetByCondition(context.Background(), db, inventory.Condition{Quantity: &quantity})
+	iv, err := repo.GetByCondition(context.Background(), db, inventory.Condition{Quantity: &quantity, IsNotOnlyLowestPrice: true})
 	fmt.Println(err)
 	fmt.Println(len(iv))
 }
