@@ -1,10 +1,10 @@
 import urllib.parse
 import time
-from typing import Callable
 
 import aiohttp
 
 from spapi.spapi import SPAPI
+from spapi.utils import async_logger
 import log_settings
 import settings
 
@@ -35,6 +35,10 @@ class ListingsItemsAPI(SPAPI):
 
     async def create_new_sku(self, *args, **kwargs):
         return await self._request(*self._patch_listings_item(*args, **kwargs))
+
+    @async_logger(logger) 
+    async def update_price(self, *args, **kwargs):
+        return await self._request(*self._patch_listing_price(*args, **kwargs))
 
     async def get_listing_item(self, *args, **kwargs):
         return await self._request(*self._get_listing_item(*args, **kwargs))
@@ -135,6 +139,34 @@ class ListingsItemsAPI(SPAPI):
         }
 
         logger.info({'action': 'patch_listing_items', 'action': 'done'})
+        return (method, url, query, body)
+    
+    def _patch_listing_price(self, sku: str, price: int):
+        method = 'PATCH'
+        path = f'/listings/2021-08-01/items/{self.seller_id}/{sku}'
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
+        query = {
+            'marketplaceIds': self.marketplace_id,
+            'issueLocale': 'en_US',
+        }
+        body = {
+            'productType': 'PRODUCT',
+            'patches': [
+                {
+                    'op': 'add',
+                    'path': '/attributes/purchasable_offer',
+                    'value': [{
+                        'marketplace_id': self.marketplace_id,
+                        'currency': 'JPY',
+                        'our_price': [{
+                            'schedule': [{
+                                'value_with_tax': price,
+                            }]
+                        }]
+                    }]
+                },
+            ]
+        }
         return (method, url, query, body)
 
     def _put_listings_item(self, sku: str, asin: str, price: float, condition_type: str = 'new_new', condition_note: str = None) -> dict:
