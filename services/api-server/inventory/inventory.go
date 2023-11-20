@@ -1,9 +1,9 @@
 package inventory
 
 import (
-	"fmt"
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"time"
