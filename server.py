@@ -1,13 +1,18 @@
+from typing import List
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from spapi.fba_inventory_api import FBAInventoryAPI
 from spapi.listings_items_api import ListingsItemsAPI
+from spapi.register_service import RegisterService
 from spapi.spapi import TooMatchParameterException, BadItemTypeException
+import settings
 
 app = FastAPI()
 client = FBAInventoryAPI()
 listing_client = ListingsItemsAPI()
+register_service = RegisterService(settings.CREDENTIAL_FILE_NAME)
 
 
 @app.get("/inventory-summaries")
@@ -40,3 +45,13 @@ class UpdatePriceInput(BaseModel):
 @app.post('/price')
 async def update_price(input: UpdatePriceInput):
     return await listing_client.update_price(input.sku, input.price)
+
+class UpdatePointInput(BaseModel):
+    sku: str
+    percent_point: int
+
+
+@app.post('/points')
+async def update_point(input: List[UpdatePointInput]):
+    items = [[item.sku, item.percent_point] for item in input]
+    return await register_service.register_points(items)

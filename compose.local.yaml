@@ -66,6 +66,8 @@ services:
     environment:
       - TZ=Asia/Tokyo
     entrypoint: uvicorn server:app --reload --host spapi-server-dev
+    ports:
+      - 8000:8000
     working_dir: /app
     restart: always
     volumes: 
