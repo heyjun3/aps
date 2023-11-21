@@ -3,6 +3,7 @@ package inventory
 import (
 	"context"
 	"errors"
+	"math"
 	"strings"
 	"time"
 
@@ -17,21 +18,24 @@ type IPrice interface {
 var _ IPrice = (*Price)(nil)
 
 type Price struct {
-	SellerSku *string   `bun:"seller_sku,pk"`
-	Amount    *int      `bun:"amount"`
-	Point     *int      `bun:"point"`
-	CreatedAt time.Time `bun:"created_at,nullzero,notnull,default:current_timestamp"`
-	UpdatedAt time.Time `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
+	SellerSku    *string   `bun:"seller_sku,pk"`
+	Amount       *int      `bun:"amount,notnull"`
+	Point        *int      `bun:"point,notnull"`
+	PercentPoint *int      `bun:"percent_point,notnull"`
+	CreatedAt    time.Time `bun:"created_at,nullzero,notnull,default:current_timestamp"`
+	UpdatedAt    time.Time `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
 }
 
 func NewPrice(sku *string, price, point *int) (*Price, error) {
 	if slices.Contains([]interface{}{sku, price, point}, nil) {
 		return nil, errors.New("contians nil in args")
 	}
+	percent := int(math.Round(float64(*point) / float64(*price) * 100))
 	return &Price{
-		SellerSku: sku,
-		Amount:    price,
-		Point:     point,
+		SellerSku:    sku,
+		Amount:       price,
+		Point:        point,
+		PercentPoint: &percent,
 	}, nil
 }
 
@@ -84,6 +88,7 @@ func (r PriceRepository[T]) Save(ctx context.Context, db *bun.DB, prices []T) er
 		Set(strings.Join([]string{
 			"amount = EXCLUDED.amount",
 			"point = EXCLUDED.point",
+			"percent_point = EXCLUDED.percent_point",
 			"updated_at = current_timestamp",
 		}, ",")).
 		Returning("NULL").

@@ -23,12 +23,12 @@ const RenderName = (props) => {
 };
 
 const RenderLowest = (props) => {
-  const { price, point } = props.value;
+  const { price, point, percent } = props.value;
   return (
     <div>
-      price: {price}
+      ¥ {price}
       <br />
-      point: {point}
+      {point}pts ({percent}%)
     </div>
   );
 };
@@ -84,6 +84,7 @@ export const Items = () => {
         value.lowest = {
           price: value.LowestPrice?.Amount,
           point: value.LowestPrice?.Point,
+          percent: value.LowestPrice?.PercentPoint,
         }
       }
       setRows(body);

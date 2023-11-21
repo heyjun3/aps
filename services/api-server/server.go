@@ -48,9 +48,9 @@ func main() {
 	e.DELETE("/api/shops", shop.DeleteShop)
 
 	e.GET("/api/inventories", inventory.GetInventories)
-	e.POST("/api/refresh-inventory", inventory.RefreshInventory)
-	e.POST("/api/refresh-pricing", inventory.RefreshPricing)
-	e.POST("/api/refresh-lowest-pricing", inventory.RefreshLowestPricing)
+	e.POST("/api/inventory/refresh", inventory.RefreshInventory)
+	e.POST("/api/price/refresh", inventory.RefreshPricing)
+	e.POST("/api/lowest-price/refresh", inventory.RefreshLowestPricing)
 
 	e.Logger.Fatal(e.Start(":5000"))
 }
