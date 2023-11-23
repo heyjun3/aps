@@ -3,7 +3,6 @@ package inventory
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"time"
@@ -32,6 +31,7 @@ type Inventory struct {
 	*inventory.Inventory
 	CurrentPrice *CurrentPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
 	LowestPrice  *LowestPrice  `bun:"rel:has-one,join:seller_sku=seller_sku"`
+	DesiredPrice *DesiredPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
 	CreatedAt    time.Time     `bun:"created_at,nullzero,notnull,default:current_timestamp"`
 	UpdatedAt    time.Time     `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
 }
@@ -110,12 +110,12 @@ func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories I
 }
 
 func (r InventoryRepository) GetByCondition(ctx context.Context, db *bun.DB, condition Condition) (Inventories, error) {
-	fmt.Println(condition)
 	var inventories Inventories
 	query := db.NewSelect().
 		Model(&inventories).
 		Relation("CurrentPrice").
 		Relation("LowestPrice").
+		Relation("DesiredPrice").
 		Order("seller_sku")
 	if condition.Quantity != nil {
 		query.Where("quantity > ?", *condition.Quantity)
