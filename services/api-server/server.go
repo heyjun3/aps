@@ -50,6 +50,7 @@ func main() {
 	e.GET("/api/inventories", inventory.GetInventories)
 	e.POST("/api/inventory/refresh", inventory.RefreshInventory)
 	e.POST("/api/price/refresh", inventory.RefreshPricing)
+	e.POST("/api/price/:sku", inventory.UpdatePricing)
 	e.POST("/api/lowest-price/refresh", inventory.RefreshLowestPricing)
 
 	e.Logger.Fatal(e.Start(":5000"))

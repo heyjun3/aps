@@ -39,6 +39,19 @@ func NewPrice(sku *string, price, point *int) (*Price, error) {
 	}, nil
 }
 
+func NewPriceWithPercentPoint(sku *string, price, percentPoint *int) (*Price, error) {
+	if percentPoint == nil {
+		return nil, errors.New("percent point is nil. expect int argument")
+	}
+	point := int(math.Round((float64(*price) / 100 * float64(*percentPoint))))
+	p, err := NewPrice(sku, price, &point)
+	if err != nil {
+		return nil, err
+	}
+	p.PercentPoint = percentPoint
+	return p, nil
+}
+
 func (p *Price) GetPrice() *int {
 	return p.Amount
 }
@@ -75,6 +88,21 @@ func NewLowestPrice(sku *string, price, point *int) (*LowestPrice, error) {
 		return nil, err
 	}
 	return &LowestPrice{
+		Price: *p,
+	}, nil
+}
+
+type DesiredPrice struct {
+	bun.BaseModel `bun:"table:desired_prices"`
+	Price
+}
+
+func NewDesiredPrice(sku *string, price, percentPoint *int) (*DesiredPrice, error) {
+	p, err := NewPriceWithPercentPoint(sku, price, percentPoint)
+	if err != nil {
+		return nil, err
+	}
+	return &DesiredPrice{
 		Price: *p,
 	}, nil
 }

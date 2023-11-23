@@ -109,14 +109,36 @@ export const Items = () => {
     fetchInventories();
   }, []);
 
-  const processRowUpdate = async (newRow) => {
+  const processRowUpdate = async (newRow, oldRow) => {
+    const isSamePriceAndPercentPoint = (row, old) => {
+      return (
+        Number(row.price) === Number(old.price) &&
+        Number(row.percentPoint) === Number(old.percentPoint)
+      );
+    };
     const updateRow = { ...newRow, isNew: false };
     setRows(
       rows.map((row) =>
         row.id === "" ? updateRow : row.id === newRow.id ? updateRow : row
       )
     );
-    console.warn(updateRow.sellerSku);
+    if (isSamePriceAndPercentPoint(newRow, oldRow)) {
+      return updateRow;
+    }
+
+    const res = await fetch(`${config.fqdn}/api/price/${updateRow.sellerSku}`, {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        price: Number(updateRow.price),
+        percentPoint: Number(updateRow.percentPoint),
+      }),
+    });
+    const body = await res.json();
+    console.warn(body);
     return updateRow;
   };
 

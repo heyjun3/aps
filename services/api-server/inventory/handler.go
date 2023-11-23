@@ -20,6 +20,7 @@ var db *bun.DB
 var inventoryRepository InventoryRepository
 var priceRepository PriceRepository[*CurrentPrice]
 var lowestPriceRepository PriceRepository[*LowestPrice]
+var desiredPriceRepository PriceRepository[*DesiredPrice]
 var spapiClient *spapi.SpapiClient
 
 func init() {
@@ -174,4 +175,29 @@ func GetInventories(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 	return c.JSON(http.StatusOK, inventories)
+}
+
+type UpdatePricingDTO struct {
+	Price        int `json:"price"`
+	PercnetPoint int `json:"percentPoint"`
+}
+
+func UpdatePricing(c echo.Context) error {
+	sku := c.Param("sku")
+	if sku == "" {
+		return c.JSON(http.StatusBadRequest, errors.New("sku is not empty string"))
+	}
+	dto := new(UpdatePricingDTO)
+	if err := c.Bind(dto); err != nil {
+		slog.Error("un bind body", err)
+		return c.JSON(http.StatusBadRequest, "bad request")
+	}
+	price, err := NewDesiredPrice(&sku, &dto.Price, &dto.PercnetPoint)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+	if err := desiredPriceRepository.Save(context.Background(), db, []*DesiredPrice{price}); err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+	return c.JSON(http.StatusOK, dto)
 }
