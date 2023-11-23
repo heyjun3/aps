@@ -4,14 +4,14 @@ import config from "../config";
 import { Link } from "@mui/material";
 
 const RenderSKU = (props) => {
-  const sku = props.value
-  const url = `https://sellercentral-japan.amazon.com/inventory/ref=xx_invmgr_dnav_xx?search:${sku}`
+  const sku = props.value;
+  const url = `https://sellercentral-japan.amazon.com/inventory/ref=xx_invmgr_dnav_xx?search:${sku}`;
   return (
     <Link tabIndex={props.tabIndex} href={url} target="_blank">
       {sku}
     </Link>
-  )
-}
+  );
+};
 
 const RenderName = (props) => {
   const { name, url } = props.value;
@@ -27,10 +27,14 @@ const RenderLowest = (props) => {
   return (
     <div>
       ¥ {price}
-      <br />
-      {point}pts ({percent}%)
+      <br /> {`${point}pts (${percent}%)`}
     </div>
   );
+};
+
+const RenderPoint = (props) => {
+  const percentPoint = props.value;
+  return <div>{percentPoint}%</div>;
 };
 
 const columns = [
@@ -48,12 +52,24 @@ const columns = [
     headerName: "Price",
     width: 90,
     editable: true,
+    align: "center",
+    headerAlign: "center",
   },
-  { field: "point", headerName: "Point", width: 90, editable: true },
+  {
+    field: "percentPoint",
+    headerName: "Point(%)",
+    width: 90,
+    editable: true,
+    align: "center",
+    headerAlign: "center",
+    renderCell: RenderPoint,
+  },
   {
     field: "lowest",
     headerName: "Lowest",
     width: 120,
+    align: "center",
+    headerAlign: "center",
     renderCell: RenderLowest,
   },
   {
@@ -74,18 +90,19 @@ export const Items = () => {
       });
       const body = await res.json();
       for (const [i, value] of Object.entries(body)) {
-        value.id = i
+        value.id = i;
         value.itemName = {
           name: value.productName,
-          url: `https://www.amazon.co.jp/dp/${value.asin}`
-        }
-        value.price = value.CurrentPrice?.Amount
-        value.point = value.CurrentPrice?.Point
+          url: `https://www.amazon.co.jp/dp/${value.asin}`,
+        };
+        value.price = value.CurrentPrice?.Amount;
+        value.point = value.CurrentPrice?.Point;
+        value.percentPoint = value.CurrentPrice?.PercentPoint;
         value.lowest = {
           price: value.LowestPrice?.Amount,
           point: value.LowestPrice?.Point,
           percent: value.LowestPrice?.PercentPoint,
-        }
+        };
       }
       setRows(body);
     };
@@ -99,6 +116,7 @@ export const Items = () => {
         row.id === "" ? updateRow : row.id === newRow.id ? updateRow : row
       )
     );
+    console.warn(updateRow.sellerSku);
     return updateRow;
   };
 
