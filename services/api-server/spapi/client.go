@@ -4,6 +4,7 @@ import (
 	"net/url"
 
 	"api-server/spapi/inventory"
+	"api-server/spapi/point"
 	"api-server/spapi/price"
 	"api-server/spapi/price/lowest"
 	"api-server/spapi/price/update"
@@ -37,4 +38,8 @@ func (c SpapiClient) GetLowestPricing(skus []string) (*lowest.GetLowestPricingRe
 
 func (c SpapiClient) UpdatePricing(sku string, price int) error {
 	return update.Pricing(c.URL, sku, price)
+}
+
+func (c SpapiClient) UpdatePoints(inputs []point.UpdatePointInput) error {
+	return point.UpdatePoints(c.URL, inputs)
 }

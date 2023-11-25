@@ -4,6 +4,7 @@ import (
 	"api-server/database"
 	"api-server/inventory"
 	"api-server/spapi"
+	"api-server/spapi/point"
 	"context"
 	"fmt"
 	"os"
@@ -19,9 +20,13 @@ func tmpHttp() {
 	if err != nil {
 		panic(err)
 	}
-	if err := client.UpdatePricing("I1-JGFK-MS72", 55000); err != nil {
+	inputs := []point.UpdatePointInput{{Sku: "4957054511319-B-35800-20230811", PercentPoint: 7}}
+	if err := client.UpdatePoints(inputs); err != nil {
 		panic(err)
 	}
+	// if err := client.UpdatePricing("I1-JGFK-MS72", 55000); err != nil {
+		// panic(err)
+	// }
 }
 
 func tmpDatabase() {
