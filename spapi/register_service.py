@@ -128,6 +128,7 @@ class RegisterService(object):
 
         logger.info({'action': '_register_points',
                     'status': 'done', 'result': data})
+        return data
 
     def _create_sheet_client(self, credential: str) -> gspread.Client:
         path = Path.cwd().joinpath(credential)
