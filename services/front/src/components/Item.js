@@ -19,29 +19,61 @@ const Toolbar = (props) => {
   } = props;
 
   const togleRows = () => {
-    console.warn(updateRows)
     if (isShowUpdateRows) {
-      setRows([...tmpRows]);
+      setRows(
+        tmpRows.map((row) => {
+          const update = updateRows.find((up) => up.id === row.id);
+          return update ? update : row;
+        })
+      );
       setIsShowUpdateRows(!isShowUpdateRows);
-      return
+      return;
     }
-    setRows([...updateRows]);
-    setTmpRows([...rows]);
+    setRows(updateRows);
+    setTmpRows(rows);
     setIsShowUpdateRows(!isShowUpdateRows);
   };
+
   const refreshInventories = async () => {
     setRows([]);
-    const sleep = (msec) => new Promise(resolve => setTimeout(resolve, msec))
-    await sleep(10000)
-    await fetchInventories(setRows)
+    await fetch(`${config.fqdn}/api/inventory/refresh`, {
+      method: "POST",
+      mode: "cors",
+    });
+    await fetch(`${config.fqdn}/api/price/refresh`, {
+      method: "POST",
+      mode: "cors",
+    });
+    await fetch(`${config.fqdn}/api/lowest-price/refresh`, {
+      method: "POST",
+      mode: "cors",
+    });
+    await fetchInventories(setRows);
   };
-  const cancel = () => {
-    setUpdateRows([])
-    setIsShowUpdateRows(false)
-    fetchInventories(setRows)
-  }
-  const saveAll = () => {
-    console.log(updateRows);
+  const cancel = async () => {
+    setUpdateRows([]);
+    setIsShowUpdateRows(false);
+    await fetchInventories(setRows);
+  };
+  const saveAll = async () => {
+    const body = updateRows.map((row) => ({
+      sku: row.sellerSku,
+      price: Number(row.price),
+      percentPoint: Number(row.percentPoint),
+    }));
+    if (body.length === 0) {
+      return;
+    }
+
+    const res = await fetch(`${config.fqdn}/api/price/update`, {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    console.warn(await res.json());
   };
 
   return (
@@ -187,19 +219,10 @@ export const Items = () => {
     if (isSamePriceAndPercentPoint(newRow, oldRow)) {
       return updateRow;
     }
-    setUpdateRows([...updateRows, updateRow]);
-    // const res = await fetch(`${config.fqdn}/api/price/${updateRow.sellerSku}`, {
-    //   method: "POST",
-    //   mode: "cors",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify({
-    //     price: Number(updateRow.price),
-    //     percentPoint: Number(updateRow.percentPoint),
-    //   }),
-    // });
-    // const body = await res.json();
+    setUpdateRows([
+      ...updateRows.filter((row) => row.id !== updateRow.id),
+      updateRow,
+    ]);
     return updateRow;
   };
 
