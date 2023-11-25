@@ -23,3 +23,10 @@ func TestConvertPercentToPoint(t *testing.T) {
 
 	assert.Equal(t, 116, point)
 }
+
+func TestMathRound(t *testing.T) {
+	price := 5.5
+
+	assert.Equal(t, 5, int(price))
+	assert.Equal(t, float64(6), math.Round(price))
+}

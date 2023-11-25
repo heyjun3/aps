@@ -97,7 +97,12 @@ type DesiredPrice struct {
 	Price
 }
 
-func NewDesiredPrice(sku *string, price, percentPoint *int) (*DesiredPrice, error) {
+func NewDesiredPrice(sku *string, price, percentPoint *int, lowestPrice LowestPrice) (*DesiredPrice, error) {
+	const DESIRED_PRICE_RATE float64 = 0.9
+	if *price < int(float64(*lowestPrice.Amount) * DESIRED_PRICE_RATE) {
+		return nil, errors.New("desired price greater than lowest price")
+	}
+
 	p, err := NewPriceWithPercentPoint(sku, price, percentPoint)
 	if err != nil {
 		return nil, err

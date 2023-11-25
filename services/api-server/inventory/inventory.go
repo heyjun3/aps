@@ -71,6 +71,14 @@ func (i *Inventories) Skus() []string {
 	return skus
 }
 
+func (i Inventories) Map() (map[string]*Inventory) {
+	m := make(map[string]*Inventory)
+	for _, iv := range i {
+		m[*iv.SellerSku] = iv
+	}
+	return m
+}
+
 type Cursor struct {
 	Start string
 	End   string
@@ -89,6 +97,7 @@ func NewCursor(inventories Inventories) Cursor {
 type Condition struct {
 	Quantity             *int
 	IsNotOnlyLowestPrice bool
+	Skus []string
 }
 
 type InventoryRepository struct{}
@@ -117,6 +126,11 @@ func (r InventoryRepository) GetByCondition(ctx context.Context, db *bun.DB, con
 		Relation("LowestPrice").
 		Relation("DesiredPrice").
 		Order("seller_sku")
+
+	if len(condition.Skus) > 0 {
+		query.Where("inventory.seller_sku IN (?)", bun.In(condition.Skus))
+	}
+
 	if condition.Quantity != nil {
 		query.Where("quantity > ?", *condition.Quantity)
 	}

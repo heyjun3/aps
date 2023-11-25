@@ -56,16 +56,17 @@ const Toolbar = (props) => {
     await fetchInventories(setRows);
   };
   const saveAll = async () => {
+    if (updateRows.length === 0) {
+      return
+    }
+
     const body = updateRows.map((row) => ({
       sku: row.sellerSku,
       price: Number(row.price),
       percentPoint: Number(row.percentPoint),
     }));
-    if (body.length === 0) {
-      return;
-    }
 
-    const res = await fetch(`${config.fqdn}/api/price/update`, {
+    await fetch(`${config.fqdn}/api/price/update`, {
       method: "POST",
       mode: "cors",
       headers: {
@@ -73,7 +74,11 @@ const Toolbar = (props) => {
       },
       body: JSON.stringify(body),
     });
-    console.warn(await res.json());
+
+    setRows([])
+    setUpdateRows([])
+    setTmpRows([])
+    await fetchInventories(setRows);
   };
 
   return (

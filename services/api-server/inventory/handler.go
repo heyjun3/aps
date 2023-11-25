@@ -189,9 +189,32 @@ func UpdatePricing(c echo.Context) error {
 		slog.Error("failed bind body", err)
 		return c.JSON(http.StatusBadRequest, "bad request")
 	}
+
+	skus := make([]string, 0, len(*dtos))
+	for _, dto := range *dtos {
+		d := dto
+		skus = append(skus, d.Sku)
+	}
+	condition := Condition{Skus: skus}
+	inventories, err := inventoryRepository.GetByCondition(context.Background(), db, condition)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+	m := inventories.Map()
+
 	prices := make([]*DesiredPrice, 0, len(*dtos))
 	for _, dto := range *dtos {
-		price, err := NewDesiredPrice(&dto.Sku, &dto.Price, &dto.PercnetPoint)
+		d := dto
+		inventory := m[d.Sku]
+		if inventory == nil {
+			continue
+		}
+		lowestPrice := inventory.LowestPrice
+		if lowestPrice == nil {
+			continue
+		}
+		
+		price, err := NewDesiredPrice(&d.Sku, &d.Price, &d.PercnetPoint, *lowestPrice)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
