@@ -71,7 +71,7 @@ func (i *Inventories) Skus() []string {
 	return skus
 }
 
-func (i Inventories) Map() (map[string]*Inventory) {
+func (i Inventories) Map() map[string]*Inventory {
 	m := make(map[string]*Inventory)
 	for _, iv := range i {
 		m[*iv.SellerSku] = iv
@@ -97,7 +97,7 @@ func NewCursor(inventories Inventories) Cursor {
 type Condition struct {
 	Quantity             *int
 	IsNotOnlyLowestPrice bool
-	Skus []string
+	Skus                 []string
 }
 
 type InventoryRepository struct{}

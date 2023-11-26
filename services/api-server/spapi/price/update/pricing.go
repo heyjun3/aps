@@ -9,12 +9,17 @@ import (
 	"net/url"
 )
 
-func Pricing(URL *url.URL, sku string, price int) error {
-	type input struct {
-		Sku   string `json:"sku"`
-		Price int    `json:"price"`
-	}
-	buf, err := json.Marshal(input{Sku: sku, Price: price})
+type IUpdatePriceInput interface {
+	UpdatePrice() UpdatePriceInput
+}
+
+type UpdatePriceInput struct {
+	Sku   string `json:"sku"`
+	Price int    `json:"price"`
+}
+
+func Pricing(URL *url.URL, input IUpdatePriceInput) error {
+	buf, err := json.Marshal(input.UpdatePrice())
 	if err != nil {
 		return err
 	}

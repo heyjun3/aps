@@ -1,6 +1,7 @@
 package lowest
 
 import (
+	"fmt"
 	"encoding/json"
 	"errors"
 	"io"
@@ -54,6 +55,7 @@ func GetLowestPricing(URL *url.URL, skus []string) (*GetLowestPricingResponse, e
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(string(body))
 	var getLowestPricingResponse GetLowestPricingResponse
 	if err := json.Unmarshal(body, &getLowestPricingResponse); err != nil {
 		slog.Error("err", err)

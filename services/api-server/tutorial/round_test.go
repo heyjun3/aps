@@ -18,7 +18,7 @@ func TestRound(t *testing.T) {
 func TestConvertPercentToPoint(t *testing.T) {
 	percent := 2
 	price := 5811
-	
+
 	point := int(math.Round((float64(price) / 100 * float64(percent))))
 
 	assert.Equal(t, 116, point)

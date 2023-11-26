@@ -1,6 +1,8 @@
 package inventory
 
 import (
+	"api-server/spapi/point"
+	"api-server/spapi/price/update"
 	"context"
 	"errors"
 	"math"
@@ -92,6 +94,7 @@ func NewLowestPrice(sku *string, price, point *int) (*LowestPrice, error) {
 	}, nil
 }
 
+type DesiredPrices []*DesiredPrice
 type DesiredPrice struct {
 	bun.BaseModel `bun:"table:desired_prices"`
 	Price
@@ -99,7 +102,7 @@ type DesiredPrice struct {
 
 func NewDesiredPrice(sku *string, price, percentPoint *int, lowestPrice LowestPrice) (*DesiredPrice, error) {
 	const DESIRED_PRICE_RATE float64 = 0.9
-	if *price < int(float64(*lowestPrice.Amount) * DESIRED_PRICE_RATE) {
+	if *price < int(float64(*lowestPrice.Amount)*DESIRED_PRICE_RATE) {
 		return nil, errors.New("desired price greater than lowest price")
 	}
 
@@ -110,6 +113,24 @@ func NewDesiredPrice(sku *string, price, percentPoint *int, lowestPrice LowestPr
 	return &DesiredPrice{
 		Price: *p,
 	}, nil
+}
+
+func (p DesiredPrice) UpdatePrice() update.UpdatePriceInput {
+	return update.UpdatePriceInput{
+		Sku:   *p.SellerSku,
+		Price: *p.Amount,
+	}
+}
+
+func (p DesiredPrices) UpdatePoints() []point.UpdatePointInput {
+	inputs := make([]point.UpdatePointInput, 0, len(p))
+	for _, price := range p {
+		inputs = append(inputs, point.UpdatePointInput{
+			Sku:          *price.SellerSku,
+			PercentPoint: *price.PercentPoint,
+		})
+	}
+	return inputs
 }
 
 type PriceRepository[T IPrice] struct{}

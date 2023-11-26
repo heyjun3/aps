@@ -36,10 +36,10 @@ func (c SpapiClient) GetLowestPricing(skus []string) (*lowest.GetLowestPricingRe
 	return lowest.GetLowestPricing(c.URL, skus)
 }
 
-func (c SpapiClient) UpdatePricing(sku string, price int) error {
-	return update.Pricing(c.URL, sku, price)
+func (c SpapiClient) UpdatePricing(input update.IUpdatePriceInput) error {
+	return update.Pricing(c.URL, input)
 }
 
-func (c SpapiClient) UpdatePoints(inputs []point.UpdatePointInput) error {
-	return point.UpdatePoints(c.URL, inputs)
+func (c SpapiClient) UpdatePoints(input point.IUpdatePointInput) error {
+	return point.UpdatePoints(c.URL, input)
 }

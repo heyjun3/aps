@@ -10,12 +10,17 @@ import (
 	"net/url"
 )
 
+type IUpdatePointInput interface {
+	UpdatePoints() []UpdatePointInput
+}
+
 type UpdatePointInput struct {
 	Sku          string `json:"sku"`
 	PercentPoint int    `json:"percent_point"`
 }
 
-func UpdatePoints(URL *url.URL, inputs []UpdatePointInput) error {
+func UpdatePoints(URL *url.URL, input IUpdatePointInput) error {
+	inputs := input.UpdatePoints()
 	if len(inputs) == 0 {
 		return errors.New("expect at least one input")
 	}

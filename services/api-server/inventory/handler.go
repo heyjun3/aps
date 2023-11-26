@@ -202,7 +202,7 @@ func UpdatePricing(c echo.Context) error {
 	}
 	m := inventories.Map()
 
-	prices := make([]*DesiredPrice, 0, len(*dtos))
+	prices := make(DesiredPrices, 0, len(*dtos))
 	for _, dto := range *dtos {
 		d := dto
 		inventory := m[d.Sku]
@@ -213,7 +213,7 @@ func UpdatePricing(c echo.Context) error {
 		if lowestPrice == nil {
 			continue
 		}
-		
+
 		price, err := NewDesiredPrice(&d.Sku, &d.Price, &d.PercnetPoint, *lowestPrice)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
@@ -221,6 +221,17 @@ func UpdatePricing(c echo.Context) error {
 		prices = append(prices, price)
 	}
 	if err := desiredPriceRepository.Save(context.Background(), db, prices); err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	for _, price := range prices {
+		p := price
+		if err := spapiClient.UpdatePricing(p); err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+	}
+
+	if err := spapiClient.UpdatePoints(prices); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 	return c.JSON(http.StatusOK, dtos)
