@@ -1,9 +1,9 @@
 package lowest
 
 import (
-	"fmt"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
