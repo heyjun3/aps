@@ -3,9 +3,13 @@ package inventory
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"os"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/labstack/echo/v4"
 	"github.com/uptrace/bun"
 	"golang.org/x/exp/slog"
@@ -38,6 +42,17 @@ func init() {
 		panic(errors.New("don't set DB_DSN"))
 	}
 	db = database.OpenDB(dsn)
+	m, err := migrate.New(
+		"file://database/migrations",
+		dsn,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := m.Up(); err != nil {
+		slog.Warn("run migrate", "err", err)
+	}
+
 	inventoryRepository = InventoryRepository{}
 	priceRepository = PriceRepository[*CurrentPrice]{}
 	lowestPriceRepository = PriceRepository[*LowestPrice]{}
