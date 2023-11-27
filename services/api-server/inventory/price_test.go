@@ -22,8 +22,8 @@ func TestSaveCurrentPrices(t *testing.T) {
 	}{{
 		name: "save current prices",
 		prices: CurrentPrices{
-			test.OmitErr(NewCurrentPrice(Ptr("sku"), Ptr(1), Ptr(2))),
-			test.OmitErr(NewCurrentPrice(Ptr("skux"), Ptr(1), Ptr(2))),
+			test.OmitErr(NewCurrentPrice("sku", 1, 2)),
+			test.OmitErr(NewCurrentPrice("skux", 1, 2)),
 		},
 		wantErr: false,
 	}}
@@ -53,8 +53,8 @@ func TestSaveLowestPrices(t *testing.T) {
 	}{{
 		name: "save current prices",
 		prices: LowestPrices{
-			test.OmitErr(NewLowestPrice(Ptr("sku"), Ptr(1), Ptr(2))),
-			test.OmitErr(NewLowestPrice(Ptr("sku1"), Ptr(1), Ptr(2))),
+			test.OmitErr(NewLowestPrice("sku", 1, 2)),
+			test.OmitErr(NewLowestPrice("sku1", 1, 2)),
 		},
 		wantErr: false,
 	}}

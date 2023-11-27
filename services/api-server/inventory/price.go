@@ -66,8 +66,9 @@ type CurrentPrice struct {
 	Price
 }
 
-func NewCurrentPrice(sku *string, price, point *int) (*CurrentPrice, error) {
-	p, err := NewPrice(sku, price, point)
+func NewCurrentPrice(sku string, price, point float64) (*CurrentPrice, error) {
+	pr, po := int(price), int(point)
+	p, err := NewPrice(&sku, &pr, &po)
 	if err != nil {
 		return nil, err
 	}
@@ -84,8 +85,9 @@ type LowestPrice struct {
 	Price
 }
 
-func NewLowestPrice(sku *string, price, point *int) (*LowestPrice, error) {
-	p, err := NewPrice(sku, price, point)
+func NewLowestPrice(sku string, price, point float64) (*LowestPrice, error) {
+	pr, po := int(price), int(point)
+	p, err := NewPrice(&sku, &pr, &po)
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +138,9 @@ func (p DesiredPrices) UpdatePoints() []point.UpdatePointInput {
 type PriceRepository[T IPrice] struct{}
 
 func (r PriceRepository[T]) Save(ctx context.Context, db *bun.DB, prices []T) error {
+	if len(prices) == 0 {
+		return nil
+	}
 	_, err := db.NewInsert().
 		Model(&prices).
 		On("CONFLICT (seller_sku) DO UPDATE").

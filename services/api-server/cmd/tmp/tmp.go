@@ -20,7 +20,7 @@ func tmpHttp() {
 	if err != nil {
 		panic(err)
 	}
-	res, err := client.GetLowestPricing([]string{"0308194320"})
+	res, err := client.GetLowestPricing([]string{"4562312235052-N-6980-20231105"})
 	if err != nil {
 		panic(err)
 	}
@@ -43,7 +43,7 @@ func updatePoint() {
 	sku := "4957054511319-B-35800-20230811"
 	price := 44000
 	point := 7
-	low, err := inventory.NewLowestPrice(&sku, &price, &point)
+	low, err := inventory.NewLowestPrice(sku, float64(price), float64(point))
 	if err != nil {
 		panic(err)
 	}

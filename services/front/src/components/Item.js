@@ -36,14 +36,14 @@ const Toolbar = (props) => {
 
   const refreshInventories = async () => {
     setRows([]);
-    await fetch(`${config.fqdn}/api/inventory/refresh`, {
-      method: "POST",
-      mode: "cors",
-    });
-    await fetch(`${config.fqdn}/api/price/refresh`, {
-      method: "POST",
-      mode: "cors",
-    });
+    // await fetch(`${config.fqdn}/api/inventory/refresh`, {
+    //   method: "POST",
+    //   mode: "cors",
+    // });
+    // await fetch(`${config.fqdn}/api/price/refresh`, {
+    //   method: "POST",
+    //   mode: "cors",
+    // });
     await fetch(`${config.fqdn}/api/lowest-price/refresh`, {
       method: "POST",
       mode: "cors",

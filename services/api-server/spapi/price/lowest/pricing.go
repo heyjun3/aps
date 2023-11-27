@@ -22,15 +22,46 @@ type Body struct {
 	Payload Payload `json:"payload"`
 }
 type Payload struct {
-	Offers []Offer `json:"Offers"`
+	Offers Offers  `json:"Offers"`
 	SKU    *string `json:"SKU"`
 }
+
+type Offers []Offer
+
+func (o Offers) MyOffer() *Offer {
+	for _, offer := range o {
+		if offer.MyOffer {
+			return &offer
+		}
+	}
+	return nil
+}
+
+func (o Offers) FullfilledByAmazonAndBuyBoxWinner() *Offer {
+	for _, offer := range o {
+		if offer.IsFulfilledByAmazon && offer.IsBuyBoxWinner {
+			return &offer
+		}
+	}
+	return nil
+}
+
+func (o Offers) Lowest() *Offer {
+	if len(o) == 0 {
+		return nil
+	}
+	return &o[0]
+}
+
 type Offer struct {
-	Points Point `json:"Points"`
-	Price  Price `json:"ListingPrice"`
+	Points              Point `json:"Points"`
+	Price               Price `json:"ListingPrice"`
+	MyOffer             bool  `json:"MyOffer"`
+	IsFulfilledByAmazon bool  `json:"IsFulfilledByAmazon"`
+	IsBuyBoxWinner      bool  `json:"IsBuyBoxWinner"`
 }
 type Point struct {
-	PointsNumber *int64 `json:"PointsNumber"`
+	PointsNumber float64 `json:"PointsNumber"`
 }
 type Price struct {
 	Amount *float64 `json:"Amount"`
