@@ -14,6 +14,7 @@ import (
 
 	"api-server/database"
 	"api-server/spapi"
+	"api-server/spapi/price/lowest"
 	// "api-server/spapi/price"
 )
 
@@ -149,29 +150,17 @@ func RefreshLowestPricing(c echo.Context) error {
 				continue
 			}
 			sku := response.Body.Payload.SKU
-			current := offers.MyOffer()
-			if current != nil {
-				amount := current.Price.Amount
-				point := current.Points.PointsNumber
+			currents := offers.FilterCondition(lowest.Condition{MyOffer: Ptr(true)})
+			if len(currents) > 0 {
+				amount := currents[0].Price.Amount
+				point := currents[0].Points.PointsNumber
 				price, err := NewCurrentPrice(*sku, *amount, point)
 				if err == nil {
 					currentPrices = append(currentPrices, price)
 				}
 			}
 
-			buyBox := offers.FullfilledByAmazonAndBuyBoxWinner()
-			if buyBox != nil {
-				amount := buyBox.Price.Amount
-				point := buyBox.Points.PointsNumber
-				price, err := NewLowestPrice(*sku, *amount, point)
-				if err == nil {
-					lowestPrices = append(lowestPrices, price)
-					continue
-				}
-				slog.Error(err.Error(), "sku", sku)
-			}
-
-			lowest := offers.Lowest()
+			lowest := getLowestPricingFromOffers(offers)
 			if lowest != nil {
 				amount := lowest.Price.Amount
 				point := lowest.Points.PointsNumber
@@ -192,6 +181,23 @@ func RefreshLowestPricing(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 	}
+}
+
+func getLowestPricingFromOffers(offers lowest.Offers) *lowest.Offer {
+	buyBoxWinnerAndFullfilledByAmazon := offers.FilterCondition(lowest.Condition{
+		IsFullfilledByAmazon: Ptr(true),
+		IsBuyBoxWinner:       Ptr(true),
+	})
+	if len(buyBoxWinnerAndFullfilledByAmazon) > 0 {
+		return &buyBoxWinnerAndFullfilledByAmazon[0]
+	}
+	buyBox := offers.FilterCondition(lowest.Condition{
+		IsBuyBoxWinner: Ptr(true),
+	})
+	if len(buyBox) > 0 {
+		return &buyBox[0]
+	}
+	return offers.Lowest()
 }
 
 func GetInventories(c echo.Context) error {

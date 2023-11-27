@@ -3,7 +3,6 @@ package lowest
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -28,22 +27,27 @@ type Payload struct {
 
 type Offers []Offer
 
-func (o Offers) MyOffer() *Offer {
-	for _, offer := range o {
-		if offer.MyOffer {
-			return &offer
-		}
-	}
-	return nil
+type Condition struct {
+	MyOffer              *bool
+	IsFullfilledByAmazon *bool
+	IsBuyBoxWinner       *bool
 }
 
-func (o Offers) FullfilledByAmazonAndBuyBoxWinner() *Offer {
+func (o Offers) FilterCondition(cond Condition) Offers {
+	offers := make(Offers, 0, len(o))
 	for _, offer := range o {
-		if offer.IsFulfilledByAmazon && offer.IsBuyBoxWinner {
-			return &offer
+		if cond.MyOffer != nil && offer.MyOffer != *cond.MyOffer {
+			continue
 		}
+		if cond.IsFullfilledByAmazon != nil && offer.IsFulfilledByAmazon != *cond.IsFullfilledByAmazon {
+			continue
+		}
+		if cond.IsBuyBoxWinner != nil && offer.IsBuyBoxWinner != *cond.IsBuyBoxWinner {
+			continue
+		}
+		offers = append(offers, offer)
 	}
-	return nil
+	return offers
 }
 
 func (o Offers) Lowest() *Offer {
@@ -86,7 +90,6 @@ func GetLowestPricing(URL *url.URL, skus []string) (*GetLowestPricingResponse, e
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(string(body))
 	var getLowestPricingResponse GetLowestPricingResponse
 	if err := json.Unmarshal(body, &getLowestPricingResponse); err != nil {
 		slog.Error("err", err)

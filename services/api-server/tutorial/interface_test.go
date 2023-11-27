@@ -3,6 +3,8 @@ package tutorial
 import (
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type Getter[T any] interface {
@@ -30,4 +32,17 @@ func TestInterface(t *testing.T) {
 	mystruct := bar[string]()
 	mystruct = mystruct.Set("not found error")
 	fmt.Println(mystruct.Get())
+}
+
+func TestCond(t *testing.T) {
+	type cond struct {
+		isManaged *bool
+	}
+	c := cond{}
+	assert.True(t, c.isManaged == nil || *c.isManaged)
+
+	c1 := cond{
+		isManaged: Ptr(false),
+	}
+	assert.False(t, c1.isManaged != nil && *c1.isManaged)
 }
