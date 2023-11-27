@@ -36,15 +36,7 @@ const Toolbar = (props) => {
 
   const refreshInventories = async () => {
     setRows([]);
-    // await fetch(`${config.fqdn}/api/inventory/refresh`, {
-    //   method: "POST",
-    //   mode: "cors",
-    // });
-    // await fetch(`${config.fqdn}/api/price/refresh`, {
-    //   method: "POST",
-    //   mode: "cors",
-    // });
-    await fetch(`${config.fqdn}/api/lowest-price/refresh`, {
+    await fetch(`${config.fqdn}/api/price/refresh`, {
       method: "POST",
       mode: "cors",
     });
@@ -66,6 +58,10 @@ const Toolbar = (props) => {
       percentPoint: Number(row.percentPoint),
     }));
 
+    setRows([])
+    setUpdateRows([])
+    setTmpRows([])
+
     await fetch(`${config.fqdn}/api/price/update`, {
       method: "POST",
       mode: "cors",
@@ -75,9 +71,6 @@ const Toolbar = (props) => {
       body: JSON.stringify(body),
     });
 
-    setRows([])
-    setUpdateRows([])
-    setTmpRows([])
     await fetchInventories(setRows);
   };
 
