@@ -221,6 +221,7 @@ services:
       - TZ=Asia/Tokyo
       - DB_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/${POSTGRES_DB}?sslmode=disable
       - SHOP_SERVICE_URL=http://go-crawler:8080
+      - SPAPI_SERVICE_URL=http://spapi-server:8000
     command: /app/server
     depends_on:
       - postgresql-server
@@ -232,4 +233,4 @@ services:
     container_name: spapi-server
     environment:
       - TZ=Asia/Tokyo
-    entrypoint: uvicorn server:app --reload --host spapi-server-dev
+    entrypoint: uvicorn server:app --host spapi-server
