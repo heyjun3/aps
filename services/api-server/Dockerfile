@@ -11,4 +11,5 @@ FROM gcr.io/distroless/base-debian11:latest
 WORKDIR /app
 COPY --chown=nonroot:nonroot --from=builder /app/server /app/server
 COPY --chown=nonroot:nonroot --from=builder /app/delete_row /app/delete_row
+COPY --chown=nonroot:nonroot --from=builder /app/database/migrations /app/database/migrations
 USER nonroot
