@@ -41,9 +41,9 @@ func updatePoint() {
 		panic(err)
 	}
 	sku := "4957054511319-B-35800-20230811"
-	price := 44000
-	point := 7
-	low, err := inventory.NewLowestPrice(sku, float64(price), float64(point))
+	price := 44000.0
+	point := 7.0
+	low, err := inventory.NewLowestPrice(sku, &price, &point)
 	if err != nil {
 		panic(err)
 	}

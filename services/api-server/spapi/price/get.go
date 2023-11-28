@@ -65,7 +65,7 @@ type Offer struct {
 	IsBuyBoxWinner      bool  `json:"IsBuyBoxWinner"`
 }
 type Point struct {
-	PointsNumber float64 `json:"PointsNumber"`
+	PointsNumber *float64 `json:"PointsNumber"`
 }
 type Price struct {
 	Amount *float64 `json:"Amount"`

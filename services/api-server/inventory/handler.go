@@ -75,54 +75,7 @@ func RefreshInventory(c echo.Context) error {
 	return c.JSON(http.StatusOK, "success")
 }
 
-// func RefreshPricing(c echo.Context) error {
-// 	var inventories Inventories
-// 	var cursor Cursor
-// 	var err error
-// 	for {
-// 		inventories, cursor, err = inventoryRepository.GetNextPage(context.Background(), db, cursor.End, 20)
-// 		if err != nil {
-// 			slog.Error("error", "detail", err)
-// 			return c.JSON(http.StatusInternalServerError, err)
-// 		}
-// 		if len(inventories) == 0 || inventories == nil {
-// 			return c.JSON(http.StatusOK, "success")
-// 		}
-
-// 		res, err := spapiClient.GetPricing(inventories.Skus(), price.Sku)
-// 		if err != nil {
-// 			slog.Error("error", "detail", err)
-// 			return c.JSON(http.StatusInternalServerError, err)
-// 		}
-
-// 		prices := make(CurrentPrices, 0, len(inventories))
-// 		for _, payload := range res.Payload {
-// 			offers := payload.Product.Offers
-// 			if len(offers) == 0 {
-// 				continue
-// 			}
-// 			sku := payload.SellerSKU
-// 			amount := offers[0].BuyingPrice.ListingPrice.Amount
-// 			points := offers[0].BuyingPrice.Points.PointsNumber
-// 			if amount == nil || points == nil {
-// 				slog.Warn("amount or points is nil. must be not nil", "sku", sku)
-// 				continue
-// 			}
-// 			price, err := NewCurrentPrice(sku, Ptr(int(*amount)), Ptr(int(*points)))
-// 			if err != nil {
-// 				slog.Error(err.Error(), "sku", sku)
-// 				continue
-// 			}
-// 			prices = append(prices, price)
-// 		}
-// 		if err := priceRepository.Save(context.Background(), db, prices); err != nil {
-// 			slog.Error("error", "detail", err)
-// 			return c.JSON(http.StatusInternalServerError, err)
-// 		}
-// 	}
-// }
-
-func RefreshLowestPricing(c echo.Context) error {
+func RefreshPricing(c echo.Context) error {
 	var inventories Inventories
 	var cursor Cursor
 	var err error
@@ -153,7 +106,7 @@ func RefreshLowestPricing(c echo.Context) error {
 			if len(currents) > 0 {
 				amount := currents[0].Price.Amount
 				point := currents[0].Points.PointsNumber
-				price, err := NewCurrentPrice(*sku, *amount, point)
+				price, err := NewCurrentPrice(*sku, amount, point)
 				if err == nil {
 					currentPrices = append(currentPrices, price)
 				}
@@ -163,7 +116,7 @@ func RefreshLowestPricing(c echo.Context) error {
 			if lowest != nil {
 				amount := lowest.Price.Amount
 				point := lowest.Points.PointsNumber
-				price, err := NewLowestPrice(*sku, *amount, point)
+				price, err := NewLowestPrice(*sku, amount, point)
 				if err != nil {
 					slog.Error(err.Error(), "sku", sku)
 					continue
@@ -211,9 +164,9 @@ func GetInventories(c echo.Context) error {
 }
 
 type UpdatePricingDTO struct {
-	Sku          string `json:"sku"`
-	Price        int    `json:"price"`
-	PercnetPoint int    `json:"percentPoint"`
+	Sku          string  `json:"sku"`
+	Price        float64 `json:"price"`
+	PercnetPoint float64 `json:"percentPoint"`
 }
 
 func UpdatePricing(c echo.Context) error {
