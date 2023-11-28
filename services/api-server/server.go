@@ -1,11 +1,17 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
@@ -23,6 +29,24 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	return nil
+}
+
+func init() {
+	dsn := os.Getenv("DB_DSN")
+	if dsn == "" {
+		panic(errors.New("don't set DB_DSN"))
+	}
+	m, err := migrate.New(
+		"file://database/migrations",
+		dsn,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := m.Up(); err != nil {
+		slog.Warn("run migrate", "err", err)
+	}
+
 }
 
 func main() {
@@ -47,8 +71,10 @@ func main() {
 	e.POST("/api/shops", shop.CreateShop)
 	e.DELETE("/api/shops", shop.DeleteShop)
 
-	e.POST("/api/refresh-inventory", inventory.RefreshInventory)
-	e.POST("/api/refresh-pricing", inventory.RefreshPricing)
+	e.GET("/api/inventories", inventory.GetInventories)
+	e.POST("/api/inventory/refresh", inventory.RefreshInventory)
+	e.POST("/api/price/update", inventory.UpdatePricing)
+	e.POST("/api/price/refresh", inventory.RefreshLowestPricing)
 
 	e.Logger.Fatal(e.Start(":5000"))
 }

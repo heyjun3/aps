@@ -97,8 +97,8 @@ class RegisterService(object):
         logger.info({"action": "check_registerd", "status": "done"})
 
     # INFO show spapi feeds usecase page
-    # items = [[sku, point(int)]]
-    async def register_points(self, items: list[list]):
+    # items = [[sku: str, point: int]]
+    async def register_points(self, items: list[list], interval_sec: int = 1):
         logger.info({'action': '_register_points', 'status': 'run'})
         header = ['sku', 'points_percent']
         rows = [header, *list(filter(lambda x: int(x[1]) <= 100, items))]
@@ -117,7 +117,7 @@ class RegisterService(object):
             r = await self.feed_client.get_feed(r['feedId'])
             if r.get('processingStatus') == 'DONE':
                 break
-            time.sleep(10)
+            time.sleep(interval_sec)
 
         res = await self.feed_client.get_feed_document(r['resultFeedDocumentId'])
 
@@ -128,6 +128,7 @@ class RegisterService(object):
 
         logger.info({'action': '_register_points',
                     'status': 'done', 'result': data})
+        return data
 
     def _create_sheet_client(self, credential: str) -> gspread.Client:
         path = Path.cwd().joinpath(credential)

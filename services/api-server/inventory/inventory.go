@@ -31,6 +31,7 @@ type Inventory struct {
 	*inventory.Inventory
 	CurrentPrice *CurrentPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
 	LowestPrice  *LowestPrice  `bun:"rel:has-one,join:seller_sku=seller_sku"`
+	DesiredPrice *DesiredPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
 	CreatedAt    time.Time     `bun:"created_at,nullzero,notnull,default:current_timestamp"`
 	UpdatedAt    time.Time     `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
 }
@@ -70,6 +71,14 @@ func (i *Inventories) Skus() []string {
 	return skus
 }
 
+func (i Inventories) Map() map[string]*Inventory {
+	m := make(map[string]*Inventory)
+	for _, iv := range i {
+		m[*iv.SellerSku] = iv
+	}
+	return m
+}
+
 type Cursor struct {
 	Start string
 	End   string
@@ -83,6 +92,12 @@ func NewCursor(inventories Inventories) Cursor {
 		Start: *inventories[0].SellerSku,
 		End:   *inventories[len(inventories)-1].SellerSku,
 	}
+}
+
+type Condition struct {
+	Quantity             *int
+	IsNotOnlyLowestPrice bool
+	Skus                 []string
 }
 
 type InventoryRepository struct{}
@@ -103,12 +118,30 @@ func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories I
 	return err
 }
 
-func (r InventoryRepository) GetAll(ctx context.Context, db *bun.DB) (Inventories, error) {
+func (r InventoryRepository) GetByCondition(ctx context.Context, db *bun.DB, condition Condition) (Inventories, error) {
 	var inventories Inventories
-	err := db.NewSelect().
+	query := db.NewSelect().
 		Model(&inventories).
-		Order("seller_sku").
-		Scan(ctx)
+		Relation("CurrentPrice").
+		Relation("LowestPrice").
+		Relation("DesiredPrice").
+		Order("seller_sku")
+
+	if len(condition.Skus) > 0 {
+		query.Where("inventory.seller_sku IN (?)", bun.In(condition.Skus))
+	}
+
+	if condition.Quantity != nil {
+		query.Where("quantity > ?", *condition.Quantity)
+	}
+	if condition.IsNotOnlyLowestPrice {
+		query.WhereGroup("AND", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.WhereOr("current_price.amount != lowest_price.amount").
+				WhereOr("current_price.point != lowest_price.point")
+		})
+	}
+
+	err := query.Scan(ctx)
 	return inventories, err
 }
 

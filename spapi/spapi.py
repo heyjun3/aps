@@ -197,6 +197,10 @@ class SPAPI(object):
     async def get_item_offers_batch(self, asin_list: List[str], item_condition: str='NEW', customer_type: str='Consumer') -> dict:
         return await self._request(partial(self._get_item_offers_batch, asin_list, item_condition, customer_type))
 
+    @async_logger(logger) 
+    async def get_listing_offers_batch(self, skus: List[str], item_condition: str = 'NEW', customer_type: str = 'Consumer') -> dict:
+        return await self._request(partial(self._get_listing_offers_batch, skus, item_condition, customer_type))
+
     async def get_my_fees_estimates(self, asin_list: List[str], id_type: str='ASIN', price_amount: int=10000) -> dict:
         return await self._request(partial(self._get_my_fees_estimates, asin_list, id_type, price_amount))
 
@@ -381,6 +385,29 @@ class SPAPI(object):
         }
 
         logger.info('action=get_item_offers_batch status=done')
+        return (method, url, query, body)
+    
+    def _get_listing_offers_batch(self, skus: List, item_condition: str = "NEW", customer_type: str = 'Consumer'):
+        
+        if len(skus) > 20:
+            raise TooMatchParameterException
+        method = 'POST'
+        path = '/batches/products/pricing/v0/listingOffers'
+        url = urllib.parse.urljoin(settings.ENDPOINT, path)
+        query = None
+        reqs = []
+        for sku in skus:
+            reqs.append({
+                'uri': f'/products/pricing/v0/listings/{sku}/offers',
+                'method': 'GET',
+                'MarketplaceId': self.marketplace_id,
+                'ItemCondition': item_condition,
+                'CustomerType': customer_type,
+            })
+        body = {
+            'requests': reqs,
+        }
+
         return (method, url, query, body)
 
     def _get_my_fees_estimates(self, asin_list: List, id_type: str='ASIN', price_amount: int=10000) -> tuple[str, str, None, dict]:
