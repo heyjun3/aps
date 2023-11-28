@@ -71,6 +71,7 @@ const Toolbar = (props) => {
       body: JSON.stringify(body),
     });
 
+    setIsShowUpdateRows(false);
     await fetchInventories(setRows);
   };
 
