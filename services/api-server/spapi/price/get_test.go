@@ -1,4 +1,4 @@
-package lowest
+package price
 
 import (
 	"encoding/json"

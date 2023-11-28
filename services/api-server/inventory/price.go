@@ -2,7 +2,7 @@ package inventory
 
 import (
 	"api-server/spapi/point"
-	"api-server/spapi/price/update"
+	"api-server/spapi/price"
 	"context"
 	"errors"
 	"math"
@@ -117,8 +117,8 @@ func NewDesiredPrice(sku *string, price, percentPoint *int, lowestPrice LowestPr
 	}, nil
 }
 
-func (p DesiredPrice) UpdatePrice() update.UpdatePriceInput {
-	return update.UpdatePriceInput{
+func (p DesiredPrice) UpdatePrice() price.UpdatePriceInput {
+	return price.UpdatePriceInput{
 		Sku:   *p.SellerSku,
 		Price: *p.Amount,
 	}

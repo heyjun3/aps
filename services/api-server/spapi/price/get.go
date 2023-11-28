@@ -1,4 +1,4 @@
-package lowest
+package price
 
 import (
 	"encoding/json"
@@ -71,7 +71,7 @@ type Price struct {
 	Amount *float64 `json:"Amount"`
 }
 
-func GetLowestPricing(URL *url.URL, skus []string) (*GetLowestPricingResponse, error) {
+func GetPricing(URL *url.URL, skus []string) (*GetLowestPricingResponse, error) {
 	if len(skus) == 0 {
 		return nil, errors.New("skus must contain at least one letter")
 	}

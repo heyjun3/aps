@@ -20,7 +20,7 @@ func tmpHttp() {
 	if err != nil {
 		panic(err)
 	}
-	res, err := client.GetLowestPricing([]string{"4562312235052-N-6980-20231105"})
+	res, err := client.GetPricing([]string{"4562312235052-N-6980-20231105"})
 	if err != nil {
 		panic(err)
 	}
