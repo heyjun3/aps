@@ -58,7 +58,7 @@ func GetInventories(c echo.Context) error {
 }
 
 func UpdatePricing(c echo.Context) error {
-	dtos := new([]UpdatePricingDTO)
+	dtos := new(updatePricingDTOS)
 	if err := c.Bind(dtos); err != nil {
 		slog.Error("failed bind body", err)
 		return c.JSON(http.StatusBadRequest, "bad request")

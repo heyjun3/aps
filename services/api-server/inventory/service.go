@@ -149,18 +149,23 @@ func (s InventoryService) getInventories() (Inventories, error) {
 	return inventories, nil
 }
 
-type UpdatePricingDTO struct {
+type updatePricingDTO struct {
 	Sku          string  `json:"sku"`
 	Price        float64 `json:"price"`
 	PercnetPoint float64 `json:"percentPoint"`
 }
+type updatePricingDTOS []updatePricingDTO
 
-func (s InventoryService) updatePricing(dtos []UpdatePricingDTO) error {
-	skus := make([]string, 0, len(dtos))
-	for _, dto := range dtos {
-		d := dto
-		skus = append(skus, d.Sku)
+func (d updatePricingDTOS) skus() []string {
+	skus := make([]string, 0, len(d))
+	for _, dto := range d {
+		skus = append(skus, dto.Sku)
 	}
+	return skus
+}
+
+func (s InventoryService) updatePricing(dtos updatePricingDTOS) error {
+	skus := dtos.skus()
 	condition := Condition{Skus: skus}
 	inventories, err := s.inventoryRepository.GetByCondition(context.Background(), db, condition)
 	if err != nil {
