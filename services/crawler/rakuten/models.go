@@ -18,7 +18,8 @@ type RakutenProduct struct {
 func NewRakutenProduct(
 	name, productCode, url, jan, shopCode string, price, point int64) (*RakutenProduct, error) {
 
-	p, err := scrape.NewProduct(name, productCode, url, jan, shopCode, price)
+	calcPrice := price - point
+	p, err := scrape.NewProduct(name, productCode, url, jan, shopCode, calcPrice)
 	if err != nil {
 		return nil, err
 	}
@@ -26,10 +27,6 @@ func NewRakutenProduct(
 		Product: *p,
 		point:   point,
 	}, nil
-}
-
-func (r *RakutenProduct) calcPrice() {
-	r.Price = int64(float64(r.Price)*0.91) - r.point
 }
 
 type Shop struct {

@@ -78,8 +78,6 @@ func (p RakutenParser) ProductList(r io.ReadCloser, u string) (scrape.Products, 
 			logger.Error("error", err)
 			return
 		}
-		product.calcPrice()
-
 		products = append(products, product)
 	})
 
