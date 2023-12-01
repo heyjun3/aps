@@ -55,8 +55,8 @@ func TestGetRakutenProducts(t *testing.T) {
 	}}
 
 	preProducts := scrape.Products{
-		NewTestRakutenProduct("name", "test", "http://", "4444", "rakuten", 9900, 1),
-		NewTestRakutenProduct("name", "code", "http://", "4444444", "rakuten", 9900, 1),
+		NewTestRakutenProduct("name", "test", "http://", "4444", "rakuten", 9900, 0),
+		NewTestRakutenProduct("name", "code", "http://", "4444444", "rakuten", 9900, 0),
 	}
 	err := s.Repo.BulkUpsert(ctx, conn, preProducts)
 	if err != nil {
