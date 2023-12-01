@@ -1,8 +1,6 @@
 package inventory
 
 import (
-	"api-server/spapi/point"
-	"api-server/spapi/price/update"
 	"context"
 	"errors"
 	"math"
@@ -11,6 +9,9 @@ import (
 
 	"github.com/uptrace/bun"
 	"golang.org/x/exp/slices"
+
+	"api-server/spapi/point"
+	"api-server/spapi/price"
 )
 
 type IPrice interface {
@@ -28,29 +29,36 @@ type Price struct {
 	UpdatedAt    time.Time `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
 }
 
-func NewPrice(sku *string, price, point *int) (*Price, error) {
-	if slices.Contains([]interface{}{sku, price, point}, nil) {
+func NewPrice(sku *string, price, point *float64) (*Price, error) {
+	if slices.Contains([]interface{}{sku, price}, nil) {
 		return nil, errors.New("contians nil in args")
 	}
-	percent := int(math.Round(float64(*point) / float64(*price) * 100))
+	po := func() float64 {
+		if point == nil {
+			return 0
+		}
+		return float64(*point)
+	}()
+	percent := int(math.Round(po / *price * 100))
 	return &Price{
 		SellerSku:    sku,
-		Amount:       price,
-		Point:        point,
+		Amount:       Ptr(int(*price)),
+		Point:        Ptr(int(po)),
 		PercentPoint: &percent,
 	}, nil
 }
 
-func NewPriceWithPercentPoint(sku *string, price, percentPoint *int) (*Price, error) {
+func NewPriceWithPercentPoint(sku *string, price, percentPoint *float64) (*Price, error) {
 	if percentPoint == nil {
 		return nil, errors.New("percent point is nil. expect int argument")
 	}
-	point := int(math.Round((float64(*price) / 100 * float64(*percentPoint))))
-	p, err := NewPrice(sku, price, &point)
+	p, err := NewPrice(sku, price, nil)
 	if err != nil {
 		return nil, err
 	}
-	p.PercentPoint = percentPoint
+	point := int(math.Round(*price / 100 * *percentPoint))
+	p.PercentPoint = Ptr(int(*percentPoint))
+	p.Point = &point
 	return p, nil
 }
 
@@ -66,9 +74,8 @@ type CurrentPrice struct {
 	Price
 }
 
-func NewCurrentPrice(sku string, price, point float64) (*CurrentPrice, error) {
-	pr, po := int(price), int(point)
-	p, err := NewPrice(&sku, &pr, &po)
+func NewCurrentPrice(sku string, price, point *float64) (*CurrentPrice, error) {
+	p, err := NewPrice(&sku, price, point)
 	if err != nil {
 		return nil, err
 	}
@@ -85,9 +92,8 @@ type LowestPrice struct {
 	Price
 }
 
-func NewLowestPrice(sku string, price, point float64) (*LowestPrice, error) {
-	pr, po := int(price), int(point)
-	p, err := NewPrice(&sku, &pr, &po)
+func NewLowestPrice(sku string, price, point *float64) (*LowestPrice, error) {
+	p, err := NewPrice(&sku, price, point)
 	if err != nil {
 		return nil, err
 	}
@@ -102,23 +108,24 @@ type DesiredPrice struct {
 	Price
 }
 
-func NewDesiredPrice(sku *string, price, percentPoint *int, lowestPrice LowestPrice) (*DesiredPrice, error) {
-	const DESIRED_PRICE_RATE float64 = 0.9
-	if *price < int(float64(*lowestPrice.Amount)*DESIRED_PRICE_RATE) {
-		return nil, errors.New("desired price greater than lowest price")
-	}
-
+func NewDesiredPrice(sku *string, price, percentPoint *float64, lowestPrice LowestPrice) (*DesiredPrice, error) {
 	p, err := NewPriceWithPercentPoint(sku, price, percentPoint)
 	if err != nil {
 		return nil, err
 	}
+
+	const DESIRED_PRICE_RATE float64 = 0.9
+	if *price < float64(*lowestPrice.Amount)*DESIRED_PRICE_RATE {
+		return nil, errors.New("desired price greater than lowest price")
+	}
+
 	return &DesiredPrice{
 		Price: *p,
 	}, nil
 }
 
-func (p DesiredPrice) UpdatePrice() update.UpdatePriceInput {
-	return update.UpdatePriceInput{
+func (p DesiredPrice) UpdatePrice() price.UpdatePriceInput {
+	return price.UpdatePriceInput{
 		Sku:   *p.SellerSku,
 		Price: *p.Amount,
 	}

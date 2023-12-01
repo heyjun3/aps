@@ -1,4 +1,4 @@
-package update
+package price
 
 import (
 	"bytes"
@@ -18,7 +18,7 @@ type UpdatePriceInput struct {
 	Price int    `json:"price"`
 }
 
-func Pricing(URL *url.URL, input IUpdatePriceInput) error {
+func UpdatePricing(URL *url.URL, input IUpdatePriceInput) error {
 	buf, err := json.Marshal(input.UpdatePrice())
 	if err != nil {
 		return err
