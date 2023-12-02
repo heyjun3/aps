@@ -136,8 +136,11 @@ class UpdateChartData(object):
         date = value.get("date")
         if date is None:
             return False
-        
-        date = datetime.datetime.strptime(date, "%Y-%m-%d")
+        try:
+            date = datetime.datetime.strptime(date, "%Y-%m-%d")
+        except ValueError as e:
+            logger.error({"message": "failed parse date", "date": date, "error": e})
+            return False
         past_date = datetime.datetime.now() - datetime.timedelta(days=past_days)
         return past_date < date
 
