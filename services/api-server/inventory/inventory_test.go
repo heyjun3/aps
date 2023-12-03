@@ -1,14 +1,14 @@
 package inventory
 
 import (
-	spapi "api-server/spapi/inventory"
-	"api-server/test"
 	"context"
 	"fmt"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"api-server/test"
 )
 
 func TestSaveInventories(t *testing.T) {
@@ -116,7 +116,7 @@ func TestGetNextPage(t *testing.T) {
 		{
 			name:    "get next page",
 			args:    args{cursor: "10", limit: 20},
-			want:    want{cursor: Cursor{Start: "100", End: "28"}, first: Inventory{Inventory: &spapi.Inventory{SellerSku: Ptr("100")}}, last: Inventory{Inventory: &spapi.Inventory{SellerSku: Ptr("28")}}, count: 20},
+			want:    want{cursor: Cursor{Start: "100", End: "28"}, first: Inventory{SellerSku: Ptr("100")}, last: Inventory{SellerSku: Ptr("28")}, count: 20},
 			wantErr: false,
 		},
 		{
