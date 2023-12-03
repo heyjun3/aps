@@ -7,8 +7,18 @@ import (
 	"net/url"
 )
 
+type SummariesResponse struct {
+	Pagination Pagination `json:"pagination"`
+	Payload    Payload    `json:"payload"`
+}
+
 type Pagination struct {
 	NextToken string `json:"nextToken"`
+}
+
+type Payload struct {
+	Granularity        Granularity  `json:"granularity"`
+	InventorySummaries []*Inventory `json:"inventorySummaries"`
 }
 
 type Granularity struct {
@@ -24,16 +34,6 @@ type Inventory struct {
 	LastUpdatedTime *string `json:"lastUpdatedTime" bun:"-"`
 	ProductName     *string `json:"productName" bun:"product_name"`
 	TotalQuantity   *int    `json:"totalQuantity" bun:"quantity"`
-}
-
-type Payload struct {
-	Granularity        Granularity  `json:"granularity"`
-	InventorySummaries []*Inventory `json:"inventorySummaries"`
-}
-
-type SummariesResponse struct {
-	Pagination Pagination `json:"pagination"`
-	Payload    Payload    `json:"payload"`
 }
 
 func Summaries(URL *url.URL, nextToken string) (*SummariesResponse, error) {
