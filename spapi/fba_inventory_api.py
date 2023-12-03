@@ -19,8 +19,8 @@ class FBAInventoryAPI(SPAPI):
         return await self._request(partial(self._fba_inventory_api_v1, skus))
 
     @async_logger(logger)
-    async def get_inventory_summaries(self, next_token: str = '') -> dict:
-        return await self._request(partial(self._get_inventory_summaries, next_token), backoff=True)
+    async def get_inventory_summaries(self, next_token: str = '', is_detail: bool = False) -> dict:
+        return await self._request(partial(self._get_inventory_summaries, next_token, is_detail), backoff=True)
 
     def _fba_inventory_api_v1(self, skus: List[str]) -> tuple:
         logger.info({"action": "_fba_inventory_api_v1", "status": "run"})
@@ -39,13 +39,18 @@ class FBAInventoryAPI(SPAPI):
         logger.info({"action": "_fba_inventory_api_v1", "status": "run"})
         return (method, url, query, None)
 
-    def _get_inventory_summaries(self, next_token: str = ''):
+    def _get_inventory_summaries(self, next_token: str = '', is_detail: bool = False):
+
+        if is_detail:
+            details = "true"
+        else:
+            details = "false"
 
         method = 'GET'
         path = "/fba/inventory/v1/summaries"
         url = urljoin(settings.ENDPOINT, path)
         query = {
-            "details": "false",
+            "details": details,
             "granularityType": "Marketplace",
             "granularityId": self.marketplace_id,
             "marketplaceIds": self.marketplace_id,

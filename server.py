@@ -16,8 +16,8 @@ register_service = RegisterService(settings.CREDENTIAL_FILE_NAME)
 
 
 @app.get("/inventory-summaries")
-async def get_inventory_summaries(next_token: str = ''):
-    return await client.get_inventory_summaries(next_token)
+async def get_inventory_summaries(next_token: str = '', is_detail: bool = True):
+    return await client.get_inventory_summaries(next_token, is_detail)
 
 
 @app.get('/get-pricing')
