@@ -39,6 +39,9 @@ func RefreshInventory(c echo.Context) error {
 	if err := inventoryService.refreshInventories(); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
+	if err := inventoryService.refreshPricing(); err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
 	return c.JSON(http.StatusOK, "success")
 }
 
