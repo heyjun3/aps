@@ -27,13 +27,18 @@ type Granularity struct {
 }
 
 type Inventory struct {
-	Asin            *string `json:"asin"`
-	FnSku           *string `json:"fnSku"`
-	SellerSku       *string `json:"sellerSku"`
-	Condition       *string `json:"condition"`
-	LastUpdatedTime *string `json:"lastUpdatedTime"`
-	ProductName     *string `json:"productName"`
-	TotalQuantity   *int    `json:"totalQuantity"`
+	Asin             *string           `json:"asin"`
+	FnSku            *string           `json:"fnSku"`
+	SellerSku        *string           `json:"sellerSku"`
+	Condition        *string           `json:"condition"`
+	LastUpdatedTime  *string           `json:"lastUpdatedTime"`
+	ProductName      *string           `json:"productName"`
+	TotalQuantity    *int              `json:"totalQuantity"`
+	InventoryDetails *InventoryDetails `json:"inventoryDetails"`
+}
+
+type InventoryDetails struct {
+	FulfillableQuantity *int `json:"fulfillableQuantity"`
 }
 
 func Summaries(URL *url.URL, nextToken string) (*SummariesResponse, error) {

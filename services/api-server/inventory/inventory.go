@@ -27,31 +27,34 @@ func ValidateNilFieldsOfStruct[T any](value *T) (*T, error) {
 }
 
 type Inventory struct {
-	bun.BaseModel   `bun:"table:inventories"`
-	Asin            *string       `bun:"asin"`
-	FnSku           *string       `bun:"fnsku"`
-	SellerSku       *string       `bun:"seller_sku,pk"`
-	Condition       *string       `bun:"condition"`
-	LastUpdatedTime *string       `bun:"-"`
-	ProductName     *string       `bun:"product_name"`
-	TotalQuantity   *int          `bun:"quantity"`
-	CurrentPrice    *CurrentPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
-	LowestPrice     *LowestPrice  `bun:"rel:has-one,join:seller_sku=seller_sku"`
-	DesiredPrice    *DesiredPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
-	CreatedAt       time.Time     `bun:"created_at,nullzero,notnull,default:current_timestamp"`
-	UpdatedAt       time.Time     `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
+	bun.BaseModel       `bun:"table:inventories"`
+	Asin                *string       `bun:"asin"`
+	FnSku               *string       `bun:"fnsku"`
+	SellerSku           *string       `bun:"seller_sku,pk"`
+	Condition           *string       `bun:"condition"`
+	LastUpdatedTime     *string       `bun:"-"`
+	ProductName         *string       `bun:"product_name"`
+	TotalQuantity       *int          `bun:"quantity"`
+	FulfillableQuantity *int          `bun:"fulfillable_quantity"`
+	CurrentPrice        *CurrentPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
+	LowestPrice         *LowestPrice  `bun:"rel:has-one,join:seller_sku=seller_sku"`
+	DesiredPrice        *DesiredPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
+	CreatedAt           time.Time     `bun:"created_at,nullzero,notnull,default:current_timestamp"`
+	UpdatedAt           time.Time     `bun:"updated_at,nullzero,notnull,default:current_timestamp"`
 }
 
 func NewInventory(
-	asin, fnSku, sellerSku, condition, productName string, totalQuantity int,
+	asin, fnSku, sellerSku, condition, productName string,
+	totalQuantity, fulfillableQuantity int,
 ) *Inventory {
 	return &Inventory{
-		Asin:          &asin,
-		FnSku:         &fnSku,
-		SellerSku:     &sellerSku,
-		Condition:     &condition,
-		ProductName:   &productName,
-		TotalQuantity: &totalQuantity,
+		Asin:                &asin,
+		FnSku:               &fnSku,
+		SellerSku:           &sellerSku,
+		Condition:           &condition,
+		ProductName:         &productName,
+		TotalQuantity:       &totalQuantity,
+		FulfillableQuantity: &fulfillableQuantity,
 	}
 }
 
@@ -67,6 +70,7 @@ func NewInventoryFromInventory(iv *inventory.Inventory) (*Inventory, error) {
 		*value.Condition,
 		*value.ProductName,
 		*value.TotalQuantity,
+		*value.InventoryDetails.FulfillableQuantity,
 	)
 	return inventory, nil
 }

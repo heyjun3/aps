@@ -19,13 +19,13 @@ func TestSaveInventories(t *testing.T) {
 	}{{
 		name: "save inventories",
 		inventories: Inventories{
-			NewInventory("asin", "fnsku", "sku", "new", "name", 1),
+			NewInventory("asin", "fnsku", "sku", "new", "name", 1, 1),
 		},
 		wantErr: false,
 	}, {
 		name: "save inventories",
 		inventories: Inventories{
-			NewInventory("asin", "fnsku", "sku", "new", "name", 1),
+			NewInventory("asin", "fnsku", "sku", "new", "name", 1, 1),
 		},
 		wantErr: false,
 	}}
@@ -51,8 +51,8 @@ func TestGetBySellerSKU(t *testing.T) {
 	test.ResetModel(context.Background(), db, &Inventory{})
 	repo := InventoryRepository{}
 	inventories := Inventories{
-		NewInventory("asin", "fnsku", "sku", "new", "sku", 1),
-		NewInventory("asin", "fnsku", "test", "new", "test", 2),
+		NewInventory("asin", "fnsku", "sku", "new", "sku", 1, 1),
+		NewInventory("asin", "fnsku", "test", "new", "test", 2, 2),
 	}
 	if err := repo.Save(context.Background(), db, inventories); err != nil {
 		panic(err)
@@ -90,7 +90,7 @@ func TestGetNextPage(t *testing.T) {
 	repo := InventoryRepository{}
 	seed := make(Inventories, 100)
 	for i := range seed {
-		seed[i] = NewInventory("asin", "fnsku", strconv.Itoa(i+1), "new", "name", 10)
+		seed[i] = NewInventory("asin", "fnsku", strconv.Itoa(i+1), "new", "name", 10, 10)
 	}
 	if err := repo.Save(context.Background(), db, seed); err != nil {
 		panic(err)
