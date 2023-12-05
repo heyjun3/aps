@@ -140,7 +140,10 @@ func getLowestPricingFromOffers(offers price.Offers) *price.Offer {
 
 func (s InventoryService) getInventories() (Inventories, error) {
 	ctx := context.Background()
-	condition := Condition{Quantity: Ptr(0), IsNotOnlyLowestPrice: true}
+	condition := Condition{
+		MinFulfillableQuantity: Ptr(1),
+		IsNotOnlyLowestPrice:   true,
+	}
 	inventories, err := s.inventoryRepository.GetByCondition(ctx, db, condition)
 	if err != nil {
 		slog.Error("get inventories error", "detail", err)

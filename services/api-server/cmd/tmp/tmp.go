@@ -5,7 +5,7 @@ import (
 	"api-server/inventory"
 	"api-server/spapi"
 	"context"
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"os"
 )
@@ -20,18 +20,28 @@ func tmpHttp() {
 	if err != nil {
 		panic(err)
 	}
-	res, err := client.GetPricing([]string{"4562312235052-N-6980-20231105"})
+	res, err := client.InventorySummaries("")
 	if err != nil {
 		panic(err)
 	}
-	flag := false
+	flag := true
 	if flag {
-		buf, err := json.Marshal(res)
-		if err != nil {
-			panic(err)
+		for _, s := range res.Payload.InventorySummaries {
+			fmt.Println(*s.InventoryDetails.FulfillableQuantity)
 		}
-		fmt.Println(string(buf))
 	}
+	// res, err := client.GetPricing([]string{"4562312235052-N-6980-20231105"})
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// flag := false
+	// if flag {
+	// 	buf, err := json.Marshal(res)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	fmt.Println(string(buf))
+	// }
 }
 
 func updatePoint() {
@@ -66,8 +76,8 @@ func tmpDatabase() {
 	dsn := os.Getenv("DB_DSN")
 	db := database.OpenDB(dsn)
 	repo := inventory.InventoryRepository{}
-	quantity := 0
-	iv, err := repo.GetByCondition(context.Background(), db, inventory.Condition{Quantity: &quantity, IsNotOnlyLowestPrice: true})
+	quantity := 1
+	iv, err := repo.GetByCondition(context.Background(), db, inventory.Condition{MinFulfillableQuantity: &quantity, IsNotOnlyLowestPrice: true})
 	fmt.Println(err)
 	fmt.Println(len(iv))
 }
