@@ -109,9 +109,10 @@ func NewCursor(inventories Inventories) Cursor {
 }
 
 type Condition struct {
-	Quantity             *int
-	IsNotOnlyLowestPrice bool
-	Skus                 []string
+	MinFulfillableQuantity *int
+	MaxFulfillableQuantity *int
+	IsNotOnlyLowestPrice   bool
+	Skus                   []string
 }
 
 type InventoryRepository struct{}
@@ -146,9 +147,13 @@ func (r InventoryRepository) GetByCondition(ctx context.Context, db *bun.DB, con
 		query.Where("inventory.seller_sku IN (?)", bun.In(condition.Skus))
 	}
 
-	if condition.Quantity != nil {
-		query.Where("quantity > ?", *condition.Quantity)
+	if condition.MinFulfillableQuantity != nil {
+		query.Where("fulfillable_quantity >= ?", *condition.MinFulfillableQuantity)
 	}
+	if condition.MaxFulfillableQuantity != nil {
+		query.Where("fulfillable_quantity <= ?", *condition.MaxFulfillableQuantity)
+	}
+
 	if condition.IsNotOnlyLowestPrice {
 		query.WhereGroup("AND", func(q *bun.SelectQuery) *bun.SelectQuery {
 			return q.WhereOr("current_price.amount != lowest_price.amount").
