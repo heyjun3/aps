@@ -28,14 +28,14 @@ func ValidateNilFieldsOfStruct[T any](value *T) (*T, error) {
 
 type Inventory struct {
 	bun.BaseModel       `bun:"table:inventories"`
-	Asin                *string       `bun:"asin"`
-	FnSku               *string       `bun:"fnsku"`
-	SellerSku           *string       `bun:"seller_sku,pk"`
-	Condition           *string       `bun:"condition"`
+	Asin                *string       `bun:"asin" json:"asin"`
+	FnSku               *string       `bun:"fnsku" json:"fnSku"`
+	SellerSku           *string       `bun:"seller_sku,pk" json:"sellerSku"`
+	Condition           *string       `bun:"condition" json:"condition"`
 	LastUpdatedTime     *string       `bun:"-"`
-	ProductName         *string       `bun:"product_name"`
-	TotalQuantity       *int          `bun:"quantity"`
-	FulfillableQuantity *int          `bun:"fulfillable_quantity"`
+	ProductName         *string       `bun:"product_name" json:"productName"`
+	TotalQuantity       *int          `bun:"quantity" json:"totalQuantity"`
+	FulfillableQuantity *int          `bun:"fulfillable_quantity" json:"fulfillableQuantity"`
 	CurrentPrice        *CurrentPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
 	LowestPrice         *LowestPrice  `bun:"rel:has-one,join:seller_sku=seller_sku"`
 	DesiredPrice        *DesiredPrice `bun:"rel:has-one,join:seller_sku=seller_sku"`
@@ -126,6 +126,7 @@ func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories I
 			"condition = EXCLUDED.condition",
 			"product_name = EXCLUDED.product_name",
 			"quantity = EXCLUDED.quantity",
+			"fulfillable_quantity = EXCLUDED.fulfillable_quantity",
 			"updated_at = current_timestamp",
 		}, ",")).
 		Exec(ctx)
