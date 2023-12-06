@@ -49,7 +49,7 @@ const Toolbar = (props) => {
   };
   const saveAll = async () => {
     if (updateRows.length === 0) {
-      return
+      return;
     }
 
     const body = updateRows.map((row) => ({
@@ -58,9 +58,9 @@ const Toolbar = (props) => {
       percentPoint: Number(row.percentPoint),
     }));
 
-    setRows([])
-    setUpdateRows([])
-    setTmpRows([])
+    setRows([]);
+    setUpdateRows([]);
+    setTmpRows([]);
 
     await fetch(`${config.fqdn}/api/price/update`, {
       method: "POST",
@@ -132,7 +132,13 @@ const RenderPoint = (props) => {
 };
 
 const columns = [
-  { field: "sellerSku", headerName: "SKU", width: 200, renderCell: RenderSKU },
+  {
+    field: "sellerSku",
+    headerName: "SKU",
+    width: 200,
+    renderCell: RenderSKU,
+    headerAlign: "center",
+  },
   {
     field: "itemName",
     headerName: "Name",
@@ -140,6 +146,14 @@ const columns = [
     flex: 1,
     renderCell: RenderName,
     aggregable: false,
+    headerAlign: "center",
+  },
+  {
+    field: "quantity",
+    headerName: "Quantity",
+    width: 90,
+    align: "center",
+    headerAlign: "center",
   },
   {
     field: "price",
@@ -188,6 +202,7 @@ const fetchInventories = async (set) => {
       point: value.LowestPrice?.Point,
       percent: value.LowestPrice?.PercentPoint,
     };
+    value.quantity = value.fulfillableQuantity;
   }
   set(body);
 };
