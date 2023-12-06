@@ -46,4 +46,5 @@
 0 3 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spapi -i register
 0 4 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spapi -i check
 5 0 * * * PGPASSWORD=postgres pg_dump -d aps -h localhost -U postgres | pigz > /home/jun/backup/`date +\%Y\%m\%d`_dump.sql.gz 2>> /home/jun/log/error.log
+15 0 * * * pg_basebackup -D /home/jun/backup/`date +\%Y\%m\%d` -h localhost -U postgres -c fast -P && tar -c /home/jun/backup/`date +\%Y\%m\%d` | pzstd -p 12 > /home/jun/bakcup/`date +\%Y\%m\%d`.tar.zst && rm -r /home/jun/backup/`date +\%Y\%m\%d`
 2 0 * * * find /home/jun/backup -type f -mtime +14 | sort | xargs rm
