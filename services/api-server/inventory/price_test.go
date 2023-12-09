@@ -70,3 +70,33 @@ func TestSaveLowestPrices(t *testing.T) {
 		})
 	}
 }
+
+func TestSaveDesiredPrice(t *testing.T) {
+	db := test.CreateTestDBConnection()
+	test.ResetModel(context.Background(), db, &DesiredPrice{})
+	repo := PriceRepository[*DesiredPrice]{}
+
+	tests := []struct {
+		name    string
+		prices  DesiredPrices
+		wantErr bool
+	}{{
+		name: "save desired prices",
+		prices: DesiredPrices{
+			test.OmitErr(NewDesiredPrice(Ptr("sku1"), Ptr(10000.0), Ptr(1.0), *test.OmitErr(NewLowestPrice("sku1", Ptr(10000.0), Ptr(2.0))))),
+			test.OmitErr(NewDesiredPrice(Ptr("sku2"), Ptr(20000.0), Ptr(2.0), *test.OmitErr(NewLowestPrice("sku2", Ptr(20000.0), Ptr(4.0))))),
+		},
+		wantErr: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := repo.Save(context.Background(), db, tt.prices)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
