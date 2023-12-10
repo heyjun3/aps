@@ -3,6 +3,7 @@ package inventory
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -42,6 +43,119 @@ func TestSaveInventories(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func inventoriesSeeder() Inventories {
+	seed := make(Inventories, 100)
+	for i := range seed {
+		n := strconv.Itoa(i)
+		seed[i] = NewInventory(
+			"asin_"+n,
+			"fnsku_"+n,
+			"sku_"+n,
+			"new",
+			"name"+n,
+			i,
+			i,
+		)
+	}
+	return seed
+}
+
+func TestGetByCondition(t *testing.T) {
+	db := test.CreateTestDBConnection()
+	test.ResetModel(context.Background(), db, &Inventory{})
+	repo := InventoryRepository{}
+	if err := repo.Save(context.Background(), db, inventoriesSeeder()); err != nil {
+		panic(err)
+	}
+	type args struct {
+		condition Condition
+	}
+	type want struct {
+		expectFunc func(Inventories) bool
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    want
+		wantErr bool
+	}{
+		{
+			name: "search with skus",
+			args: args{
+				condition: Condition{
+					Skus: []string{"sku1", "sku2"},
+				},
+			},
+			want: want{
+				expectFunc: func(iv Inventories) bool {
+					for _, i := range iv {
+						if slices.Contains([]string{"sku1", "sku2"}, *i.SellerSku) {
+							continue
+						}
+						return false
+					}
+					return true
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "search with min fulfillable quantity",
+			args: args{
+				condition: Condition{
+					MinFulfillableQuantity: Ptr(10),
+				},
+			},
+			want: want{
+				expectFunc: func(iv Inventories) bool {
+					for _, i := range iv {
+						if *i.FulfillableQuantity >= 10 {
+							continue
+						}
+						return false
+					}
+					return true
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "search with max fulfillable quantity",
+			args: args{
+				condition: Condition{
+					MaxFulfillableQuantity: Ptr(40),
+				},
+			},
+			want: want{
+				expectFunc: func(iv Inventories) bool {
+					for _, i := range iv {
+						if *i.FulfillableQuantity <= 40 {
+							continue
+						}
+						return false
+					}
+					return true
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inventories, err := repo.GetByCondition(context.Background(), db, tt.args.condition)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.True(t, tt.want.expectFunc(inventories))
 		})
 	}
 }

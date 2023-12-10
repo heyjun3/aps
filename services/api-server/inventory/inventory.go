@@ -118,6 +118,9 @@ type Condition struct {
 type InventoryRepository struct{}
 
 func (r InventoryRepository) Save(ctx context.Context, db *bun.DB, inventories Inventories) error {
+	if len(inventories) == 0 {
+		return nil
+	}
 	_, err := db.NewInsert().
 		Model(&inventories).
 		On("CONFLICT (seller_sku) DO UPDATE").

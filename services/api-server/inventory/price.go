@@ -119,6 +119,10 @@ func NewDesiredPrice(sku *string, price, percentPoint *float64, lowestPrice Lowe
 		return nil, errors.New("desired price greater than lowest price")
 	}
 
+	if *p.SellerSku != *lowestPrice.SellerSku {
+		return nil, errors.New("not equals skus")
+	}
+
 	return &DesiredPrice{
 		Price: *p,
 	}, nil

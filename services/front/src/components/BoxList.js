@@ -9,7 +9,6 @@ import {Link} from 'react-router-dom';
 
 
 export default function BoxList(props) {
-
   return (
     <List sx={{ width: '100%', maxWidth: 500, bgcolor: 'background.paper', margin: 'auto', mt: '10px' }}>
       {props.filenames.map((value) => {
