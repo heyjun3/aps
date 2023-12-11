@@ -32,7 +32,10 @@ async def get_pricing(ids: str, id_type: str):
             status_code=400, detail="Bad item type. expect Asin or Sku")
     except Exception:
         raise HTTPException(status_code=503, detail="Internal Server Error")
-    
+
+@app.get('/competitive-pricing')    
+async def get_competitive_pricing(asins: str):
+    return await client.get_competitive_pricing(asins.split(','))
 
 @app.get('/get-listing-offers-batch')
 async def get_listing_offers_batch(skus: str):

@@ -30,6 +30,10 @@ func (c SpapiClient) GetPricing(skus []string) (*price.GetLowestPricingResponse,
 	return price.GetPricing(c.URL, skus)
 }
 
+func (c SpapiClient) GetCompetitivePricing(asins []string) (*price.GetCompetitivePricingResponse, error) {
+	return price.GetCompetitivePricing(c.URL, asins)
+}
+
 func (c SpapiClient) UpdatePricing(input price.IUpdatePriceInput) error {
 	return price.UpdatePricing(c.URL, input)
 }
