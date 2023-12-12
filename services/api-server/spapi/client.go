@@ -6,6 +6,7 @@ import (
 	"api-server/spapi/inventory"
 	"api-server/spapi/point"
 	"api-server/spapi/price"
+	"api-server/spapi/price/competitive"
 )
 
 type SpapiClient struct {
@@ -30,8 +31,8 @@ func (c SpapiClient) GetPricing(skus []string) (*price.GetLowestPricingResponse,
 	return price.GetPricing(c.URL, skus)
 }
 
-func (c SpapiClient) GetCompetitivePricing(asins []string) (*price.GetCompetitivePricingResponse, error) {
-	return price.GetCompetitivePricing(c.URL, asins)
+func (c SpapiClient) GetCompetitivePricing(asins []string) (*competitive.GetCompetitivePricingResponse, error) {
+	return competitive.GetCompetitivePricing(c.URL, asins)
 }
 
 func (c SpapiClient) UpdatePricing(input price.IUpdatePriceInput) error {

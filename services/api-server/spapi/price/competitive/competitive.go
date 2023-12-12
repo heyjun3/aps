@@ -1,4 +1,4 @@
-package price
+package competitive
 
 import (
 	"encoding/json"
@@ -11,6 +11,38 @@ import (
 )
 
 type GetCompetitivePricingResponse struct {
+	response
+}
+
+type response struct {
+	Payload []Payload `json:"payload"`
+}
+type Payload struct {
+	Asin    string  `json:"ASIN"`
+	Product Product `json:"Product"`
+	Status  string  `json:"status"`
+}
+type Product struct {
+	CompetitivePricing CompetitivePricing `json:"CompetitivePricing"`
+	SalesRankings      []SalesRank        `json:"SalesRankings"`
+}
+type CompetitivePricing struct {
+	CompetitivePrices []CompetitivePrice `json:"CompetitivePrices"`
+}
+type CompetitivePrice struct {
+	Price Price `json:"Price"`
+}
+type Price struct {
+	LandedPrice  Amount `json:"LandedPrice"`
+	ListingPrice Amount `json:"ListingPrice"`
+}
+type Amount struct {
+	CurrencyCode string `json:"CurrencyCode"`
+	Amount       int    `json:"Amount"`
+}
+type SalesRank struct {
+	ProductCategoryId string `json:"ProductCategoryId"`
+	Rank              int    `json:"Rank"`
 }
 
 func GetCompetitivePricing(URL *url.URL, asins []string) (*GetCompetitivePricingResponse, error) {
