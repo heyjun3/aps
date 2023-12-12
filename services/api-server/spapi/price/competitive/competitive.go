@@ -14,6 +14,14 @@ type GetCompetitivePricingResponse struct {
 	response
 }
 
+func (r GetCompetitivePricingResponse) LandedPrices() []*LandedProduct {
+	landedPrices := make([]*LandedProduct, 0, len(r.Payload))
+	for _, p := range r.Payload {
+		landedPrices = append(landedPrices, p.landedProduct())
+	}
+	return landedPrices
+}
+
 type response struct {
 	Payload []Payload `json:"payload"`
 }
@@ -22,6 +30,35 @@ type Payload struct {
 	Product Product `json:"Product"`
 	Status  string  `json:"status"`
 }
+type LandedProduct struct {
+	Asin          string
+	Status        string
+	LandedPrice   *Price
+	ListingPrice  *Price
+	SalesRankings []SalesRank
+}
+
+func (p Payload) landedProduct() *LandedProduct {
+	rankings := p.Product.SalesRankings
+	prices := p.Product.CompetitivePricing.CompetitivePrices
+	if len(prices) == 0 {
+		return &LandedProduct{
+			Asin:          p.Asin,
+			Status:        p.Status,
+			LandedPrice:   nil,
+			ListingPrice:  nil,
+			SalesRankings: rankings,
+		}
+	}
+	return &LandedProduct{
+		Asin:          p.Asin,
+		Status:        p.Status,
+		LandedPrice:   prices[0].Prices.LandedPrice,
+		ListingPrice:  prices[0].Prices.ListingPrice,
+		SalesRankings: rankings,
+	}
+}
+
 type Product struct {
 	CompetitivePricing CompetitivePricing `json:"CompetitivePricing"`
 	SalesRankings      []SalesRank        `json:"SalesRankings"`
@@ -30,13 +67,13 @@ type CompetitivePricing struct {
 	CompetitivePrices []CompetitivePrice `json:"CompetitivePrices"`
 }
 type CompetitivePrice struct {
-	Price Price `json:"Price"`
+	Prices Prices `json:"Price"`
+}
+type Prices struct {
+	LandedPrice  *Price `json:"LandedPrice"`
+	ListingPrice *Price `json:"ListingPrice"`
 }
 type Price struct {
-	LandedPrice  Amount `json:"LandedPrice"`
-	ListingPrice Amount `json:"ListingPrice"`
-}
-type Amount struct {
 	CurrencyCode string `json:"CurrencyCode"`
 	Amount       int    `json:"Amount"`
 }
