@@ -7,6 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.15.5
 	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/labstack/echo/v4 v4.10.2
+	github.com/rabbitmq/amqp091-go v1.9.0
 	github.com/stretchr/testify v1.8.4
 	github.com/uptrace/bun v1.1.14
 	github.com/uptrace/bun/dialect/pgdialect v1.1.14

@@ -3,7 +3,6 @@ package competitive
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -104,7 +103,6 @@ func GetCompetitivePricing(URL *url.URL, asins []string) (*GetCompetitivePricing
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(string(body))
 	var getCompetitivePricingResponse GetCompetitivePricingResponse
 	if err := json.Unmarshal(body, &getCompetitivePricingResponse); err != nil {
 		return nil, err
