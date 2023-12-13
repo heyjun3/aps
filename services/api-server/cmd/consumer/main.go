@@ -1,9 +1,9 @@
 package main
 
 import (
-	"api-server/product"
+	"api-server/mq"
 )
 
 func main() {
-	product.KeepaService{}.Consume()
+	mq.Consume(mq.Client{}.Exec, "chart")
 }

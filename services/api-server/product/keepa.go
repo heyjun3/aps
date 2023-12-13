@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -33,7 +34,18 @@ type KeepaRepository struct {
 }
 
 func (k KeepaRepository) Save(ctx context.Context, Keepas []Keepa) error {
-	_, err := k.DB.NewInsert().Model(&Keepas).Exec(ctx)
+	_, err := k.DB.
+		NewInsert().
+		Model(&Keepas).
+		On("CONFLICT (asin) DO UPDATE").
+		Set(strings.Join([]string{
+			"sales_drops_90 = EXCLUDED.sales_drops_90",
+			"price_data = EXCLUDED.price_data",
+			"rank_data =  EXCLUDED.rank_data",
+			"render_data = EXCLUDED.render_data",
+			"modified = now()",
+		}, ",")).
+		Exec(ctx)
 	return err
 }
 
