@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -10,20 +11,59 @@ import (
 	"api-server/test"
 )
 
-func TestKeepaGetCounts(t *testing.T) {
+func keepaSeed(repo KeepaRepository) error {
+	keepas := make([]*Keepa, 100)
+	for i := 0; i < 100; i++ {
+		keepas[i] = &Keepa{Asin: "asin_" + strconv.Itoa(i)}
+	}
+	return repo.Save(context.Background(), keepas)
+}
+
+func TestKeepaGetByAsins(t *testing.T) {
 	db := test.CreateTestDBConnection()
-	err := db.ResetModel(context.Background(), &Keepa{})
-	if err != nil {
+	if err := db.ResetModel(context.Background(), &Keepa{}); err != nil {
 		panic(err)
 	}
-	ks := []Keepa{
+	repo := KeepaRepository{DB: db}
+	if err := keepaSeed(repo); err != nil {
+		panic(err)
+	}
+
+	tests := []struct {
+		name    string
+		args    []string
+		want    []string
+		wantErr bool
+	}{
+		{name: "keepas get by asins", args: []string{"asin_1"}, want: []string{"asin_1"}, wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ks, err := repo.GetByAsins(context.Background(), tt.args)
+
+			assert.Equal(t, tt.want, ks.Asins())
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestKeepaGetCounts(t *testing.T) {
+	db := test.CreateTestDBConnection()
+	if err := db.ResetModel(context.Background(), &Keepa{}); err != nil {
+		panic(err)
+	}
+	ks := []*Keepa{
 		{Asin: "aaa", Modified: time.Date(2022, 4, 1, 0, 0, 0, 0, time.Local)},
 		{Asin: "bbb"},
 		{Asin: "ccc"},
 	}
 	repo := KeepaRepository{DB: db}
-	err = repo.Save(context.Background(), ks)
-	if err != nil {
+	if err := repo.Save(context.Background(), ks); err != nil {
 		panic(err)
 	}
 

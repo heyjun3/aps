@@ -28,12 +28,21 @@ type Keepa struct {
 	Created       time.Time          `bun:",type:date,nullzero,notnull,default:current_timestamp"`
 	Modified      time.Time          `bun:",type:date,nullzero,notnull,default:current_timestamp"`
 }
+type Keepas []*Keepa
+
+func (k Keepas) Asins() []string {
+	asins := make([]string, len(k))
+	for i, keepa := range k {
+		asins[i] = keepa.Asin
+	}
+	return asins
+}
 
 type KeepaRepository struct {
 	DB *bun.DB
 }
 
-func (k KeepaRepository) Save(ctx context.Context, Keepas []Keepa) error {
+func (k KeepaRepository) Save(ctx context.Context, Keepas []*Keepa) error {
 	_, err := k.DB.
 		NewInsert().
 		Model(&Keepas).
@@ -53,6 +62,16 @@ func (k KeepaRepository) Get(ctx context.Context) (*Keepa, error) {
 	keepa := new(Keepa)
 	err := k.DB.NewSelect().Model(keepa).Limit(1).Scan(ctx)
 	return keepa, err
+}
+
+func (k KeepaRepository) GetByAsins(ctx context.Context, asins []string) (Keepas, error) {
+	keepas := make([]*Keepa, 0, len(asins))
+	err := k.DB.NewSelect().
+		Model(&keepas).
+		Where("asin IN (?)", bun.In(asins)).
+		Order("asin").
+		Scan(ctx)
+	return keepas, err
 }
 
 func (k KeepaRepository) GetCounts(ctx context.Context) (map[string]int, error) {

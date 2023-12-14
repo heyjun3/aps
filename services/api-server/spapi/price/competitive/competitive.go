@@ -13,8 +13,8 @@ type GetCompetitivePricingResponse struct {
 	response
 }
 
-func (r GetCompetitivePricingResponse) LandedPrices() []*LandedProduct {
-	landedPrices := make([]*LandedProduct, 0, len(r.Payload))
+func (r GetCompetitivePricingResponse) LandedPrices() LandedProducts {
+	landedPrices := make(LandedProducts, 0, len(r.Payload))
 	for _, p := range r.Payload {
 		landedPrices = append(landedPrices, p.landedProduct())
 	}
@@ -35,6 +35,15 @@ type LandedProduct struct {
 	LandedPrice   *Price
 	ListingPrice  *Price
 	SalesRankings []SalesRank
+}
+type LandedProducts []*LandedProduct
+
+func (p LandedProducts) Asins() []string {
+	asins := make([]string, 0, len(p))
+	for _, price := range p {
+		asins = append(asins, price.Asin)
+	}
+	return asins
 }
 
 func (p Payload) landedProduct() *LandedProduct {

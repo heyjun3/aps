@@ -35,5 +35,5 @@ func main() {
 	// 		{Date: time.Now().Format("2006-01-02"), Rank: 3.0, Price: 3.0},
 	// 	},
 	// }
-	repo.Save(context.Background(), []product.Keepa{*k})
+	repo.Save(context.Background(), []*product.Keepa{k})
 }
