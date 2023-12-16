@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
+
+	"api-server/spapi/price/competitive"
 )
 
 type Chart struct {
@@ -36,6 +38,56 @@ func (k Keepas) Asins() []string {
 		asins[i] = keepa.Asin
 	}
 	return asins
+}
+func (k Keepas) UpdateRenderData(renderDatas renderDatas) Keepas {
+	keepaTime := "1111" // あとで書き換える
+	date := time.Now().Format("2006-01-02")
+	m := renderDatas.Map()
+	for _, keepa := range k {
+		data := m[keepa.Asin]
+		if data == nil {
+			continue
+		}
+		price := float64(data.price)
+		rank := float64(data.rank)
+		keepa.Prices[keepaTime] = price
+		keepa.Ranks[keepaTime] = rank
+		chart := Chart{Date: date, Price: price, Rank: rank}
+		keepa.Charts.Data = append(keepa.Charts.Data, chart)
+	}
+	return k
+}
+
+type renderData struct {
+	Asin  string
+	price int
+	rank  int
+}
+type renderDatas []*renderData
+
+func (r renderDatas) Map() map[string]*renderData {
+	m := make(map[string]*renderData)
+	for _, data := range r {
+		m[data.Asin] = data
+	}
+	return m
+}
+
+func convertLandedProducts(products competitive.LandedProducts) renderDatas {
+	renderDatas := make(renderDatas, 0, len(products))
+	for _, product := range products {
+		asin := product.Asin
+		price := func() int{
+			for _, p := range []*competitive.Price{product.LandedPrice, product.ListingPrice} {
+				if p != nil {
+					return p.Amount
+				}
+			}
+			return -1
+		}()
+		// rank := 
+	}
+	return renderDatas
 }
 
 type KeepaRepository struct {
