@@ -47,6 +47,10 @@ func (p LandedProducts) Asins() []string {
 }
 
 func (p Payload) landedProduct() *LandedProduct {
+	if p.Asin == "" {
+		return nil
+	}
+
 	rankings := p.Product.SalesRankings
 	prices := p.Product.CompetitivePricing.CompetitivePrices
 	if len(prices) == 0 {

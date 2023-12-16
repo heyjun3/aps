@@ -29,11 +29,16 @@ func (s KeepaService) UpdateRenderData(d amqp.Delivery) {
 		slog.Error("json unmarshal error", err)
 		return
 	}
-	products := res.LandedPrices()
-	keepas, err := s.repository.GetByAsins(context.Background(), products.Asins())
+	renderData := convertLandedProducts(res.LandedPrices())
+
+	keepas, err := s.repository.GetByAsins(context.Background(), renderData.Asins())
 	if err != nil {
-		slog.Error("failed get keepa", err)
+		slog.Error("failed get keepa", "err", err)
 		return
 	}
-
+	if err := s.repository.Save(context.Background(), keepas.UpdateRenderData(renderData)); err != nil {
+		slog.Error("failed save keepa", "err", err)
+		return
+	}
+	panic("")
 }

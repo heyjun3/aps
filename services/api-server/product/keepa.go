@@ -2,6 +2,9 @@ package product
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -30,6 +33,17 @@ type Keepa struct {
 	Created       time.Time          `bun:",type:date,nullzero,notnull,default:current_timestamp"`
 	Modified      time.Time          `bun:",type:date,nullzero,notnull,default:current_timestamp"`
 }
+
+func (k *Keepa) updateRenderData(data renderData, keepaTime, date string) *Keepa {
+	price := float64(data.price)
+	rank := float64(data.rank)
+	k.Prices[keepaTime] = price
+	k.Ranks[keepaTime] = rank
+	chart := Chart{Date: date, Price: price, Rank: rank}
+	k.Charts.Data = append(k.Charts.Data, chart)
+	return k
+}
+
 type Keepas []*Keepa
 
 func (k Keepas) Asins() []string {
@@ -40,7 +54,7 @@ func (k Keepas) Asins() []string {
 	return asins
 }
 func (k Keepas) UpdateRenderData(renderDatas renderDatas) Keepas {
-	keepaTime := "1111" // あとで書き換える
+	keepaTime := fmt.Sprint(UnixTimeToKeepaTime(time.Now().Unix()))
 	date := time.Now().Format("2006-01-02")
 	m := renderDatas.Map()
 	for _, keepa := range k {
@@ -48,12 +62,7 @@ func (k Keepas) UpdateRenderData(renderDatas renderDatas) Keepas {
 		if data == nil {
 			continue
 		}
-		price := float64(data.price)
-		rank := float64(data.rank)
-		keepa.Prices[keepaTime] = price
-		keepa.Ranks[keepaTime] = rank
-		chart := Chart{Date: date, Price: price, Rank: rank}
-		keepa.Charts.Data = append(keepa.Charts.Data, chart)
+		keepa.updateRenderData(*data, keepaTime, date)
 	}
 	return k
 }
@@ -73,11 +82,21 @@ func (r renderDatas) Map() map[string]*renderData {
 	return m
 }
 
+func (r renderDatas) Asins() []string {
+	asins := make([]string, 0, len(r))
+	for _, data := range r {
+		asins = append(asins, data.Asin)
+	}
+	return asins
+}
+
 func convertLandedProducts(products competitive.LandedProducts) renderDatas {
+	re := regexp.MustCompile("^[0-9]+$")
 	renderDatas := make(renderDatas, 0, len(products))
+
 	for _, product := range products {
 		asin := product.Asin
-		price := func() int{
+		price := func() int {
 			for _, p := range []*competitive.Price{product.LandedPrice, product.ListingPrice} {
 				if p != nil {
 					return p.Amount
@@ -85,19 +104,38 @@ func convertLandedProducts(products competitive.LandedProducts) renderDatas {
 			}
 			return -1
 		}()
-		// rank := 
+		rank := func() int {
+			for _, r := range product.SalesRankings {
+				if !re.MatchString(r.ProductCategoryId) && r.ProductCategoryId != "" {
+					return r.Rank
+				}
+			}
+			return -1
+		}()
+		renderDatas = append(renderDatas, &renderData{
+			Asin:  asin,
+			price: price,
+			rank:  rank,
+		})
 	}
 	return renderDatas
+}
+
+func UnixTimeToKeepaTime(unix int64) int64 {
+	return (unix/60 - 21564000)
 }
 
 type KeepaRepository struct {
 	DB *bun.DB
 }
 
-func (k KeepaRepository) Save(ctx context.Context, Keepas []*Keepa) error {
+func (k KeepaRepository) Save(ctx context.Context, keepas []*Keepa) error {
+	if len(keepas) == 0 {
+		return errors.New("expect at least on keepa object")
+	}
 	_, err := k.DB.
 		NewInsert().
-		Model(&Keepas).
+		Model(&keepas).
 		On("CONFLICT (asin) DO UPDATE").
 		Set(strings.Join([]string{
 			"sales_drops_90 = EXCLUDED.sales_drops_90",
