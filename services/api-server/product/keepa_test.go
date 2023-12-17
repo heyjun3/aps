@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"api-server/spapi/price/competitive"
 	"api-server/test"
 )
 
@@ -88,4 +89,74 @@ func TestKeepaGetCounts(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUpdateRenderData(t *testing.T) {
+	keepas := Keepas{
+		{Asin: "asin_1"},
+		{Asin: "asin_2", Charts: ChartData{Data: []Chart{{Date: "2023-12-16", Price: 1000, Rank: 2000}}}},
+		{Asin: "asin_3", Prices: make(map[string]float64), Ranks: make(map[string]float64)},
+	}
+	renderData := renderDatas{
+		&renderData{asin: "asin_1", price: 1000, rank: 2000},
+		&renderData{asin: "asin_2", price: 3000, rank: 4000},
+	}
+	ex := Keepas{
+		{Asin: "asin_1", Charts: ChartData{
+			Data: []Chart{
+				{
+					Date:  time.Now().Format("2006-01-02"),
+					Price: 1000,
+					Rank:  2000,
+				},
+			},
+		}},
+		{Asin: "asin_2", Charts: ChartData{
+			Data: []Chart{
+				{
+					Date:  "2023-12-16",
+					Price: 1000,
+					Rank:  2000,
+				},
+				{
+					Date:  time.Now().Format("2006-01-02"),
+					Price: 3000,
+					Rank:  4000,
+				},
+			},
+		}},
+		{Asin: "asin_3"},
+	}
+
+	updated := keepas.UpdateRenderData(renderData)
+
+	for i := range updated {
+		assert.Equal(t, ex[i].Asin, updated[i].Asin)
+		assert.Equal(t, ex[i].Charts, updated[i].Charts)
+		assert.NotNil(t, updated[i].Prices)
+		assert.NotNil(t, updated[i].Ranks)
+	}
+}
+
+func TestConvertLandedProducts(t *testing.T) {
+	landedProducts := competitive.LandedProducts{
+		{Asin: "asin_1"},
+		{Asin: "asin_2", LandedPrice: &competitive.Price{Amount: 2000}},
+		{Asin: "asin_3", ListingPrice: &competitive.Price{Amount: 3000}},
+		{Asin: "asin_4", SalesRankings: []competitive.SalesRank{{ProductCategoryId: "pc", Rank: 40}}},
+		{Asin: "asin_5", SalesRankings: []competitive.SalesRank{{ProductCategoryId: "55555", Rank: 50}}},
+		{Asin: "asin_6", SalesRankings: []competitive.SalesRank{{ProductCategoryId: "", Rank: 60}}},
+	}
+	expected := renderDatas{
+		{asin: "asin_1", price: -1, rank: -1},
+		{asin: "asin_2", price: 2000, rank: -1},
+		{asin: "asin_3", price: 3000, rank: -1},
+		{asin: "asin_4", price: -1, rank: 40},
+		{asin: "asin_5", price: -1, rank: -1},
+		{asin: "asin_6", price: -1, rank: -1},
+	}
+
+	renderDatas := ConvertLandedProducts(landedProducts)
+
+	assert.Equal(t, expected, renderDatas)
 }

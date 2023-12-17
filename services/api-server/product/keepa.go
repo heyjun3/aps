@@ -35,6 +35,13 @@ type Keepa struct {
 }
 
 func (k *Keepa) updateRenderData(data renderData, keepaTime, date string) *Keepa {
+	if k.Prices == nil {
+		k.Prices = make(map[string]float64)
+	}
+	if k.Ranks == nil {
+		k.Ranks = make(map[string]float64)
+	}
+
 	price := float64(data.price)
 	rank := float64(data.rank)
 	k.Prices[keepaTime] = price
@@ -68,7 +75,7 @@ func (k Keepas) UpdateRenderData(renderDatas renderDatas) Keepas {
 }
 
 type renderData struct {
-	Asin  string
+	asin  string
 	price int
 	rank  int
 }
@@ -77,7 +84,7 @@ type renderDatas []*renderData
 func (r renderDatas) Map() map[string]*renderData {
 	m := make(map[string]*renderData)
 	for _, data := range r {
-		m[data.Asin] = data
+		m[data.asin] = data
 	}
 	return m
 }
@@ -85,12 +92,12 @@ func (r renderDatas) Map() map[string]*renderData {
 func (r renderDatas) Asins() []string {
 	asins := make([]string, 0, len(r))
 	for _, data := range r {
-		asins = append(asins, data.Asin)
+		asins = append(asins, data.asin)
 	}
 	return asins
 }
 
-func convertLandedProducts(products competitive.LandedProducts) renderDatas {
+func ConvertLandedProducts(products competitive.LandedProducts) renderDatas {
 	re := regexp.MustCompile("^[0-9]+$")
 	renderDatas := make(renderDatas, 0, len(products))
 
@@ -113,7 +120,7 @@ func convertLandedProducts(products competitive.LandedProducts) renderDatas {
 			return -1
 		}()
 		renderDatas = append(renderDatas, &renderData{
-			Asin:  asin,
+			asin:  asin,
 			price: price,
 			rank:  rank,
 		})

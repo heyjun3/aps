@@ -29,7 +29,7 @@ func (s KeepaService) UpdateRenderData(d amqp.Delivery) {
 		slog.Error("json unmarshal error", err)
 		return
 	}
-	renderData := convertLandedProducts(res.LandedPrices())
+	renderData := ConvertLandedProducts(res.LandedPrices())
 
 	keepas, err := s.repository.GetByAsins(context.Background(), renderData.Asins())
 	if err != nil {
