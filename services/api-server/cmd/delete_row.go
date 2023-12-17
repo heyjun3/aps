@@ -14,7 +14,7 @@ func main() {
 	if dsn == "" {
 		log.Fatal("db dsn is null")
 	}
-	db := database.OpenDB(dsn)
+	db := database.OpenDB(dsn, true)
 	repo := product.ProductRepository{DB: db}
 
 	for _, fn := range []func(ctx context.Context) error{repo.RefreshGeneratedColumns, repo.DeleteIfConditionWithKeepa} {

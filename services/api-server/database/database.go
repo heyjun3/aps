@@ -11,11 +11,11 @@ import (
 	"github.com/uptrace/bun/extra/bundebug"
 )
 
-func OpenDB(dsn string) *bun.DB {
+func OpenDB(dsn string, isLogging bool) *bun.DB {
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn), pgdriver.WithTimeout(60*time.Second)))
 	db := bun.NewDB(sqldb, pgdialect.New())
 	db.AddQueryHook(
-		bundebug.NewQueryHook(bundebug.WithVerbose(true), bundebug.WithWriter(os.Stdout)),
+		bundebug.NewQueryHook(bundebug.WithVerbose(isLogging), bundebug.WithWriter(os.Stdout)),
 	)
 	return db
 }

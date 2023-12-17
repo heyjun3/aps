@@ -34,7 +34,7 @@ func init() {
 }
 
 func CreateTestDBConnection() *bun.DB {
-	return database.OpenDB(dsn)
+	return database.OpenDB(dsn, true)
 }
 
 func ResetModel(ctx context.Context, db *bun.DB, model interface{}) {

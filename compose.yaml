@@ -156,12 +156,16 @@ services:
   spapi-chart-db-server:
     build:
       context: .
-      dockerfile: ./docker/python/Dockerfile
+      dockerfile: ./services/api-server/Dockerfile
+      args:
+        APP_PATH: "services/api-server"
     container_name: spapi-chart-db-server
     restart: always
-    entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi -i db
+    entrypoint: /app/consumer
     environment:
       - TZ=Asia/Tokyo
+      - DB_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/${POSTGRES_DB}?sslmode=disable
+      - MQ_DSN=amqp://${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:5672
     depends_on:
       - postgresql-server
       - redis-server
@@ -219,6 +223,7 @@ services:
     environment:
       - TZ=Asia/Tokyo
       - DB_DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-server:5432/${POSTGRES_DB}?sslmode=disable
+      - MQ_DSN=amqp://${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:5672
       - SHOP_SERVICE_URL=http://go-crawler:8080
       - SPAPI_SERVICE_URL=http://spapi-server:8000
     command: /app/server

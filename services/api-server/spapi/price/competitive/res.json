@@ -1,0 +1,134 @@
+{
+    "payload": [
+        {
+            "ASIN": "ASIN1",
+            "Product": {
+                "CompetitivePricing": {
+                    "CompetitivePrices": [
+                        {
+                            "belongsToRequester": false,
+                            "condition": "New",
+                            "subcondition": "New",
+                            "Price": {
+                                "Points": {
+                                    "PointsMonetaryValue": {
+                                        "CurrencyCode": "JPY",
+                                        "Amount": 0
+                                    },
+                                    "PointsNumber": 0
+                                },
+                                "LandedPrice": {
+                                    "CurrencyCode": "JPY",
+                                    "Amount": 18315
+                                },
+                                "ListingPrice": {
+                                    "CurrencyCode": "JPY",
+                                    "Amount": 18315
+                                },
+                                "Shipping": {
+                                    "CurrencyCode": "JPY",
+                                    "Amount": 0
+                                }
+                            },
+                            "CompetitivePriceId": "1"
+                        }
+                    ],
+                    "NumberOfOfferListings": [
+                        {
+                            "condition": "New",
+                            "Count": 26
+                        },
+                        {
+                            "condition": "Used",
+                            "Count": 1
+                        },
+                        {
+                            "condition": "Any",
+                            "Count": 27
+                        }
+                    ]
+                },
+                "Identifiers": {
+                    "MarketplaceASIN": {
+                        "MarketplaceId": "ID",
+                        "ASIN": "ASIN1"
+                    }
+                },
+                "SalesRankings": [
+                    {
+                        "ProductCategoryId": "pc_display_on_website",
+                        "Rank": 62046
+                    },
+                    {
+                        "ProductCategoryId": "2151999051",
+                        "Rank": 193
+                    }
+                ]
+            },
+            "status": "Success"
+        },
+        {
+            "ASIN": "ASIN2",
+            "Product": {
+                "CompetitivePricing": {
+                    "CompetitivePrices": [
+                        {
+                            "belongsToRequester": false,
+                            "condition": "New",
+                            "subcondition": "New",
+                            "Price": {
+                                "Points": {
+                                    "PointsMonetaryValue": {
+                                        "CurrencyCode": "JPY",
+                                        "Amount": 118
+                                    },
+                                    "PointsNumber": 118
+                                },
+                                "LandedPrice": {
+                                    "CurrencyCode": "JPY",
+                                    "Amount": 11662
+                                },
+                                "ListingPrice": {
+                                    "CurrencyCode": "JPY",
+                                    "Amount": 11780
+                                },
+                                "Shipping": {
+                                    "CurrencyCode": "JPY",
+                                    "Amount": 0
+                                }
+                            },
+                            "CompetitivePriceId": "1"
+                        }
+                    ],
+                    "NumberOfOfferListings": [
+                        {
+                            "condition": "New",
+                            "Count": 1
+                        },
+                        {
+                            "condition": "Any",
+                            "Count": 1
+                        }
+                    ]
+                },
+                "Identifiers": {
+                    "MarketplaceASIN": {
+                        "MarketplaceId": "ID",
+                        "ASIN": "ASIN2"
+                    }
+                },
+                "SalesRankings": [
+                    {
+                        "ProductCategoryId": "pc_display_on_website",
+                        "Rank": 10003
+                    },
+                    {
+                        "ProductCategoryId": "2151942051",
+                        "Rank": 20
+                    }
+                ]
+            },
+            "status": "Success"
+        }
+    ]
+}

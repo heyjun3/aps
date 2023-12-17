@@ -20,16 +20,25 @@ func tmpHttp() {
 	if err != nil {
 		panic(err)
 	}
-	res, err := client.InventorySummaries("")
+	res, err := client.GetCompetitivePricing([]string{"", ""})
 	if err != nil {
 		panic(err)
 	}
-	flag := true
+
+	flag := false
 	if flag {
-		for _, s := range res.Payload.InventorySummaries {
-			fmt.Println(*s.InventoryDetails.FulfillableQuantity)
-		}
+		fmt.Println(res)
 	}
+	// res, err := client.InventorySummaries("")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// flag := true
+	// if flag {
+	// 	for _, s := range res.Payload.InventorySummaries {
+	// 		fmt.Println(*s.InventoryDetails.FulfillableQuantity)
+	// 	}
+	// }
 	// res, err := client.GetPricing([]string{"4562312235052-N-6980-20231105"})
 	// if err != nil {
 	// 	panic(err)
@@ -74,7 +83,7 @@ func updatePoint() {
 
 func tmpDatabase() {
 	dsn := os.Getenv("DB_DSN")
-	db := database.OpenDB(dsn)
+	db := database.OpenDB(dsn, true)
 	repo := inventory.InventoryRepository{}
 	quantity := 1
 	iv, err := repo.GetByCondition(context.Background(), db, inventory.Condition{MinFulfillableQuantity: &quantity, IsNotOnlyLowestPrice: true})

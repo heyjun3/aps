@@ -23,10 +23,10 @@ func createTestData(db *bun.DB) {
 			ProfitRate: Ptr[float64](0.1), Unit: Ptr[int64](1)}
 		products[i] = p
 	}
-	keepas := make([]Keepa, count)
+	keepas := make([]*Keepa, count)
 	for i := 0; i < count; i++ {
 		k := Keepa{Asin: "aaa" + fmt.Sprint(i), Drops: 4 + i}
-		keepas[i] = k
+		keepas[i] = &k
 	}
 	productRepo := ProductRepository{DB: db}
 	keepaRepo := KeepaRepository{DB: db}
@@ -289,7 +289,7 @@ func TestDeleteIfConditionWithKeepa(t *testing.T) {
 		panic(err)
 	}
 
-	keepas := []Keepa{
+	keepas := []*Keepa{
 		{Asin: "test", Drops: 3},
 		{Asin: "test1", Drops: 4},
 		{Asin: "test2", Drops: 5},

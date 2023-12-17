@@ -50,7 +50,7 @@ func init() {
 	if dsn == "" {
 		log.Fatal("db dsn is null")
 	}
-	db = database.OpenDB(dsn)
+	db = database.OpenDB(dsn, true)
 	productRepo = product.ProductRepository{DB: db}
 	keepaRepo = product.KeepaRepository{DB: db}
 }
