@@ -32,7 +32,7 @@ func Consume(consumer Consumer, queueName string) {
 		log.Fatal("Failed to declare a queue")
 	}
 
-	msgs, err := ch.Consume(q.Name, "", true, false, false, false, nil)
+	msgs, err := ch.Consume(q.Name, "", false, false, false, false, nil)
 	if err != nil {
 		log.Fatal("Failed to register a consumer")
 	}
