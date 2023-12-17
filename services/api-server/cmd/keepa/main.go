@@ -17,7 +17,7 @@ func main() {
 	if dsn == "" {
 		log.Fatal("dsn null value")
 	}
-	db := database.OpenDB(dsn)
+	db := database.OpenDB(dsn, true)
 	repo := product.KeepaRepository{DB: db}
 	k, err := repo.Get(context.Background())
 	if err != nil {

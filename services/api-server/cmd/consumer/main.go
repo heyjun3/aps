@@ -14,7 +14,7 @@ func main() {
 	if dsn == "" {
 		log.Fatal("dsn null value")
 	}
-	db := database.OpenDB(dsn)
+	db := database.OpenDB(dsn, false)
 	keepaService := product.NewKeepaService(db)
 	mq.Consume(keepaService.UpdateRenderData, "chart")
 }

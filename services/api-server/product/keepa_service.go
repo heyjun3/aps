@@ -40,5 +40,5 @@ func (s KeepaService) UpdateRenderData(d amqp.Delivery) {
 		slog.Error("failed save keepa", "err", err)
 		return
 	}
-	panic("")
+	slog.Info("update render data is done")
 }

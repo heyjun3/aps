@@ -83,7 +83,7 @@ func updatePoint() {
 
 func tmpDatabase() {
 	dsn := os.Getenv("DB_DSN")
-	db := database.OpenDB(dsn)
+	db := database.OpenDB(dsn, true)
 	repo := inventory.InventoryRepository{}
 	quantity := 1
 	iv, err := repo.GetByCondition(context.Background(), db, inventory.Condition{MinFulfillableQuantity: &quantity, IsNotOnlyLowestPrice: true})

@@ -28,7 +28,7 @@ func init() {
 	if dsn == "" {
 		panic(errors.New("don't set DB_DSN"))
 	}
-	db = database.OpenDB(dsn)
+	db = database.OpenDB(dsn, true)
 	inventoryService, err = NewInventoryService(SpapiServiceURL)
 	if err != nil {
 		panic(err)

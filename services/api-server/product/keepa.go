@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 	"time"
@@ -21,6 +22,22 @@ type Chart struct {
 
 type ChartData struct {
 	Data []Chart `json:"data"`
+}
+
+func (c *ChartData) filteringPastDays(days int) {
+	pastDate := time.Now().Add(-time.Hour * time.Duration(24*days))
+	charts := make([]Chart, 0, len(c.Data))
+	for _, chart := range c.Data {
+		date, err := time.Parse("2006-01-02", chart.Date)
+		if err != nil {
+			slog.Error("date parse error", "err", err)
+			continue
+		}
+		if date.After(pastDate) {
+			charts = append(charts, chart)
+		}
+	}
+	c.Data = charts
 }
 
 type Keepa struct {
@@ -48,6 +65,7 @@ func (k *Keepa) updateRenderData(data renderData, keepaTime, date string) *Keepa
 	k.Ranks[keepaTime] = rank
 	chart := Chart{Date: date, Price: price, Rank: rank}
 	k.Charts.Data = append(k.Charts.Data, chart)
+	k.Charts.filteringPastDays(90)
 	return k
 }
 
@@ -130,6 +148,10 @@ func ConvertLandedProducts(products competitive.LandedProducts) renderDatas {
 
 func UnixTimeToKeepaTime(unix int64) int64 {
 	return (unix/60 - 21564000)
+}
+
+func KeepaTimeToUnix(keepaTime int64) int64 {
+	return (keepaTime + 21564000) * 60
 }
 
 type KeepaRepository struct {

@@ -94,12 +94,14 @@ func TestKeepaGetCounts(t *testing.T) {
 func TestUpdateRenderData(t *testing.T) {
 	keepas := Keepas{
 		{Asin: "asin_1"},
-		{Asin: "asin_2", Charts: ChartData{Data: []Chart{{Date: "2023-12-16", Price: 1000, Rank: 2000}}}},
+		{Asin: "asin_2", Charts: ChartData{Data: []Chart{{Date: time.Now().Add(-time.Hour * 24).Format("2006-01-02"), Price: 1000, Rank: 2000}}}},
 		{Asin: "asin_3", Prices: make(map[string]float64), Ranks: make(map[string]float64)},
+		{Asin: "asin_4", Charts: ChartData{Data: []Chart{{Date: time.Now().Add(-time.Hour * 24 * 91).Format("2006-01-02"), Price: 1000, Rank: 2000}}}},
 	}
 	renderData := renderDatas{
 		&renderData{asin: "asin_1", price: 1000, rank: 2000},
 		&renderData{asin: "asin_2", price: 3000, rank: 4000},
+		&renderData{asin: "asin_4", price: 4000, rank: 5000},
 	}
 	ex := Keepas{
 		{Asin: "asin_1", Charts: ChartData{
@@ -114,7 +116,7 @@ func TestUpdateRenderData(t *testing.T) {
 		{Asin: "asin_2", Charts: ChartData{
 			Data: []Chart{
 				{
-					Date:  "2023-12-16",
+					Date:  time.Now().Add(-time.Hour * 24).Format("2006-01-02"),
 					Price: 1000,
 					Rank:  2000,
 				},
@@ -126,6 +128,15 @@ func TestUpdateRenderData(t *testing.T) {
 			},
 		}},
 		{Asin: "asin_3"},
+		{Asin: "asin_4", Charts: ChartData{
+			Data: []Chart{
+				{
+					Date:  time.Now().Format("2006-01-02"),
+					Price: 4000,
+					Rank:  5000,
+				},
+			},
+		}},
 	}
 
 	updated := keepas.UpdateRenderData(renderData)
@@ -159,4 +170,23 @@ func TestConvertLandedProducts(t *testing.T) {
 	renderDatas := ConvertLandedProducts(landedProducts)
 
 	assert.Equal(t, expected, renderDatas)
+}
+
+func TestKeepatimeToUnix(t *testing.T) {
+	keepaTime := int64(6815860)
+
+	unix := KeepaTimeToUnix(keepaTime)
+
+	date := time.Unix(unix, 0).Format("2006-01-02")
+
+	assert.Equal(t, "2023-12-17", date)
+}
+
+func TestUnixTimeToKeepaTime(t *testing.T) {
+	ttime, err := time.Parse("2006-01-02", "2023-12-17")
+	assert.NoError(t, err)
+
+	keepaTime := UnixTimeToKeepaTime(ttime.Unix())
+
+	assert.Equal(t, int64(6815520), keepaTime)
 }
