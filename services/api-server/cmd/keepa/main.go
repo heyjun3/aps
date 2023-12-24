@@ -21,9 +21,7 @@ func main() {
 	repo := product.KeepaRepository{DB: db}
 	var keepas product.Keepas
 	var err error
-	cursor := product.Cursor{
-		End: "B06ZYVMJ7Q",
-	}
+	cursor := product.Cursor{}
 	limit := 100
 	for {
 		keepas, cursor, err = repo.GetPageNate(context.Background(), cursor.End, limit)
