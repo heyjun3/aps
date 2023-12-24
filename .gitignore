@@ -21,3 +21,4 @@ services/crawler/bin/
 services/crawler/pkg/
 shop.yaml
 services/api-server/tmp
+*.crt

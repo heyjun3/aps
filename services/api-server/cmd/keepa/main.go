@@ -4,7 +4,7 @@ import (
 	"context"
 	// "time"
 	// "encoding/json"
-	"fmt"
+	// "fmt"
 	"log"
 	"os"
 
@@ -19,21 +19,21 @@ func main() {
 	}
 	db := database.OpenDB(dsn, true)
 	repo := product.KeepaRepository{DB: db}
-	k, err := repo.Get(context.Background())
-	if err != nil {
-		log.Fatal(err)
+	var keepas product.Keepas
+	var err error
+	cursor := product.Cursor{}
+	limit := 100
+	for {
+		keepas, cursor, err = repo.GetPageNate(context.Background(), cursor.End, limit)
+		if err != nil {
+			log.Print(cursor.End)
+			log.Fatal(err)
+		}
+		if len(keepas) != limit {
+			log.Print(len(keepas))
+			log.Print("return data len not equal limit")
+			return
+		}
+		log.Print(len(keepas))
 	}
-	// s := make([]map[string]float64, 0, len(k.Prices))
-	// for k, v := range k.Prices {
-	// 	s = append(s, map[string]float64{k: v})
-	// }
-	fmt.Println(k.Asin)
-	// k.Prices = map[string]float64{"a": 3.0}
-	// k.Ranks = map[string]float64{"a": 3.0}
-	// k.Charts = product.ChartData{
-	// 	Data: []product.Chart{
-	// 		{Date: time.Now().Format("2006-01-02"), Rank: 3.0, Price: 3.0},
-	// 	},
-	// }
-	repo.Save(context.Background(), []*product.Keepa{k})
 }

@@ -205,3 +205,31 @@ func (k KeepaRepository) GetCounts(ctx context.Context) (map[string]int, error) 
 
 	return map[string]int{"total": total, "modified": modified}, err
 }
+
+type Cursor struct {
+	Start string
+	End   string
+}
+
+func NewCursor(keepas Keepas) Cursor {
+	if len(keepas) == 0 {
+		return Cursor{}
+	}
+	return Cursor{
+		Start: keepas[0].Asin,
+		End:   keepas[len(keepas)-1].Asin,
+	}
+}
+
+func (k KeepaRepository) GetPageNate(ctx context.Context, cursor string, limit int) (Keepas, Cursor, error) {
+	var keepas Keepas
+	if err := k.DB.NewSelect().
+		Model(&keepas).
+		Where("asin > ?", cursor).
+		Order("asin ASC").
+		Limit(limit).
+		Scan(ctx); err != nil {
+		return nil, Cursor{}, err
+	}
+	return keepas, NewCursor(keepas), nil
+}

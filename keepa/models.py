@@ -1,6 +1,5 @@
 from __future__ import annotations
 import datetime
-import itertools
 from typing import List
 
 from sqlalchemy import create_engine
@@ -10,7 +9,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Date, or_
 from sqlalchemy import JSON
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 from sqlalchemy.dialects.postgresql import insert
@@ -40,17 +38,6 @@ class KeepaProducts(Base, ModelsBase):
     price_data = Column(JSON)
     rank_data = Column(JSON)
     render_data = Column(JSON, default=convert.recharts_data, onupdate=convert.recharts_data)
-
-    # [TODO]問題なければ消す
-
-    # @classmethod
-    # def object_get_db_asin(cls, asin, delay=30):
-    #     with _session_scope() as session:
-    #         delay_date = datetime.date.today() - datetime.timedelta(days=delay)
-    #         product = session.query(cls).filter(cls.asin == asin, cls.modified >= delay_date).first()
-    #         if product is None:
-    #             return None
-    #         return product
 
     @classmethod
     @logger_decorator
@@ -93,22 +80,6 @@ class KeepaProducts(Base, ModelsBase):
                 product.rank_data = rank_data
             return True
 
-    # @classmethod
-    # def update_price_and_rank_data(cls, asin:str, unix_time: float, price: int, rank: int) -> bool:
-    #     logger.info('action=update_price_and_rank_data status=run')
-    #     time = convert.unix_time_to_keepa_time(unix_time)
-    #     with _session_scope() as session:
-    #         product = session.query(cls).filter(cls.asin == asin).first()
-    #         if product is None:
-    #             return False
-
-    #         product.price_data[time] = price
-    #         product.rank_data[time] = rank
-    #         flag_modified(product, 'price_data')
-    #         flag_modified(product, 'rank_data')
-
-    #     logger.info('action=update_price_and_rank_data status=done')
-    #     return True
 
     @classmethod
     async def insert_all_on_conflict_do_update_chart_data(cls, products: List[KeepaProducts]) -> True|None:
@@ -135,16 +106,6 @@ class KeepaProducts(Base, ModelsBase):
             await session.execute(update_do_stmt)
             return True
 
-    # @classmethod
-    # def _update_price_and_rank_data(cls, asin:str, unix_time: float, price: int, rank: int) -> bool:
-    #     time = convert.unix_time_to_keepa_time(unix_time)
-    #     with _session_scope() as session:
-    #         product = session.query(cls).filter(cls.asin == asin).first()
-    #         product.price_data[time] = price
-    #         product.rank_data[time] = rank
-    #         product.render_data = convert.recharts_data({'price_data': product.price_data, 'rank_data': product.rank_data})
-    #         return True
-
     @classmethod
     def get_keepa_product(cls, asin: str):
         with _session_scope() as session:
@@ -161,32 +122,6 @@ class KeepaProducts(Base, ModelsBase):
             products = session.query(cls.asin).filter(cls.modified != today, cls.price_data != None, cls.rank_data != None).limit(count).all()
             return [product[0] for product in products]
     
-    # @classmethod
-    # def update_render_data(cls, asin: str):
-    #     with _session_scope() as session:
-    #         product = session.query(cls).filter(cls.asin == asin).first()
-    #         context = {'price_data': product.price_data, 'rank_data': product.rank_data}
-    #         product.render_data = convert.recharts_data(context)
-
-    # @classmethod
-    # async def async_update_render_data(cls, asin: str):
-    #     async with cls.session_scope() as session:
-    #         stmt = select(cls).where(cls.asin == asin)
-    #         result = await session.execute(stmt)
-    #         product = result.scalars().first()
-    #         context = {'price_data': product.price_data, 'rank_data': product.rank_data}
-    #         product.render_data = convert.recharts_data(context)
-    #         await session.commit()
-
-    # @classmethod
-    # def set_render_data_all(cls):
-    #     with _session_scope() as session:
-    #         asin_list = session.query(cls.asin).all()
-    #         asin_list = list(itertools.chain.from_iterable(asin_list))
-
-    #     for asin in asin_list:
-    #         cls.async_update_render_data(asin)
-
     @property
     def value(self):
         return {

@@ -92,84 +92,124 @@ func TestKeepaGetCounts(t *testing.T) {
 }
 
 func TestUpdateRenderData(t *testing.T) {
-	keepas := Keepas{
-		{Asin: "asin_1"},
-		{Asin: "asin_2", Charts: ChartData{Data: []Chart{{Date: time.Now().Add(-time.Hour * 24).Format("2006-01-02"), Price: 1000, Rank: 2000}}}},
-		{Asin: "asin_3", Prices: make(map[string]float64), Ranks: make(map[string]float64)},
-		{Asin: "asin_4", Charts: ChartData{Data: []Chart{{Date: time.Now().Add(-time.Hour * 24 * 91).Format("2006-01-02"), Price: 1000, Rank: 2000}}}},
+	type args struct {
+		ks   Keepas
+		data renderDatas
 	}
-	renderData := renderDatas{
-		&renderData{asin: "asin_1", price: 1000, rank: 2000},
-		&renderData{asin: "asin_2", price: 3000, rank: 4000},
-		&renderData{asin: "asin_4", price: 4000, rank: 5000},
+	type want struct {
+		ks Keepas
 	}
-	ex := Keepas{
-		{Asin: "asin_1", Charts: ChartData{
-			Data: []Chart{
-				{
-					Date:  time.Now().Format("2006-01-02"),
-					Price: 1000,
-					Rank:  2000,
-				},
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "Chartが追加される",
+			args: args{
+				ks:   Keepas{{Asin: "asin_1"}},
+				data: renderDatas{{asin: "asin_1", price: 1000, rank: 2000}},
 			},
-		}},
-		{Asin: "asin_2", Charts: ChartData{
-			Data: []Chart{
-				{
-					Date:  time.Now().Add(-time.Hour * 24).Format("2006-01-02"),
-					Price: 1000,
-					Rank:  2000,
-				},
-				{
-					Date:  time.Now().Format("2006-01-02"),
-					Price: 3000,
-					Rank:  4000,
-				},
+			want: want{
+				ks: Keepas{{Asin: "asin_1", Charts: ChartData{Data: []Chart{{Date: time.Now().Format("2006-01-02"), Price: 1000, Rank: 2000}}}}},
 			},
-		}},
-		{Asin: "asin_3"},
-		{Asin: "asin_4", Charts: ChartData{
-			Data: []Chart{
-				{
-					Date:  time.Now().Format("2006-01-02"),
-					Price: 4000,
-					Rank:  5000,
-				},
+		},
+		{
+			name: "Chartが複数になること",
+			args: args{
+				ks:   Keepas{{Asin: "asin_2", Charts: ChartData{Data: []Chart{{Date: time.Now().Add(-time.Hour * 24).Format("2006-01-02"), Price: 1000, Rank: 2000}}}}},
+				data: renderDatas{{asin: "asin_2", price: 3000, rank: 4000}},
 			},
-		}},
+			want: want{
+				ks: Keepas{{Asin: "asin_2", Charts: ChartData{Data: []Chart{{Date: time.Now().Add(-time.Hour * 24).Format("2006-01-02"), Price: 1000, Rank: 2000}, {Date: time.Now().Format("2006-01-02"), Price: 3000, Rank: 4000}}}}},
+			},
+		},
+		{
+			name: "対応するAsinがなければChart追加されない",
+			args: args{
+				ks:   Keepas{{Asin: "asin_3", Prices: make(map[string]float64), Ranks: make(map[string]float64)}},
+				data: renderDatas{},
+			},
+			want: want{
+				ks: Keepas{{Asin: "asin_3"}},
+			},
+		},
+		{
+			name: "90日より前のChartは削除される",
+			args: args{
+				ks:   Keepas{{Asin: "asin_4", Charts: ChartData{Data: []Chart{{Date: time.Now().Add(-time.Hour * 24 * 91).Format("2006-01-02"), Price: 1000, Rank: 2000}}}}},
+				data: renderDatas{{asin: "asin_4", price: 4000, rank: 5000}},
+			},
+			want: want{
+				ks: Keepas{{Asin: "asin_4", Charts: ChartData{Data: []Chart{{Date: time.Now().Format("2006-01-02"), Price: 4000, Rank: 5000}}}}},
+			},
+		},
 	}
 
-	updated := keepas.UpdateRenderData(renderData)
-
-	for i := range updated {
-		assert.Equal(t, ex[i].Asin, updated[i].Asin)
-		assert.Equal(t, ex[i].Charts, updated[i].Charts)
-		assert.NotNil(t, updated[i].Prices)
-		assert.NotNil(t, updated[i].Ranks)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.args.ks.UpdateRenderData(tt.args.data)
+			for i := range result {
+				assert.Equal(t, tt.want.ks[i].Asin, result[i].Asin)
+				assert.Equal(t, tt.want.ks[i].Charts, result[i].Charts)
+				assert.NotNil(t, result[i].Prices)
+				assert.NotNil(t, result[i].Ranks)
+			}
+		})
 	}
 }
 
 func TestConvertLandedProducts(t *testing.T) {
-	landedProducts := competitive.LandedProducts{
-		{Asin: "asin_1"},
-		{Asin: "asin_2", LandedPrice: &competitive.Price{Amount: 2000}},
-		{Asin: "asin_3", ListingPrice: &competitive.Price{Amount: 3000}},
-		{Asin: "asin_4", SalesRankings: []competitive.SalesRank{{ProductCategoryId: "pc", Rank: 40}}},
-		{Asin: "asin_5", SalesRankings: []competitive.SalesRank{{ProductCategoryId: "55555", Rank: 50}}},
-		{Asin: "asin_6", SalesRankings: []competitive.SalesRank{{ProductCategoryId: "", Rank: 60}}},
+	type args struct {
+		p competitive.LandedProducts
 	}
-	expected := renderDatas{
-		{asin: "asin_1", price: -1, rank: -1},
-		{asin: "asin_2", price: 2000, rank: -1},
-		{asin: "asin_3", price: 3000, rank: -1},
-		{asin: "asin_4", price: -1, rank: 40},
-		{asin: "asin_5", price: -1, rank: -1},
-		{asin: "asin_6", price: -1, rank: -1},
+	type want struct {
+		data renderDatas
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "rankとpriceがない場合、-1になる",
+			args: args{p: competitive.LandedProducts{{Asin: "asin_1"}}},
+			want: want{data: renderDatas{{asin: "asin_1", price: -1, rank: -1}}},
+		},
+		{
+			name: "LandedPriceがあればそのままpriceになる",
+			args: args{p: competitive.LandedProducts{{Asin: "asin_2", LandedPrice: &competitive.Price{Amount: 2000}}}},
+			want: want{data: renderDatas{{asin: "asin_2", price: 2000, rank: -1}}},
+		},
+		{
+			name: "LandedPriceがなくListingPriceがある時、ListingPriceがpriceになる",
+			args: args{p: competitive.LandedProducts{{Asin: "asin_3", ListingPrice: &competitive.Price{Amount: 3000}}}},
+			want: want{data: renderDatas{{asin: "asin_3", price: 3000, rank: -1}}},
+		},
+		{
+			name: "salesRankがあればrankになる",
+			args: args{p: competitive.LandedProducts{{Asin: "asin_4", SalesRankings: []competitive.SalesRank{{ProductCategoryId: "pc", Rank: 40}}}}},
+			want: want{data: renderDatas{{asin: "asin_4", price: -1, rank: 40}}},
+		},
+		{
+			name: "salesRankのProductCateogryIdが数値のみの場合、無視する",
+			args: args{p: competitive.LandedProducts{{Asin: "asin_5", SalesRankings: []competitive.SalesRank{{ProductCategoryId: "5555", Rank: 50}}}}},
+			want: want{data: renderDatas{{asin: "asin_5", price: -1, rank: -1}}},
+		},
+		{
+			name: "salesRankのProductCateogryIdが空文字の場合、無視する",
+			args: args{p: competitive.LandedProducts{{Asin: "asin_6", SalesRankings: []competitive.SalesRank{{ProductCategoryId: "", Rank: 60}}}}},
+			want: want{data: renderDatas{{asin: "asin_6", price: -1, rank: -1}}},
+		},
 	}
 
-	renderDatas := ConvertLandedProducts(landedProducts)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ConvertLandedProducts(tt.args.p)
 
-	assert.Equal(t, expected, renderDatas)
+			assert.Equal(t, tt.want.data, result)
+		})
+	}
 }
 
 func TestKeepatimeToUnix(t *testing.T) {
@@ -184,7 +224,9 @@ func TestKeepatimeToUnix(t *testing.T) {
 
 func TestUnixTimeToKeepaTime(t *testing.T) {
 	ttime, err := time.Parse("2006-01-02", "2023-12-17")
-	assert.NoError(t, err)
+	if err != nil {
+		panic(err)
+	}
 
 	keepaTime := UnixTimeToKeepaTime(ttime.Unix())
 
