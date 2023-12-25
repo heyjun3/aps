@@ -5,6 +5,7 @@ import (
 	// "time"
 	// "encoding/json"
 	// "fmt"
+	"flag"
 	"log"
 	"os"
 
@@ -13,6 +14,11 @@ import (
 )
 
 func main() {
+	var asin string
+
+	flag.StringVar(&asin, "a", "", "start asin")
+	flag.Parse()
+
 	dsn := os.Getenv("DB_DSN")
 	if dsn == "" {
 		log.Fatal("dsn null value")
@@ -21,7 +27,9 @@ func main() {
 	repo := product.KeepaRepository{DB: db}
 	var keepas product.Keepas
 	var err error
-	cursor := product.Cursor{}
+	cursor := product.Cursor{
+		End: asin,
+	}
 	limit := 100
 	for {
 		keepas, cursor, err = repo.GetPageNate(context.Background(), cursor.End, limit)
