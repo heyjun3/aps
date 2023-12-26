@@ -60,7 +60,7 @@ services:
   postgresql-server:
     build:
       context: .
-      dockerfile: ./docker/postgresql/Dockerfile
+      dockerfile: ./docker/postgresql16/Dockerfile
     container_name: postgresql-server
     restart: always
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
@@ -73,27 +73,27 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - type: volume
-        source: pg_store
-        target: /var/lib/postgresql/data
-
-  postgresql-16:
-    build:
-      context: .
-      dockerfile: ./docker/postgresql16/Dockerfile
-    container_name: postgresql-16
-    restart: always
-    command: -c 'config_file=/etc/postgresql/postgresql.conf'
-    ports:
-      - 54321:5432
-    environment:
-      - TZ=Asia/Tokyo
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    volumes:
-      - type: volume
         source: pg_store_16
         target: /var/lib/postgresql/data
+
+  # postgresql-16:
+  #   build:
+  #     context: .
+  #     dockerfile: ./docker/postgresql16/Dockerfile
+  #   container_name: postgresql-16
+  #   restart: always
+  #   command: -c 'config_file=/etc/postgresql/postgresql.conf'
+  #   ports:
+  #     - 54321:5432
+  #   environment:
+  #     - TZ=Asia/Tokyo
+  #     - POSTGRES_USER=${POSTGRES_USER}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - POSTGRES_DB=${POSTGRES_DB}
+  #   volumes:
+  #     - type: volume
+  #       source: pg_store_16
+  #       target: /var/lib/postgresql/data
 
   spapi-queue-server:
     build:
