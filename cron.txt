@@ -45,5 +45,5 @@
 0 * * * * curl -X POST 'http://localhost/api/inventory/refresh'
 0 3 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spapi -i register
 0 4 * * * /usr/bin/docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spapi -i check
-5 0 * * * path=/home/jun/backup/`date +\%Y\%m\%d` && pg_basebackup -D $path -h localhost -U postgres -c fast -P && tar cP $path | pzstd -p 12 > "$path".tar.zst && rm -r $path
+5 0 * * * path=/home/jun/backup/`date +\%Y\%m\%d` && pg_basebackup -D $path -h localhost -U postgres -c fast -P && tar c -C /home/jun/backup `date +\%Y\%m\%d` | pzstd -p 12 > "$path".tar.zst && rm -r $path
 2 0 * * * find /home/jun/backup -type f -mtime +14 | sort | xargs rm
