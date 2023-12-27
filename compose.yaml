@@ -260,6 +260,7 @@ services:
       context: .
       dockerfile: ./docker/python/Dockerfile
     container_name: spapi-server
+    restart: always
     environment:
       - TZ=Asia/Tokyo
     entrypoint: uvicorn server:app --host spapi-server
