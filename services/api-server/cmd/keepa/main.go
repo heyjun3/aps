@@ -24,24 +24,43 @@ func main() {
 		log.Fatal("dsn null value")
 	}
 	db := database.OpenDB(dsn, true)
-	repo := product.KeepaRepository{DB: db}
-	var keepas product.Keepas
-	var err error
-	cursor := product.Cursor{
-		End: asin,
-	}
-	limit := 100
-	for {
-		keepas, cursor, err = repo.GetPageNate(context.Background(), cursor.End, limit)
+	scanningRows := true
+	if scanningRows {
+		rows, err := db.NewSelect().Model((*product.Keepa)(nil)).Order("asin").Rows(context.Background())
 		if err != nil {
-			log.Print(cursor.End)
-			log.Fatal(err)
+			panic(err)
 		}
-		if len(keepas) != limit {
+		defer rows.Close()
+		for rows.Next() {
+			keepa := new(product.Keepa)
+			if err := db.ScanRow(context.Background(), rows, keepa); err != nil {
+				panic(err)
+			}
+		}
+		if err := rows.Err(); err != nil {
+			panic(err)
+		}
+	} else {
+		repo := product.KeepaRepository{DB: db}
+		var keepas product.Keepas
+		var err error
+		cursor := product.Cursor{
+			End: asin,
+		}
+		limit := 100
+		for {
+			keepas, cursor, err = repo.GetPageNate(context.Background(), cursor.End, limit)
+			if err != nil {
+				log.Print(cursor.End)
+				log.Fatal(err)
+			}
+			if len(keepas) != limit {
+				log.Print(len(keepas))
+				log.Print("return data len not equal limit")
+				return
+			}
 			log.Print(len(keepas))
-			log.Print("return data len not equal limit")
-			return
 		}
-		log.Print(len(keepas))
+
 	}
 }
