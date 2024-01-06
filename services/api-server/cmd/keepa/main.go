@@ -15,8 +15,10 @@ import (
 
 func main() {
 	var asin string
+	var scanningRows bool
 
 	flag.StringVar(&asin, "a", "", "start asin")
+	flag.BoolVar(&scanningRows, "s", false, "scanning rows")
 	flag.Parse()
 
 	dsn := os.Getenv("DB_DSN")
@@ -24,7 +26,6 @@ func main() {
 		log.Fatal("dsn null value")
 	}
 	db := database.OpenDB(dsn, true)
-	scanningRows := true
 	if scanningRows {
 		rows, err := db.NewSelect().Model((*product.Keepa)(nil)).Order("asin").Rows(context.Background())
 		if err != nil {
