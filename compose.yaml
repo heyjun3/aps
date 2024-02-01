@@ -1,5 +1,11 @@
 version: "3.9"
 
+x-logging: &default-logging
+  options:
+    max-size: "10m"
+    max-file: "5"
+  driver: json-file
+
 volumes:
   mongo_db_store:
   rabbitmq_store:
@@ -19,6 +25,7 @@ services:
       dockerfile: ./services/front/Dockerfile
       args:
         APP_PATH: "services/front/"
+    logging: *default-logging
     container_name: front
     restart: always
     ports:
@@ -33,6 +40,7 @@ services:
   rabbitmq:
     image: rabbitmq:3.10.7-management
     container_name: rabbitmq
+    logging: *default-logging
     restart: always
     ports:
       - 5672:5672
@@ -50,6 +58,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/redis/Dockerfile
+    logging: *default-logging
     container_name: redis-server
     restart: always
     environment:
@@ -61,6 +70,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/postgresql16/Dockerfile
+    logging: *default-logging
     container_name: postgresql-server
     restart: always
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
@@ -76,29 +86,11 @@ services:
         source: pg_store_16
         target: /var/lib/postgresql/data
 
-  # postgresql-16:
-  #   build:
-  #     context: .
-  #     dockerfile: ./docker/postgresql16/Dockerfile
-  #   container_name: postgresql-16
-  #   restart: always
-  #   command: -c 'config_file=/etc/postgresql/postgresql.conf'
-  #   ports:
-  #     - 54321:5432
-  #   environment:
-  #     - TZ=Asia/Tokyo
-  #     - POSTGRES_USER=${POSTGRES_USER}
-  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-  #     - POSTGRES_DB=${POSTGRES_DB}
-  #   volumes:
-  #     - type: volume
-  #       source: pg_store_16
-  #       target: /var/lib/postgresql/data
-
   spapi-queue-server:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
+    logging: *default-logging
     container_name: spapi-queue-server
     restart: always
     entrypoint: /usr/local/bin/python /usr/src/app/main.py amz -i queue
@@ -113,6 +105,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
+    logging: *default-logging
     container_name: spapi-search-item-server
     restart: always
     entrypoint: /usr/local/bin/python /usr/src/app/main.py amz -i catalog_item
@@ -127,6 +120,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
+    logging: *default-logging
     container_name: spapi-price-server
     restart: always
     entrypoint: /usr/local/bin/python /usr/src/app/main.py amz -i price
@@ -141,6 +135,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
+    logging: *default-logging
     container_name: spapi-price-server-v2
     restart: always
     entrypoint: /usr/local/bin/python /usr/src/app/main.py amz -i price_v2
@@ -155,6 +150,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
+    logging: *default-logging
     container_name: spapi-fees-server
     restart: always
     entrypoint: /usr/local/bin/python /usr/src/app/main.py amz -i fees
@@ -169,6 +165,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
+    logging: *default-logging
     container_name: spapi-chart-request-server
     restart: always
     entrypoint: /usr/local/bin/python /usr/src/app/main.py spapi -i request
@@ -184,6 +181,7 @@ services:
       dockerfile: ./services/api-server/Dockerfile
       args:
         APP_PATH: "services/api-server"
+    logging: *default-logging
     container_name: spapi-chart-db-server
     restart: always
     entrypoint: /app/consumer
@@ -199,6 +197,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
+    logging: *default-logging
     container_name: crawler
     restart: always
     entrypoint: tail -f /dev/null
@@ -213,6 +212,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
+    logging: *default-logging
     container_name: keepa-server
     restart: always
     entrypoint: /usr/local/bin/python /usr/src/app/main.py keepa
@@ -228,6 +228,7 @@ services:
       dockerfile: ./services/crawler/Dockerfile
       args:
         APP_PATH: "services/crawler"
+    logging: *default-logging
     container_name: go-crawler
     restart: always
     environment:
@@ -243,6 +244,7 @@ services:
       dockerfile: ./services/api-server/Dockerfile
       args:
         APP_PATH: "services/api-server"
+    logging: *default-logging
     container_name: api-server
     restart: always
     environment:
@@ -259,6 +261,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/python/Dockerfile
+    logging: *default-logging
     container_name: spapi-server
     restart: always
     environment:
@@ -267,6 +270,7 @@ services:
 
   setup:
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    logging: *default-logging
     container_name: setup
     volumes:
       - certs:/usr/share/elasticsearch/config/certs
@@ -321,6 +325,7 @@ services:
       setup:
         condition: service_healthy
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    logging: *default-logging
     container_name: es01
     volumes:
       - certs:/usr/share/elasticsearch/config/certs
@@ -367,6 +372,7 @@ services:
       es01:
         condition: service_healthy
     image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    logging: *default-logging
     container_name: kibana
     volumes:
       - certs:/usr/share/kibana/config/certs
