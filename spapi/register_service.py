@@ -88,8 +88,13 @@ class RegisterService(object):
             if cell:
                 add.delete_row(cell.row)
 
-        point_record = [[record.get('SKU'), record.get('POINT')] for record in records if record.get(
-            'FNSKU') is not None and record.get('POINT') is not None]
+        point_record = []
+        for record in records:
+            sku = record.get('SKU')
+            fnsku = record.get('FNSKU')
+            point = record.get('POINT')
+            if all([sku, fnsku, point]):
+                point_record.append([sku, point])
 
         if point_record:
             await self.register_points(point_record)
