@@ -70,8 +70,8 @@ func main() {
 		murauchi.RunAllCategories()
 	case shop == "murauchi" && category != "":
 		murauchi.NewScrapeService(category).StartScrape("", shop)
-	case shop == "nojima" && url != "":
-		nojima.NewScrapeService().StartScrape(url, shop)
+	case shop == "nojima" && category == "all":
+		nojima.ScrapeAll()
 	case shop == "pc4u" && url != "":
 		pc4u.NewScrapeService().StartScrape(url, shop)
 	case shop == "rakuten" && url != "":
