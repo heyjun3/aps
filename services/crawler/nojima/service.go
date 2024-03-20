@@ -24,6 +24,7 @@ func ScrapeAll() {
 	for i := 100; i < 120; i++ {
 		q := URL.Query()
 		q.Set("searchCategoryCode", fmt.Sprint(i))
+		q.Set("immediateDeliveryDispFlg", "1")
 		URL.RawQuery = q.Encode()
 		urls = append(urls, URL.String())
 	}
