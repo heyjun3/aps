@@ -16,15 +16,17 @@ import (
 var logger = config.Logger
 
 type Service[T IProduct] struct {
-	Parser   IParser
-	Repo     ProductRepository[T]
-	EntryReq *http.Request
+	Parser     IParser
+	Repo       ProductRepository[T]
+	EntryReq   *http.Request
+	httpClient httpClient
 }
 
 func NewService[T IProduct](parser IParser, p T, ps []T) Service[T] {
 	return Service[T]{
-		Parser: parser,
-		Repo:   NewProductRepository(p, ps),
+		Parser:     parser,
+		Repo:       NewProductRepository(p, ps),
+		httpClient: NewClient(),
 	}
 }
 
@@ -53,7 +55,6 @@ func (s Service[T]) StartScrape(url, shopName string) {
 	history := NewRunServiceHistory(shopName, url, "PROGRESS")
 	RunServiceHistoryRepository{}.Save(ctx, db, history)
 
-	client := NewClient()
 	mqClient := NewMQClient(config.MQDsn, "mws")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -66,9 +67,9 @@ func (s Service[T]) StartScrape(url, shopName string) {
 		}
 	}
 
-	c1 := s.ScrapeProductsList(client, s.EntryReq)
+	c1 := s.ScrapeProductsList(s.EntryReq)
 	c2 := s.GetProductsBatch(ctx, db, c1)
-	c3 := s.ScrapeProduct(c2, client)
+	c3 := s.ScrapeProduct(c2)
 	c4 := s.SaveProduct(ctx, db, c3)
 	s.SendMessage(c4, mqClient, shopName, &wg)
 
@@ -78,14 +79,13 @@ func (s Service[T]) StartScrape(url, shopName string) {
 	RunServiceHistoryRepository{}.Save(ctx, db, history)
 }
 
-func (s Service[T]) ScrapeProductsList(
-	client httpClient, req *http.Request) chan Products {
+func (s Service[T]) ScrapeProductsList(req *http.Request) chan Products {
 	c := make(chan Products, 100)
 	go func() {
 		defer close(c)
 		for req != nil {
 			logger.Info("request product list", "url", req.URL.String())
-			res, err := client.Request(req)
+			res, err := s.httpClient.Request(req)
 			if err != nil {
 				logger.Error("http request error", err)
 				break
@@ -119,7 +119,7 @@ func (s Service[T]) GetProductsBatch(ctx context.Context, db *bun.DB, c chan Pro
 }
 
 func (s Service[T]) ScrapeProduct(
-	ch chan Products, client httpClient) chan Products {
+	ch chan Products) chan Products {
 
 	send := make(chan Products, 100)
 	go func() {
@@ -131,7 +131,7 @@ func (s Service[T]) ScrapeProduct(
 				}
 
 				logger.Info("product request url", "url", product.GetURL())
-				res, err := client.RequestURL("GET", product.GetURL(), nil)
+				res, err := s.httpClient.RequestURL("GET", product.GetURL(), nil)
 				if err != nil {
 					logger.Error("http request error", err, "action", "scrapeProduct")
 					continue
