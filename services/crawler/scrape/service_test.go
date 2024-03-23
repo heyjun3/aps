@@ -52,7 +52,6 @@ func (p ParserMock) Product(doc io.ReadCloser) (string, error) {
 
 func TestScrapeProductsList(t *testing.T) {
 	type args struct {
-		client  httpClient
 		service Service[*Product]
 		URL     string
 	}
@@ -69,7 +68,6 @@ func TestScrapeProductsList(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			client: ClientMock{"html/test_scrape_products_list.html"},
 			service: Service[*Product]{
 				Parser: ParserMock{
 					products: Products{
@@ -79,6 +77,7 @@ func TestScrapeProductsList(t *testing.T) {
 					},
 					URL: "",
 				},
+				httpClient: ClientMock{"html/test_scrape_products_list.html"},
 			},
 			URL: "https://google.com",
 		},
@@ -92,7 +91,7 @@ func TestScrapeProductsList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			req, _ := http.NewRequest("GET", tt.args.URL, nil)
-			ch := tt.args.service.ScrapeProductsList(tt.args.client, req)
+			ch := tt.args.service.ScrapeProductsList(req)
 
 			for p := range ch {
 				assert.Equal(t, tt.want.first, p[0])
@@ -146,9 +145,7 @@ func TestGetProductsBatch(t *testing.T) {
 	}, {
 		name: "get products return null",
 		args: args{
-			service: Service[*Product]{
-				Repo: NewProductRepository(&Product{}, []*Product{}),
-			},
+			service: NewService(ParserMock{}, &Product{}, []*Product{}, WithHttpClient[*Product](ClientMock{})),
 			products: Products{
 				(NewTestProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
 				(NewTestProduct("test22", "test22", "http://test.jp", "", "test", 2222)),
@@ -192,7 +189,6 @@ func TestScrapeProduct(t *testing.T) {
 	type args struct {
 		service  Service[*Product]
 		products Products
-		client   httpClient
 	}
 	type want struct {
 		products Products
@@ -209,12 +205,12 @@ func TestScrapeProduct(t *testing.T) {
 				Parser: ParserMock{
 					jan: "99999",
 				},
+				httpClient: ClientMock{"html/test_scrape_products_list.html"},
 			},
 			products: Products{
 				(NewTestProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
 				(NewTestProduct("test2", "test2", "http://test.jp", "", "test", 2222)),
 			},
-			client: ClientMock{"html/test_scrape_products_list.html"},
 		},
 		want: want{
 			products: Products{
@@ -230,7 +226,7 @@ func TestScrapeProduct(t *testing.T) {
 			ch <- tt.args.products
 			close(ch)
 
-			c := tt.args.service.ScrapeProduct(ch, tt.args.client)
+			c := tt.args.service.ScrapeProduct(ch)
 
 			assert.Equal(t, tt.want.products, <-c)
 		})
@@ -304,7 +300,6 @@ func TestSendMessage(t *testing.T) {
 	type args struct {
 		service  Service[*Product]
 		products Products
-		client   RabbitMQClient
 		siteName string
 	}
 
@@ -314,13 +309,14 @@ func TestSendMessage(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service[*Product]{},
+			service: Service[*Product]{
+				mqClient: MQMock{},
+			},
 			products: Products{
 				(NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
 				(NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
 				(NewTestProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
 			},
-			client:   MQMock{},
 			siteName: "test",
 		},
 	}}
@@ -335,7 +331,7 @@ func TestSendMessage(t *testing.T) {
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 
-			tt.args.service.SendMessage(ch, tt.args.client, tt.args.siteName, &wg)
+			tt.args.service.SendMessage(ch, tt.args.siteName, &wg)
 			wg.Wait()
 		})
 	}

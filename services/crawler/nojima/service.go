@@ -3,6 +3,7 @@ package nojima
 import (
 	"fmt"
 	"net/url"
+	"time"
 
 	"crawler/config"
 	"crawler/scrape"
@@ -10,8 +11,8 @@ import (
 
 var logger = config.Logger
 
-func NewScrapeService() scrape.Service[*NojimaProduct] {
-	return scrape.NewService(NojimaParser{}, &NojimaProduct{}, []*NojimaProduct{})
+func NewScrapeService(opts ...scrape.Option[*NojimaProduct]) scrape.Service[*NojimaProduct] {
+	return scrape.NewService(NojimaParser{}, &NojimaProduct{}, []*NojimaProduct{}, opts...)
 }
 
 func ScrapeAll() {
@@ -28,7 +29,8 @@ func ScrapeAll() {
 		URL.RawQuery = q.Encode()
 		urls = append(urls, URL.String())
 	}
-	service := NewScrapeService()
+	fileId := "nojima_" + scrape.TimeToStr(time.Now())
+	service := NewScrapeService(scrape.WithFileId[*NojimaProduct](fileId))
 	for _, u := range urls {
 		service.StartScrape(u, "nojima")
 	}

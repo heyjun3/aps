@@ -15,19 +15,6 @@ import (
 
 var logger = config.Logger
 
-type Service[T IProduct] struct {
-	Parser   IParser
-	Repo     ProductRepository[T]
-	EntryReq *http.Request
-}
-
-func NewService[T IProduct](parser IParser, p T, ps []T) Service[T] {
-	return Service[T]{
-		Parser: parser,
-		Repo:   NewProductRepository(p, ps),
-	}
-}
-
 type IParser interface {
 	ProductListByReq(io.ReadCloser, *http.Request) (Products, *http.Request)
 	Product(io.ReadCloser) (string, error)
@@ -47,14 +34,54 @@ func (p Parser) ConvToReq(products Products, url string) (Products, *http.Reques
 	return products, req
 }
 
+type Service[T IProduct] struct {
+	Parser     IParser
+	Repo       ProductRepository[T]
+	EntryReq   *http.Request
+	httpClient HttpClient
+	mqClient   RabbitMQClient
+	fileId     string
+}
+
+func NewService[T IProduct](parser IParser, p T, ps []T, opts ...Option[T]) Service[T] {
+	s := &Service[T]{
+		Parser:     parser,
+		Repo:       NewProductRepository(p, ps),
+		httpClient: NewClient(),
+		mqClient:   NewMQClient(config.MQDsn, "mws"),
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return *s
+}
+
+type Option[T IProduct] func(*Service[T])
+
+func WithHttpClient[T IProduct](c HttpClient) func(*Service[T]) {
+	return func(s *Service[T]) {
+		s.httpClient = c
+	}
+}
+
+func WithMQClient[T IProduct](c RabbitMQClient) func(*Service[T]) {
+	return func(s *Service[T]) {
+		s.mqClient = c
+	}
+}
+
+func WithFileId[T IProduct](fileId string) func(*Service[T]) {
+	return func(s *Service[T]) {
+		s.fileId = fileId
+	}
+}
+
 func (s Service[T]) StartScrape(url, shopName string) {
 	db := CreateDBConnection(config.DBDsn)
 	ctx := context.Background()
 	history := NewRunServiceHistory(shopName, url, "PROGRESS")
 	RunServiceHistoryRepository{}.Save(ctx, db, history)
 
-	client := NewClient()
-	mqClient := NewMQClient(config.MQDsn, "mws")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
@@ -66,11 +93,18 @@ func (s Service[T]) StartScrape(url, shopName string) {
 		}
 	}
 
-	c1 := s.ScrapeProductsList(client, s.EntryReq)
+	c1 := s.ScrapeProductsList(s.EntryReq)
 	c2 := s.GetProductsBatch(ctx, db, c1)
-	c3 := s.ScrapeProduct(c2, client)
+	c3 := s.ScrapeProduct(c2)
 	c4 := s.SaveProduct(ctx, db, c3)
-	s.SendMessage(c4, mqClient, shopName, &wg)
+
+	var fileId string
+	if s.fileId == "" {
+		fileId = shopName + "_" + TimeToStr(time.Now())
+	} else {
+		fileId = s.fileId
+	}
+	s.SendMessage(c4, fileId, &wg)
 
 	wg.Wait()
 	history.Status = "DONE"
@@ -78,14 +112,13 @@ func (s Service[T]) StartScrape(url, shopName string) {
 	RunServiceHistoryRepository{}.Save(ctx, db, history)
 }
 
-func (s Service[T]) ScrapeProductsList(
-	client httpClient, req *http.Request) chan Products {
+func (s Service[T]) ScrapeProductsList(req *http.Request) chan Products {
 	c := make(chan Products, 100)
 	go func() {
 		defer close(c)
 		for req != nil {
 			logger.Info("request product list", "url", req.URL.String())
-			res, err := client.Request(req)
+			res, err := s.httpClient.Request(req)
 			if err != nil {
 				logger.Error("http request error", err)
 				break
@@ -119,7 +152,7 @@ func (s Service[T]) GetProductsBatch(ctx context.Context, db *bun.DB, c chan Pro
 }
 
 func (s Service[T]) ScrapeProduct(
-	ch chan Products, client httpClient) chan Products {
+	ch chan Products) chan Products {
 
 	send := make(chan Products, 100)
 	go func() {
@@ -131,7 +164,7 @@ func (s Service[T]) ScrapeProduct(
 				}
 
 				logger.Info("product request url", "url", product.GetURL())
-				res, err := client.RequestURL("GET", product.GetURL(), nil)
+				res, err := s.httpClient.RequestURL("GET", product.GetURL(), nil)
 				if err != nil {
 					logger.Error("http request error", err, "action", "scrapeProduct")
 					continue
@@ -166,19 +199,18 @@ func (s Service[T]) SaveProduct(ctx context.Context, db *bun.DB, ch chan Product
 }
 
 func (s Service[T]) SendMessage(
-	ch chan IProduct, client RabbitMQClient,
-	shop_name string, wg *sync.WaitGroup) {
+	ch chan IProduct,
+	fileId string, wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()
-		filename := shop_name + "_" + timeToStr(time.Now())
 		for p := range ch {
-			m, err := p.GenerateMessage(filename)
+			m, err := p.GenerateMessage(fileId)
 			if err != nil {
 				logger.Error("generate message error", err)
 				continue
 			}
 
-			err = client.Publish(m)
+			err = s.mqClient.Publish(m)
 			if err != nil {
 				logger.Error("message publish error", err)
 			}
