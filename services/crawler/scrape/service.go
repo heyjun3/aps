@@ -38,14 +38,26 @@ type Service[T IProduct] struct {
 	Parser     IParser
 	Repo       ProductRepository[T]
 	EntryReq   *http.Request
-	httpClient httpClient
+	httpClient HttpClient
 }
 
-func NewService[T IProduct](parser IParser, p T, ps []T) Service[T] {
-	return Service[T]{
+func NewService[T IProduct](parser IParser, p T, ps []T, opts ...Option[T]) Service[T] {
+	s := &Service[T]{
 		Parser:     parser,
 		Repo:       NewProductRepository(p, ps),
 		httpClient: NewClient(),
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return *s
+}
+
+type Option[T IProduct] func(*Service[T])
+
+func WithHttpClient[T IProduct](c HttpClient) func(*Service[T]) {
+	return func(s *Service[T]) {
+		s.httpClient = c
 	}
 }
 

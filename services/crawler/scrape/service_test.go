@@ -145,9 +145,7 @@ func TestGetProductsBatch(t *testing.T) {
 	}, {
 		name: "get products return null",
 		args: args{
-			service: Service[*Product]{
-				Repo: NewProductRepository(&Product{}, []*Product{}),
-			},
+			service: NewService(ParserMock{}, &Product{}, []*Product{}, WithHttpClient[*Product](ClientMock{})),
 			products: Products{
 				(NewTestProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
 				(NewTestProduct("test22", "test22", "http://test.jp", "", "test", 2222)),

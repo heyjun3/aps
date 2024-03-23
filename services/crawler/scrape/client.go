@@ -11,7 +11,7 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-type httpClient interface {
+type HttpClient interface {
 	RequestURL(string, string, io.Reader) (*http.Response, error)
 	Request(req *http.Request) (*http.Response, error)
 }

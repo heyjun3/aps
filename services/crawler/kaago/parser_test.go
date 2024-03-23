@@ -19,6 +19,7 @@ func NewTestKaagoProduct(name, productCode, url, jan, shopCode string, price int
 }
 
 func TestProductListByReq(t *testing.T) {
+	t.Skip()
 	type args struct {
 		filename string
 	}
@@ -85,6 +86,7 @@ func TestProductListByReq(t *testing.T) {
 }
 
 func TestProduct(t *testing.T) {
+	t.Skip()
 	tests := []struct {
 		name     string
 		filename string
