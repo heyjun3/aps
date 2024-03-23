@@ -39,6 +39,8 @@ type Service[T IProduct] struct {
 	Repo       ProductRepository[T]
 	EntryReq   *http.Request
 	httpClient HttpClient
+	mqClient   RabbitMQClient
+	fileId     string
 }
 
 func NewService[T IProduct](parser IParser, p T, ps []T, opts ...Option[T]) Service[T] {
@@ -46,6 +48,7 @@ func NewService[T IProduct](parser IParser, p T, ps []T, opts ...Option[T]) Serv
 		Parser:     parser,
 		Repo:       NewProductRepository(p, ps),
 		httpClient: NewClient(),
+		mqClient:   NewMQClient(config.MQDsn, "mws"),
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -61,13 +64,24 @@ func WithHttpClient[T IProduct](c HttpClient) func(*Service[T]) {
 	}
 }
 
+func WithMQClient[T IProduct](c RabbitMQClient) func(*Service[T]) {
+	return func(s *Service[T]) {
+		s.mqClient = c
+	}
+}
+
+func WithFileId[T IProduct](fileId string) func(*Service[T]) {
+	return func(s *Service[T]) {
+		s.fileId = fileId
+	}
+}
+
 func (s Service[T]) StartScrape(url, shopName string) {
 	db := CreateDBConnection(config.DBDsn)
 	ctx := context.Background()
 	history := NewRunServiceHistory(shopName, url, "PROGRESS")
 	RunServiceHistoryRepository{}.Save(ctx, db, history)
 
-	mqClient := NewMQClient(config.MQDsn, "mws")
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
@@ -83,7 +97,14 @@ func (s Service[T]) StartScrape(url, shopName string) {
 	c2 := s.GetProductsBatch(ctx, db, c1)
 	c3 := s.ScrapeProduct(c2)
 	c4 := s.SaveProduct(ctx, db, c3)
-	s.SendMessage(c4, mqClient, shopName, &wg)
+
+	var fileId string
+	if s.fileId == "" {
+		fileId = shopName + "_" + TimeToStr(time.Now())
+	} else {
+		fileId = s.fileId
+	}
+	s.SendMessage(c4, fileId, &wg)
 
 	wg.Wait()
 	history.Status = "DONE"
@@ -178,19 +199,18 @@ func (s Service[T]) SaveProduct(ctx context.Context, db *bun.DB, ch chan Product
 }
 
 func (s Service[T]) SendMessage(
-	ch chan IProduct, client RabbitMQClient,
-	shop_name string, wg *sync.WaitGroup) {
+	ch chan IProduct,
+	fileId string, wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()
-		filename := shop_name + "_" + timeToStr(time.Now())
 		for p := range ch {
-			m, err := p.GenerateMessage(filename)
+			m, err := p.GenerateMessage(fileId)
 			if err != nil {
 				logger.Error("generate message error", err)
 				continue
 			}
 
-			err = client.Publish(m)
+			err = s.mqClient.Publish(m)
 			if err != nil {
 				logger.Error("message publish error", err)
 			}

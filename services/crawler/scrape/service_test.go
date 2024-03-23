@@ -300,7 +300,6 @@ func TestSendMessage(t *testing.T) {
 	type args struct {
 		service  Service[*Product]
 		products Products
-		client   RabbitMQClient
 		siteName string
 	}
 
@@ -310,13 +309,14 @@ func TestSendMessage(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service[*Product]{},
+			service: Service[*Product]{
+				mqClient: MQMock{},
+			},
 			products: Products{
 				(NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
 				(NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
 				(NewTestProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
 			},
-			client:   MQMock{},
 			siteName: "test",
 		},
 	}}
@@ -331,7 +331,7 @@ func TestSendMessage(t *testing.T) {
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 
-			tt.args.service.SendMessage(ch, tt.args.client, tt.args.siteName, &wg)
+			tt.args.service.SendMessage(ch, tt.args.siteName, &wg)
 			wg.Wait()
 		})
 	}
