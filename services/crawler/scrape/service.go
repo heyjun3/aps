@@ -35,20 +35,22 @@ func (p Parser) ConvToReq(products Products, url string) (Products, *http.Reques
 }
 
 type Service[T IProduct] struct {
-	Parser     IParser
-	Repo       ProductRepository[T]
-	EntryReq   *http.Request
-	httpClient HttpClient
-	mqClient   RabbitMQClient
-	fileId     string
+	Parser            IParser
+	Repo              ProductRepository[T]
+	HistoryRepository RunServiceHistoryRepository
+	EntryReq          *http.Request
+	httpClient        HttpClient
+	mqClient          RabbitMQClient
+	fileId            string
 }
 
 func NewService[T IProduct](parser IParser, p T, ps []T, opts ...Option[T]) Service[T] {
 	s := &Service[T]{
-		Parser:     parser,
-		Repo:       NewProductRepository(p, ps),
-		httpClient: NewClient(),
-		mqClient:   NewMQClient(config.MQDsn, "mws"),
+		Parser:            parser,
+		Repo:              NewProductRepository(p, ps),
+		HistoryRepository: RunServiceHistoryRepository{},
+		httpClient:        NewClient(),
+		mqClient:          NewMQClient(config.MQDsn, "mws"),
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -77,10 +79,10 @@ func WithFileId[T IProduct](fileId string) func(*Service[T]) {
 }
 
 func (s Service[T]) StartScrape(url, shopName string) {
-	db := CreateDBConnection(config.DBDsn)
 	ctx := context.Background()
+	db := CreateDBConnection(config.DBDsn)
 	history := NewRunServiceHistory(shopName, url, "PROGRESS")
-	RunServiceHistoryRepository{}.Save(ctx, db, history)
+	s.HistoryRepository.Save(ctx, db, history)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -109,7 +111,7 @@ func (s Service[T]) StartScrape(url, shopName string) {
 	wg.Wait()
 	history.Status = "DONE"
 	history.EndedAt = time.Now()
-	RunServiceHistoryRepository{}.Save(ctx, db, history)
+	s.HistoryRepository.Save(ctx, db, history)
 }
 
 func (s Service[T]) ScrapeProductsList(req *http.Request) chan Products {
