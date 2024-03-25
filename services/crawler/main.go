@@ -74,6 +74,8 @@ func main() {
 		nojima.ScrapeAll()
 	case shop == "pc4u" && url != "":
 		pc4u.NewScrapeService().StartScrape(url, shop)
+	case shop == "pc4u" && category == "all":
+		pc4u.ScrapeAll(shop)
 	case shop == "rakuten" && url != "":
 		rakuten.NewScrapeService().StartScrape(url, shop)
 	case shop == "rakuten" && id == "all":
