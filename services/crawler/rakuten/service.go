@@ -17,7 +17,7 @@ func NewScrapeService() scrape.Service[*RakutenProduct] {
 func RunServices() {
 	repo := shop.ShopRepository{}
 	db := scrape.CreateDBConnection(config.DBDsn)
-	shops, err := repo.GetAll(context.Background(), db)
+	shops, err := repo.GetBySiteName(context.Background(), db, "rakuten")
 	if err != nil {
 		logger.Error("error", err)
 		return
@@ -31,7 +31,7 @@ func RunServices() {
 func RunServicesByDaily() {
 	repo := shop.ShopRepository{}
 	db := scrape.CreateDBConnection(config.DBDsn)
-	shops, err := repo.GetByInterval(context.Background(), db, shop.Daily)
+	shops, err := repo.GetBySiteNameAndInterval(context.Background(), db, "rakuten", shop.Daily)
 	if err != nil {
 		logger.Error("error", err)
 		return
