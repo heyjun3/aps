@@ -23,7 +23,7 @@ type Shop struct {
 
 type ShopRepository struct{}
 
-func (r ShopRepository) Save(db *bun.DB, ctx context.Context, shops []*Shop) error {
+func (r ShopRepository) Save(ctx context.Context, db *bun.DB, shops []*Shop) error {
 	_, err := db.NewInsert().
 		Model(&shops).
 		On("CONFLICT (id) DO UPDATE").
@@ -37,15 +37,34 @@ func (r ShopRepository) Save(db *bun.DB, ctx context.Context, shops []*Shop) err
 	return err
 }
 
-func (r ShopRepository) GetAll(db *bun.DB, ctx context.Context) ([]*Shop, error) {
+func (r ShopRepository) GetAll(ctx context.Context, db *bun.DB) ([]*Shop, error) {
 	shops := []*Shop{}
 	err := db.NewSelect().Model(&shops).Scan(ctx)
 	return shops, err
 }
 
-func (r ShopRepository) GetByInterval(db *bun.DB, ctx context.Context, interval Interval) ([]Shop, error) {
+func (r ShopRepository) GetByInterval(ctx context.Context, db *bun.DB, interval Interval) ([]Shop, error) {
 	shops := []Shop{}
 	err := db.NewSelect().Model(&shops).Where("interval = ?", interval.String()).Scan(ctx)
+	return shops, err
+}
+
+func (r ShopRepository) GetBySiteName(ctx context.Context, db *bun.DB, siteName string) ([]Shop, error) {
+	shops := []Shop{}
+	err := db.NewSelect().
+		Model(&shops).
+		Where("site_name = ?", siteName).
+		Scan(ctx)
+	return shops, err
+}
+
+func (r ShopRepository) GetBySiteNameAndInterval(ctx context.Context, db *bun.DB, siteName string, interval Interval) ([]Shop, error) {
+	shops := []Shop{}
+	err := db.NewSelect().
+		Model(&shops).
+		Where("site_name = ?", siteName).
+		Where("interval = ?", interval.String()).
+		Scan(ctx)
 	return shops, err
 }
 

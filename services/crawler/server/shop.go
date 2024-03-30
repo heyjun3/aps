@@ -31,7 +31,7 @@ type ShopServer struct{}
 
 func (s *ShopServer) ShopList(ctx context.Context, req *connect.Request[shopv1.ShopListRequest]) (*connect.Response[shopv1.ShopListResponse], error) {
 	repo := shop.ShopRepository{}
-	shops, err := repo.GetAll(db, context.Background())
+	shops, err := repo.GetAll(context.Background(), db)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (s *ShopServer) ShopList(ctx context.Context, req *connect.Request[shopv1.S
 func (s *ShopServer) CreateShop(ctx context.Context, req *connect.Request[shopv1.CreateShopRequest]) (*connect.Response[shopv1.CreateShopResponse], error) {
 	shops := convertShopv1ShopsIntoShops(req.Msg.Shops.GetShop())
 	repo := shop.ShopRepository{}
-	err := repo.Save(db, ctx, shops)
+	err := repo.Save(ctx, db, shops)
 	if err != nil {
 		return nil, err
 	}
