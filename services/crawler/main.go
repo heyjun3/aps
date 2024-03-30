@@ -16,6 +16,7 @@ import (
 	"crawler/pc4u"
 	"crawler/rakuten"
 	"crawler/scrape"
+	"crawler/shop"
 )
 
 func init() {
@@ -29,7 +30,7 @@ func init() {
 		&nojima.NojimaProduct{},
 		&pc4u.Pc4uProduct{},
 		&rakuten.RakutenProduct{},
-		&rakuten.Shop{},
+		&shop.Shop{},
 		&scrape.RunServiceHistory{},
 	}
 	conn := scrape.CreateDBConnection(config.DBDsn)

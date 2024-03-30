@@ -5,6 +5,7 @@ import (
 
 	"crawler/config"
 	"crawler/scrape"
+	"crawler/shop"
 )
 
 var logger = config.Logger
@@ -14,7 +15,7 @@ func NewScrapeService() scrape.Service[*RakutenProduct] {
 }
 
 func RunServices() {
-	repo := ShopRepository{}
+	repo := shop.ShopRepository{}
 	db := scrape.CreateDBConnection(config.DBDsn)
 	shops, err := repo.GetAll(db, context.Background())
 	if err != nil {
@@ -28,9 +29,9 @@ func RunServices() {
 }
 
 func RunServicesByDaily() {
-	repo := ShopRepository{}
+	repo := shop.ShopRepository{}
 	db := scrape.CreateDBConnection(config.DBDsn)
-	shops, err := repo.GetByInterval(db, context.Background(), daily)
+	shops, err := repo.GetByInterval(db, context.Background(), shop.Daily)
 	if err != nil {
 		logger.Error("error", err)
 		return
