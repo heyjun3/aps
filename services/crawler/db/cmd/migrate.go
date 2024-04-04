@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -18,7 +19,7 @@ func main() {
 	}
 	m, err := migrate.New(
 		"file://db/migrations",
-		dsn,
+		fmt.Sprintf("%s&search_path=%s", dsn, "crawler"),
 	)
 	if err != nil {
 		log.Fatal(err)
