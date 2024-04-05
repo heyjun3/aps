@@ -1,19 +1,17 @@
-package main
+package db
 
 import (
 	"errors"
 	"fmt"
 	"log"
 	"log/slog"
-	"os"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-func main() {
-	dsn := os.Getenv("DB_DSN")
+func RunMigrate(dsn string) {
 	if dsn == "" {
 		panic(errors.New("don't set DB_DSN"))
 	}
