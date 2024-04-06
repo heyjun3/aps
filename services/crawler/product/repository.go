@@ -14,13 +14,15 @@ type Repository struct{}
 func (p Repository) GetProduct(ctx context.Context,
 	db *bun.DB, productCode, shopCode string) (scrape.IProduct, error) {
 	product := new(Product)
-	err := db.NewSelect().
+	if err := db.NewSelect().
 		Model(product).
 		Where("product_code = ?", productCode).
 		Where("shop_code = ?", shopCode).
-		Scan(ctx, product)
+		Scan(ctx, product); err != nil {
+			return nil, err
+		}
 
-	return product, err
+	return product, nil
 }
 
 func (p Repository) GetByProductAndShopCodes(ctx context.Context,

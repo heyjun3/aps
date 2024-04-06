@@ -13,18 +13,23 @@ import (
 )
 
 func TestRepository(t *testing.T) {
-
 	tests := []struct {
 		name string
-		test func(*testing.T, context.Context, *bun.DB)
+		fn   func(*testing.T, context.Context, *bun.DB)
 	}{{
 		name: "test get product",
-		test: testGetProduct,
+		fn:   testGetProduct,
+	}, {
+		name: "test get product and shop code",
+		fn:   testGetByProductAndShopCodes,
+	}, {
+		name: "test buld upsert",
+		fn:   testBulkUpsert,
 	}}
 
 	for _, tt := range tests {
 		db, ctx := setupTest()
-		tt.test(t, ctx, db)
+		tt.fn(t, ctx, db)
 	}
 }
 
@@ -81,4 +86,75 @@ func testGetProduct(t *testing.T, ctx context.Context, db *bun.DB) {
 	assert.NoError(t, err)
 	assert.True(t, ok)
 	assert.Equal(t, want, cast)
+
+	result, err = repo.GetProduct(ctx, db, "nonExistsCode", "testShop")
+	cast, ok = result.(*Product)
+
+	assert.Error(t, err)
+	assert.False(t, ok)
+	assert.Equal(t, (*Product)(nil), cast)
+}
+
+func testGetByProductAndShopCodes(t *testing.T, ctx context.Context,
+	db *bun.DB) {
+	repo := Repository{}
+	want := scrape.Products{
+		&Product{
+			SiteCode:    "testSite",
+			ShopCode:    "testShop",
+			ProductCode: "productCode_1",
+			Name:        "productName_1",
+			Jan:         ptr("jan1"),
+			Price:       int64(2000),
+			URL:         "testURL1",
+		},
+		&Product{
+			SiteCode:    "testSite",
+			ShopCode:    "testShop",
+			ProductCode: "productCode_10",
+			Name:        "productName_10",
+			Jan:         ptr("jan10"),
+			Price:       int64(11000),
+			URL:         "testURL10",
+		},
+	}
+
+	result, err := repo.GetByProductAndShopCodes(ctx, db,
+		[][]string{{"productCode_1", "testShop"}, {"productCode_10", "testShop"}}...)
+
+	assert.NoError(t, err)
+	assert.Equal(t, want, result)
+
+	result, err = repo.GetByProductAndShopCodes(ctx, db,
+		[][]string{{"nonExistsProductCode", "testShop"}}...)
+
+	assert.NoError(t, err)
+	assert.Equal(t, scrape.Products(nil), result)
+}
+
+func testBulkUpsert(t *testing.T, ctx context.Context, db *bun.DB) {
+	repo := Repository{}
+	products := scrape.Products{
+		&Product{
+			SiteCode:    "testSite",
+			ShopCode:    "testShop",
+			ProductCode: "productCode_1",
+			Name:        "productName_1",
+			Jan:         ptr("jan1"),
+			Price:       int64(2000),
+			URL:         "testURL1",
+		},
+		&Product{
+			SiteCode:    "testSite",
+			ShopCode:    "testShop",
+			ProductCode: "productCode_10",
+			Name:        "productName_10",
+			Jan:         ptr("jan10"),
+			Price:       int64(11000),
+			URL:         "testURL10",
+		},
+	}
+	err := repo.BulkUpsert(ctx, db, products)
+
+	assert.NoError(t, err)
 }
