@@ -33,7 +33,8 @@ func (p ProductRepository[T]) GetProduct(ctx context.Context,
 	return product, err
 }
 
-func (p ProductRepository[T]) GetByProductAndShopCodes(ctx context.Context, db *bun.DB, codes ...[]string) (Products, error) {
+func (p ProductRepository[T]) GetByProductAndShopCodes(ctx context.Context,
+	db *bun.DB, codes ...[]string) (Products, error) {
 	products := p.products
 
 	err := db.NewSelect().
@@ -45,7 +46,8 @@ func (p ProductRepository[T]) GetByProductAndShopCodes(ctx context.Context, db *
 	return ConvToProducts(products), err
 }
 
-func (p ProductRepository[T]) BulkUpsert(ctx context.Context, db *bun.DB, ps Products) error {
+func (p ProductRepository[T]) BulkUpsert(ctx context.Context, db *bun.DB,
+	ps Products) error {
 	mapProduct := map[string]IProduct{}
 	for _, v := range ps {
 		mapProduct[v.GetProductCode()] = v
