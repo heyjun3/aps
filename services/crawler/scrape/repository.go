@@ -9,7 +9,7 @@ import (
 )
 
 type ProductRepositoryInterface[T IProduct] interface {
-	BulkUpsert(context.Context, *bun.DB, Products) (error)
+	BulkUpsert(context.Context, *bun.DB, Products) error
 	GetProduct(context.Context, *bun.DB, string, string) (T, error)
 	GetByProductAndShopCodes(context.Context, *bun.DB, ...[]string) (Products, error)
 }

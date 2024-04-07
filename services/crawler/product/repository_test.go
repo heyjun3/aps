@@ -62,7 +62,7 @@ func seedProducts(ctx context.Context, db *bun.DB) {
 		}
 		products = append(products, p)
 	}
-	repo := Repository{}
+	repo := Repository[*Product]{}
 	if err := repo.BulkUpsert(ctx, db, products); err != nil {
 		panic(err)
 	}
@@ -78,26 +78,22 @@ func testGetProduct(t *testing.T, ctx context.Context, db *bun.DB) {
 		Price:       int64(2000),
 		URL:         "testURL1",
 	}
-	repo := Repository{}
+	repo := Repository[*Product]{}
 
 	result, err := repo.GetProduct(ctx, db, "productCode_1", "testShop")
-	cast, ok := result.(*Product)
 
 	assert.NoError(t, err)
-	assert.True(t, ok)
-	assert.Equal(t, want, cast)
+	assert.Equal(t, want, result)
 
 	result, err = repo.GetProduct(ctx, db, "nonExistsCode", "testShop")
-	cast, ok = result.(*Product)
 
 	assert.Error(t, err)
-	assert.False(t, ok)
-	assert.Equal(t, (*Product)(nil), cast)
+	assert.Equal(t, &Product{}, result)
 }
 
 func testGetByProductAndShopCodes(t *testing.T, ctx context.Context,
 	db *bun.DB) {
-	repo := Repository{}
+	repo := Repository[*Product]{}
 	want := scrape.Products{
 		&Product{
 			SiteCode:    "testSite",
@@ -133,7 +129,7 @@ func testGetByProductAndShopCodes(t *testing.T, ctx context.Context,
 }
 
 func testBulkUpsert(t *testing.T, ctx context.Context, db *bun.DB) {
-	repo := Repository{}
+	repo := Repository[*Product]{}
 	products := scrape.Products{
 		&Product{
 			SiteCode:    "testSite",

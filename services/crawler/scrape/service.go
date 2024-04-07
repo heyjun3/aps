@@ -78,6 +78,13 @@ func WithFileId[T IProduct](fileId string) func(*Service[T]) {
 	}
 }
 
+func WithCustomRepository[T IProduct](
+	repo ProductRepositoryInterface[T]) func(*Service[T]) {
+	return func(s *Service[T]) {
+		s.Repo = repo
+	}
+}
+
 func (s Service[T]) StartScrape(url, shopName string) {
 	ctx := context.Background()
 	db := CreateDBConnection(config.DBDsn)

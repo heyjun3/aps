@@ -9,23 +9,23 @@ import (
 	"github.com/uptrace/bun"
 )
 
-type Repository struct{}
+type Repository[T scrape.IProduct] struct{}
 
-func (p Repository) GetProduct(ctx context.Context,
-	db *bun.DB, productCode, shopCode string) (scrape.IProduct, error) {
+func (p Repository[T]) GetProduct(ctx context.Context,
+	db *bun.DB, productCode, shopCode string) (T, error) {
+	var i interface{}
 	product := new(Product)
-	if err := db.NewSelect().
+	err := db.NewSelect().
 		Model(product).
 		Where("product_code = ?", productCode).
 		Where("shop_code = ?", shopCode).
-		Scan(ctx, product); err != nil {
-			return nil, err
-		}
-
-	return product, nil
+		Scan(ctx, product)
+	i = product
+	result, _ := i.(T)
+	return result, err
 }
 
-func (p Repository) GetByProductAndShopCodes(ctx context.Context,
+func (p Repository[T]) GetByProductAndShopCodes(ctx context.Context,
 	db *bun.DB, codes ...[]string) (scrape.Products, error) {
 	var products []*Product
 	err := db.NewSelect().
@@ -36,7 +36,7 @@ func (p Repository) GetByProductAndShopCodes(ctx context.Context,
 	return scrape.ConvToProducts(products), err
 }
 
-func (p Repository) BulkUpsert(ctx context.Context, db *bun.DB,
+func (p Repository[T]) BulkUpsert(ctx context.Context, db *bun.DB,
 	ps scrape.Products) error {
 	mapProduct := map[string]scrape.IProduct{}
 	for _, v := range ps {
