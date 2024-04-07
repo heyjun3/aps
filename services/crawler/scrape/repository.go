@@ -8,6 +8,12 @@ import (
 	"github.com/uptrace/bun"
 )
 
+type ProductRepositoryInterface[T IProduct] interface {
+	BulkUpsert(context.Context, *bun.DB, Products) (error)
+	GetProduct(context.Context, *bun.DB, string, string) (T, error)
+	GetByProductAndShopCodes(context.Context, *bun.DB, ...[]string) (Products, error)
+}
+
 type ProductRepository[T IProduct] struct {
 	product  T
 	products []T

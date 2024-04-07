@@ -36,7 +36,7 @@ func (p Parser) ConvToReq(products Products, url string) (Products, *http.Reques
 
 type Service[T IProduct] struct {
 	Parser            IParser
-	Repo              ProductRepository[T]
+	Repo              ProductRepositoryInterface[T]
 	HistoryRepository RunServiceHistoryRepository
 	EntryReq          *http.Request
 	httpClient        HttpClient

@@ -253,7 +253,7 @@ func TestSaveProduct(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service[*Product]{},
+			service: NewService(ParserMock{}, &Product{}, []*Product{}),
 			products: Products{
 				(NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
 				(NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
