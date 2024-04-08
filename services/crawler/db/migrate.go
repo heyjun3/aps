@@ -33,6 +33,6 @@ func RunMigrate(dsn string) {
 	if err := m.Up(); err != nil && err.Error() != "no change" {
 		slog.Error("run migrate", "err", err)
 	} else {
-		slog.Warn(err.Error())
+		slog.Warn("no change")
 	}
 }
