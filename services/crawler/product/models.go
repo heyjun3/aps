@@ -23,6 +23,9 @@ type Product struct {
 var _ scrape.IProduct = &Product{}
 
 func New(product Product) (*Product, error) {
+	if *product.Jan == "" {
+		product.Jan = nil
+	}
 	if err := product.validateZeroValues(); err != nil {
 		return nil, err
 	}

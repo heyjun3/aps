@@ -7,12 +7,22 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/uptrace/bun"
 
+	"crawler/product"
 	"crawler/scrape"
 	"crawler/test/util"
 )
 
 func NewTestArkProduct(name, productCode, url, jan string, price int64) *ArkProduct {
 	p, err := NewArkProduct(name, productCode, url, jan, price)
+	if err != nil {
+		panic(err)
+	}
+	return p
+}
+
+func newTestArkProduct(name, productCode, url, jan string,
+	price int64) *product.Product {
+	p, err := newArkProduct(name, productCode, url, jan, price)
 	if err != nil {
 		panic(err)
 	}

@@ -58,7 +58,7 @@ func main() {
 
 	switch {
 	case shop == "ark" && url != "":
-		ark.NewScrapeService().StartScrape(url, shop)
+		ark.NewScrapeServiceV2().StartScrape(url, shop)
 	case shop == "bomber" && url != "":
 		bomber.NewScrapeService().StartScrape(url, shop)
 	case shop == "hikaritv" && url != "":

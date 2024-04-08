@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"crawler/product"
 	"crawler/test/util"
 )
 
@@ -15,8 +16,8 @@ func TestProductList(t *testing.T) {
 	type want struct {
 		count int
 		url   string
-		first *ArkProduct
-		last  *ArkProduct
+		first *product.Product
+		last  *product.Product
 	}
 	tests := []struct {
 		name string
@@ -29,14 +30,14 @@ func TestProductList(t *testing.T) {
 			want: want{
 				count: 50,
 				url:   "https://www.ark-pc.co.jp/search/?offset=50&limit=50&nouki=1",
-				first: NewTestArkProduct(
+				first: newTestArkProduct(
 					"CMSX16GX5M1A4800C40",
 					"11755303",
 					"https://www.ark-pc.co.jp/i/11755303/",
 					"",
 					8980,
 				),
-				last: NewTestArkProduct(
+				last: newTestArkProduct(
 					"Loupedeck Live",
 					"50284987",
 					"https://www.ark-pc.co.jp/i/50284987/",
@@ -51,14 +52,14 @@ func TestProductList(t *testing.T) {
 			want: want{
 				count: 4,
 				url:   "",
-				first: NewTestArkProduct(
+				first: newTestArkProduct(
 					"AINEX YH-3020A チップ用ヒートシンク30mm角",
 					"40000501",
 					"https://www.ark-pc.co.jp/i/40000501/",
 					"",
 					440,
 				),
-				last: NewTestArkProduct(
+				last: newTestArkProduct(
 					"SteelSeries QcK+ (Qck L)",
 					"50190022",
 					"https://www.ark-pc.co.jp/i/50190022/",
@@ -103,7 +104,7 @@ func TestProductListInCouponPrice(t *testing.T) {
 
 		for _, v := range products {
 			if v.GetProductCode() == "50283314" {
-				assert.Equal(t, int64(11980), v.(*ArkProduct).Price)
+				assert.Equal(t, int64(11980), v.(*product.Product).Price)
 			}
 		}
 	})
