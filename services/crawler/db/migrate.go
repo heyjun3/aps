@@ -1,6 +1,7 @@
 package db
 
 import (
+	"embed"
 	"errors"
 	"fmt"
 	"log"
@@ -8,21 +9,30 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
+
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
 
 func RunMigrate(dsn string) {
 	if dsn == "" {
 		panic(errors.New("don't set DB_DSN"))
 	}
-	m, err := migrate.New(
-		"file://db/migrations",
+	d, err := iofs.New(migrationsFS, "migrations")
+	if err != nil {
+		panic(err)
+	}
+	m, err := migrate.NewWithSourceInstance("iofs",
+		d,
 		fmt.Sprintf("%s&search_path=%s", dsn, "crawler"),
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := m.Up(); err != nil {
-		slog.Warn("run migrate", "err", err)
+	if err := m.Up(); err != nil && err.Error() != "no change" {
+		slog.Error("run migrate", "err", err)
+	} else {
+		slog.Warn(err.Error())
 	}
 }
