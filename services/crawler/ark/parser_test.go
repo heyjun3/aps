@@ -9,6 +9,15 @@ import (
 	"crawler/test/util"
 )
 
+func newTestArkProduct(name, productCode, url, jan string,
+	price int64) *product.Product {
+	p, err := newArkProduct(name, productCode, url, jan, price)
+	if err != nil {
+		panic(err)
+	}
+	return p
+}
+
 func TestProductList(t *testing.T) {
 	type args struct {
 		filename string
