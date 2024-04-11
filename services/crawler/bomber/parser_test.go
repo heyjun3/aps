@@ -1,15 +1,17 @@
 package bomber
 
 import (
-	"crawler/test/util"
 	"net/http"
 	"net/url"
 	"testing"
 
+	"crawler/product"
+	"crawler/test/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func NewTestbomberProduct(name, productCode, url, jan string, price int64) *BomberProduct {
+func NewTestbomberProduct(name, productCode, url, jan string, price int64) *product.Product {
 	p, err := NewBomberProduct(name, productCode, url, jan, price)
 	if err != nil {
 		panic(err)
@@ -30,8 +32,8 @@ func TestProductListByReq(t *testing.T) {
 	type want struct {
 		count int
 		req   *http.Request
-		first *BomberProduct
-		last  *BomberProduct
+		first *product.Product
+		last  *product.Product
 	}
 
 	tests := []struct {

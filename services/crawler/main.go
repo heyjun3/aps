@@ -21,7 +21,6 @@ import (
 
 func init() {
 	models := []interface{}{
-		&bomber.BomberProduct{},
 		&hikaritv.HikaritvProduct{},
 		&ikebe.IkebeProduct{},
 		&kaago.KaagoProduct{},
