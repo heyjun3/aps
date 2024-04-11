@@ -19,6 +19,11 @@ func RunMigrate(dsn string) {
 	if dsn == "" {
 		panic(errors.New("don't set DB_DSN"))
 	}
+	t, err := migrationsFS.ReadDir("migrations")
+	if err != nil {
+		panic(err)
+	}
+	slog.Warn("read dir", "len", len(t))
 	d, err := iofs.New(migrationsFS, "migrations")
 	if err != nil {
 		panic(err)
@@ -33,6 +38,6 @@ func RunMigrate(dsn string) {
 	if err := m.Up(); err != nil && err.Error() != "no change" {
 		slog.Error("run migrate", "err", err)
 	} else {
-		slog.Warn("no change")
+		slog.Warn("run migrate", "result", "done")
 	}
 }
