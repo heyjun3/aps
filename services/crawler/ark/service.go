@@ -11,5 +11,6 @@ var logger = config.Logger
 func NewScrapeServiceV2() scrape.Service[*product.Product] {
 	return scrape.NewService(
 		ArkParser{}, &product.Product{}, []*product.Product{},
-		scrape.WithCustomRepository(product.Repository[*product.Product]{}))
+		scrape.WithCustomRepository(
+			product.NewRepository[*product.Product]("ark")))
 }

@@ -11,5 +11,6 @@ var logger = config.Logger
 func NewScrapeService() scrape.Service[*product.Product] {
 	return scrape.NewService(
 		BomberParser{}, &product.Product{}, []*product.Product{},
-		scrape.WithCustomRepository(product.Repository[*product.Product]{}))
+		scrape.WithCustomRepository(
+			product.NewRepository[*product.Product]("bomber")))
 }
