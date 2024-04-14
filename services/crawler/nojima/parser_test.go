@@ -4,12 +4,14 @@ import (
 	"net/url"
 	"testing"
 
+	"crawler/product"
 	"crawler/test/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func NewTestNojimaProduct(name, productCode, url, jan string, price int64) *NojimaProduct {
+func NewTestNojimaProduct(
+	name, productCode, url, jan string, price int64) *product.Product {
 	p, err := NewNojimaProduct(name, productCode, url, jan, price)
 	if err != nil {
 		panic(err)
@@ -25,8 +27,8 @@ func TestProductList(t *testing.T) {
 	type want struct {
 		count int
 		url   string
-		first *NojimaProduct
-		last  *NojimaProduct
+		first *product.Product
+		last  *product.Product
 	}
 	u, _ := url.Parse("https://online.nojima.co.jp/app/catalog/list/init?searchCategoryCode=0&mode=image&pageSize=60&currentPage=4&alignmentSequence=9&searchDispFlg=true&immediateDeliveryDispFlg=1&searchWord=%E3%82%A4%E3%83%B3%E3%82%AF")
 	u.RawQuery = u.Query().Encode()

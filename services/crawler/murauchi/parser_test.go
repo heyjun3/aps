@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"testing"
 
+	"crawler/product"
 	"crawler/test/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func NewTestMurauchiProduct(name, productCode, url, jan string, price int64) *MurauchiProduct {
+func NewTestMurauchiProduct(
+	name, productCode, url, jan string, price int64) *product.Product {
 	p, err := NewMurauchiProduct(name, productCode, url, jan, price)
 	if err != nil {
 		panic(err)
@@ -25,8 +27,8 @@ func TestProductListbyReq(t *testing.T) {
 	}
 	type want struct {
 		count int
-		first *MurauchiProduct
-		last  *MurauchiProduct
+		first *product.Product
+		last  *product.Product
 		url   string
 		body  string
 	}

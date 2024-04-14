@@ -6,14 +6,16 @@ import (
 	"time"
 
 	"crawler/config"
+	"crawler/product"
 	"crawler/scrape"
 	"crawler/shop"
 )
 
 var logger = config.Logger
 
-func NewScrapeService(opts ...scrape.Option[*Pc4uProduct]) scrape.Service[*Pc4uProduct] {
-	return scrape.NewService(Pc4uParser{}, &Pc4uProduct{}, []*Pc4uProduct{}, opts...)
+func NewScrapeService(opts ...scrape.Option[*product.Product]) scrape.Service[*product.Product] {
+	return scrape.NewService(
+		Pc4uParser{}, &product.Product{}, []*product.Product{}, opts...)
 }
 
 func ScrapeAll(shopName string) {
@@ -24,7 +26,12 @@ func ScrapeAll(shopName string) {
 		panic(err)
 	}
 	fileId := strings.Join([]string{shopName, scrape.TimeToStr(time.Now())}, "_")
-	service := NewScrapeService(scrape.WithFileId[*Pc4uProduct](fileId))
+	service := NewScrapeService(
+		scrape.WithFileId[*product.Product](fileId),
+		scrape.WithCustomRepository(
+			product.NewRepository[*product.Product](siteCode),
+		),
+	)
 	for _, s := range shops {
 		service.StartScrape(s.URL, shopName)
 	}

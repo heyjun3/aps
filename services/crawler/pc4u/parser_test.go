@@ -5,8 +5,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"crawler/product"
 	"crawler/test/util"
 )
+
+func NewTestPc4uProduct(
+	name, productCode, url, jan string, price int64) *product.Product {
+	p, _ := NewPc4uProduct(name, productCode, url, jan, price)
+	return p
+}
 
 func TestParseProducts(t *testing.T) {
 	type args struct {
@@ -15,8 +22,8 @@ func TestParseProducts(t *testing.T) {
 	type want struct {
 		count int
 		url   string
-		first *Pc4uProduct
-		last  *Pc4uProduct
+		first *product.Product
+		last  *product.Product
 	}
 	tests := []struct {
 		name string

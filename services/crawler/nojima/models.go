@@ -1,22 +1,25 @@
 package nojima
 
 import (
-	"github.com/uptrace/bun"
-
-	"crawler/scrape"
+	"crawler/product"
 )
 
-type NojimaProduct struct {
-	bun.BaseModel `bun:"table:nojima_products"`
-	scrape.Product
-}
+const (
+	siteCode = "nojima"
+	shopCode = siteCode
+)
 
-func NewNojimaProduct(name, productCode, url, jan string, price int64) (*NojimaProduct, error) {
-	p, err := scrape.NewProduct(name, productCode, url, jan, "nojima", price)
-	if err != nil {
-		return nil, err
-	}
-	return &NojimaProduct{
-		Product: *p,
-	}, err
+func NewNojimaProduct(
+	name, productCode, url, jan string, price int64) (*product.Product, error) {
+	return product.New(
+		product.Product{
+			SiteCode:    siteCode,
+			ShopCode:    shopCode,
+			ProductCode: productCode,
+			Name:        name,
+			URL:         url,
+			Jan:         &jan,
+			Price:       price,
+		},
+	)
 }

@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"testing"
 
+	"crawler/product"
 	"crawler/test/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func NewTestKaagoProduct(name, productCode, url, jan, shopCode string, price int64) *KaagoProduct {
+func NewTestKaagoProduct(
+	name, productCode, url, jan, shopCode string, price int64) *product.Product {
 	p, err := NewKaagoProduct(name, productCode, url, jan, shopCode, price)
 	if err != nil {
 		panic(err)
@@ -28,8 +30,8 @@ func TestProductListByReq(t *testing.T) {
 		count       int
 		currentPage int
 		url         string
-		first       *KaagoProduct
-		last        *KaagoProduct
+		first       *product.Product
+		last        *product.Product
 	}
 
 	tests := []struct {

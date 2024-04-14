@@ -4,24 +4,26 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/uptrace/bun"
-
-	"crawler/scrape"
+	"crawler/product"
 )
 
-type KaagoProduct struct {
-	bun.BaseModel `bun:"table:kaago_products"`
-	scrape.Product
-}
+const (
+	sitCode = "kaago"
+)
 
-func NewKaagoProduct(name, productCode, url, jan, shopCode string, price int64) (*KaagoProduct, error) {
-	p, err := scrape.NewProduct(name, productCode, url, jan, shopCode, price)
-	if err != nil {
-		return nil, err
-	}
-	return &KaagoProduct{
-		Product: *p,
-	}, nil
+func NewKaagoProduct(name, productCode, url, jan, shopCode string,
+	price int64) (*product.Product, error) {
+	return product.New(
+		product.Product{
+			SiteCode:    sitCode,
+			ShopCode:    shopCode,
+			ProductCode: productCode,
+			Name:        name,
+			URL:         url,
+			Jan:         &jan,
+			Price:       price,
+		},
+	)
 }
 
 type KaagoResp struct {

@@ -21,11 +21,6 @@ import (
 
 func init() {
 	models := []interface{}{
-		&kaago.KaagoProduct{},
-		&murauchi.MurauchiProduct{},
-		&nojima.NojimaProduct{},
-		&pc4u.Pc4uProduct{},
-		&rakuten.RakutenProduct{},
 		&shop.Shop{},
 		&scrape.RunServiceHistory{},
 	}

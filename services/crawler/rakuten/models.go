@@ -1,27 +1,27 @@
 package rakuten
 
 import (
-	"github.com/uptrace/bun"
-
-	"crawler/scrape"
+	"crawler/product"
 )
 
-type RakutenProduct struct {
-	bun.BaseModel `bun:"table:rakuten_products"`
-	scrape.Product
-	point int64
-}
+const (
+	siteCode = "rakuten"
+)
 
 func NewRakutenProduct(
-	name, productCode, url, jan, shopCode string, price, point int64) (*RakutenProduct, error) {
+	name, productCode, url, jan, shopCode string, price, point int64) (
+	*product.Product, error) {
 
 	calcPrice := price - point
-	p, err := scrape.NewProduct(name, productCode, url, jan, shopCode, calcPrice)
-	if err != nil {
-		return nil, err
-	}
-	return &RakutenProduct{
-		Product: *p,
-		point:   point,
-	}, nil
+	return product.New(
+		product.Product{
+			SiteCode:    siteCode,
+			ShopCode:    shopCode,
+			ProductCode: productCode,
+			Name:        name,
+			URL:         url,
+			Jan:         &jan,
+			Price:       calcPrice,
+		},
+	)
 }

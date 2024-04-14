@@ -6,13 +6,16 @@ import (
 	"time"
 
 	"crawler/config"
+	"crawler/product"
 	"crawler/scrape"
 )
 
 var logger = config.Logger
 
-func NewScrapeService(opts ...scrape.Option[*NojimaProduct]) scrape.Service[*NojimaProduct] {
-	return scrape.NewService(NojimaParser{}, &NojimaProduct{}, []*NojimaProduct{}, opts...)
+func NewScrapeService(
+	opts ...scrape.Option[*product.Product]) scrape.Service[*product.Product] {
+	return scrape.NewService(
+		NojimaParser{}, &product.Product{}, []*product.Product{}, opts...)
 }
 
 func ScrapeAll() {
@@ -30,7 +33,12 @@ func ScrapeAll() {
 		urls = append(urls, URL.String())
 	}
 	fileId := "nojima_" + scrape.TimeToStr(time.Now())
-	service := NewScrapeService(scrape.WithFileId[*NojimaProduct](fileId))
+	service := NewScrapeService(
+		scrape.WithFileId[*product.Product](fileId),
+		scrape.WithCustomRepository(
+			product.NewRepository[*product.Product](siteCode),
+		),
+	)
 	for _, u := range urls {
 		service.StartScrape(u, "nojima")
 	}

@@ -1,22 +1,25 @@
 package pc4u
 
 import (
-	"github.com/uptrace/bun"
-
-	"crawler/scrape"
+	"crawler/product"
 )
 
-func NewPc4uProduct(name, productCode, url, jan string, price int64) (*Pc4uProduct, error) {
-	p, err := scrape.NewProduct(name, productCode, url, jan, "pc4u", price)
-	if err != nil {
-		return nil, err
-	}
-	return &Pc4uProduct{
-		Product: *p,
-	}, nil
-}
+const (
+	siteCode = "pc4u"
+	shopCode = siteCode
+)
 
-type Pc4uProduct struct {
-	bun.BaseModel `bun:"table:pc4u_products"`
-	scrape.Product
+func NewPc4uProduct(
+	name, productCode, url, jan string, price int64) (*product.Product, error) {
+	return product.New(
+		product.Product{
+			SiteCode:    siteCode,
+			ShopCode:    shopCode,
+			ProductCode: productCode,
+			Name:        name,
+			URL:         url,
+			Jan:         &jan,
+			Price:       price,
+		},
+	)
 }

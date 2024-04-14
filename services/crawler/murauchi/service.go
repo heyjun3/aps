@@ -4,13 +4,17 @@ import (
 	"log"
 
 	"crawler/config"
+	"crawler/product"
 	"crawler/scrape"
 )
 
 var logger = config.Logger
 
-func NewScrapeService(category string) scrape.Service[*MurauchiProduct] {
-	service := scrape.NewService(MurauchiParser{}, &MurauchiProduct{}, []*MurauchiProduct{})
+func NewScrapeService(category string) scrape.Service[*product.Product] {
+	service := scrape.NewService(MurauchiParser{},
+		&product.Product{}, []*product.Product{}, scrape.WithCustomRepository(
+			product.NewRepository[*product.Product](siteCode),
+		))
 	req, err := generateRequest(0, category)
 	if err != nil {
 		log.Fatalln(err)

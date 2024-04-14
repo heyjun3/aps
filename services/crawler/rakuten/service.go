@@ -4,14 +4,20 @@ import (
 	"context"
 
 	"crawler/config"
+	"crawler/product"
 	"crawler/scrape"
 	"crawler/shop"
 )
 
 var logger = config.Logger
 
-func NewScrapeService() scrape.Service[*RakutenProduct] {
-	return scrape.NewService(RakutenParser{}, &RakutenProduct{}, []*RakutenProduct{})
+func NewScrapeService() scrape.Service[*product.Product] {
+	return scrape.NewService(
+		RakutenParser{}, &product.Product{}, []*product.Product{},
+		scrape.WithCustomRepository(
+			product.NewRepository[*product.Product](siteCode),
+		),
+	)
 }
 
 func RunServices() {
