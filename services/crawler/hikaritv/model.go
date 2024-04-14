@@ -1,19 +1,25 @@
 package hikaritv
 
 import (
-	"crawler/scrape"
+	"crawler/product"
 )
 
-type HikaritvProduct struct {
-	scrape.Product
-}
+const (
+	siteCode = "hikaritv"
+	shopCode = siteCode
+)
 
-func NewHikaritvProduct(name, jan, productCode, url string, price int64) (*HikaritvProduct, error) {
-	p, err := scrape.NewProduct(name, productCode, url, jan, "hikaritv", price)
-	if err != nil {
-		return nil, err
-	}
-	return &HikaritvProduct{
-		Product: *p,
-	}, nil
+func NewHikaritvProduct(name, jan, productCode, url string, price int64) (
+	*product.Product, error) {
+	return product.New(
+		product.Product{
+			SiteCode:    siteCode,
+			ShopCode:    shopCode,
+			ProductCode: productCode,
+			Name:        name,
+			Jan:         &jan,
+			Price:       price,
+			URL:         url,
+		},
+	)
 }

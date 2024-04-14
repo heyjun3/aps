@@ -2,6 +2,7 @@ package ikebe
 
 import (
 	"crawler/config"
+	"crawler/product"
 	"crawler/scrape"
 )
 
@@ -12,6 +13,9 @@ const (
 	host   = "www.ikebe-gakki.com"
 )
 
-func NewScrapeService() scrape.Service[*IkebeProduct] {
-	return scrape.NewService(IkebeParser{}, &IkebeProduct{}, []*IkebeProduct{})
+func NewScrapeService() scrape.Service[*product.Product] {
+	return scrape.NewService(IkebeParser{}, &product.Product{},
+		[]*product.Product{}, scrape.WithCustomRepository(
+			product.NewRepository[*product.Product](siteCode),
+		))
 }

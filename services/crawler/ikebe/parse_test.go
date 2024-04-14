@@ -5,10 +5,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"crawler/product"
 	"crawler/test/util"
 )
 
-func NewTestIkebeProduct(name, productCode, url, jan string, price int64) *IkebeProduct {
+func NewTestIkebeProduct(name, productCode, url, jan string,
+	price int64) *product.Product {
 	p, err := NewIkebeProduct(name, productCode, url, jan, price)
 	if err != nil {
 		panic(err)
@@ -23,8 +25,8 @@ func TestParseProducts(t *testing.T) {
 	type want struct {
 		count int
 		url   string
-		first *IkebeProduct
-		last  *IkebeProduct
+		first *product.Product
+		last  *product.Product
 	}
 
 	tests := []struct {
