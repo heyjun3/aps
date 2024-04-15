@@ -3,9 +3,9 @@ package scrape
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
-	"reflect"
+	// "reflect"
 	"time"
 
 	"github.com/google/uuid"
@@ -41,103 +41,103 @@ type IProduct interface {
 	SetJan(string)
 }
 
-type Product struct {
-	Name        string
-	Jan         *string
-	Price       int64
-	ShopCode    string `bun:"shop_code,pk"`
-	ProductCode string `bun:"product_code,pk"`
-	URL         string
-}
+// type Product struct {
+// 	Name        string
+// 	Jan         *string
+// 	Price       int64
+// 	ShopCode    string `bun:"shop_code,pk"`
+// 	ProductCode string `bun:"product_code,pk"`
+// 	URL         string
+// }
 
-func NewProduct(name, productCode, url, jan, shopCode string, price int64) (*Product, error) {
-	janPtr := &jan
-	if jan == "" {
-		janPtr = nil
-	}
-	p := &Product{
-		Name:        name,
-		Jan:         janPtr,
-		Price:       price,
-		ShopCode:    shopCode,
-		ProductCode: productCode,
-		URL:         url,
-	}
-	if err := p.validateZeroValues(); err != nil {
-		return nil, err
-	}
-	return p, nil
-}
+// func NewProduct(name, productCode, url, jan, shopCode string, price int64) (*Product, error) {
+// 	janPtr := &jan
+// 	if jan == "" {
+// 		janPtr = nil
+// 	}
+// 	p := &Product{
+// 		Name:        name,
+// 		Jan:         janPtr,
+// 		Price:       price,
+// 		ShopCode:    shopCode,
+// 		ProductCode: productCode,
+// 		URL:         url,
+// 	}
+// 	if err := p.validateZeroValues(); err != nil {
+// 		return nil, err
+// 	}
+// 	return p, nil
+// }
 
-func (p Product) GenerateMessage(filename string) ([]byte, error) {
-	message, err := NewMessage(filename, p.URL, p.Jan, p.Price)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(message)
-}
+// func (p Product) GenerateMessage(filename string) ([]byte, error) {
+// 	message, err := NewMessage(filename, p.URL, p.Jan, p.Price)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return json.Marshal(message)
+// }
 
-func (p Product) validateZeroValues() (err error) {
-	structType := reflect.TypeOf(p)
-	structValue := reflect.ValueOf(p)
-	fieldsNum := structValue.NumField()
+// func (p Product) validateZeroValues() (err error) {
+// 	structType := reflect.TypeOf(p)
+// 	structValue := reflect.ValueOf(p)
+// 	fieldsNum := structValue.NumField()
 
-	for i := 0; i < fieldsNum; i++ {
-		field := structValue.Field(i)
-		fieldName := structType.Field(i).Name
+// 	for i := 0; i < fieldsNum; i++ {
+// 		field := structValue.Field(i)
+// 		fieldName := structType.Field(i).Name
 
-		if fieldName == "Jan" {
-			continue
-		}
+// 		if fieldName == "Jan" {
+// 			continue
+// 		}
 
-		if isSet := field.IsValid() && !field.IsZero(); !isSet {
-			err = fmt.Errorf("%s is not set; ", fieldName)
-			return err
-		}
-	}
-	return nil
-}
+// 		if isSet := field.IsValid() && !field.IsZero(); !isSet {
+// 			err = fmt.Errorf("%s is not set; ", fieldName)
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
 
-func (p Product) GetName() string {
-	return p.Name
-}
+// func (p Product) GetName() string {
+// 	return p.Name
+// }
 
-func (p Product) GetProductCode() string {
-	return p.ProductCode
-}
+// func (p Product) GetProductCode() string {
+// 	return p.ProductCode
+// }
 
-func (p Product) GetJan() string {
-	if p.Jan == nil {
-		return ""
-	}
-	return *p.Jan
-}
+// func (p Product) GetJan() string {
+// 	if p.Jan == nil {
+// 		return ""
+// 	}
+// 	return *p.Jan
+// }
 
-func (p Product) GetURL() string {
-	return p.URL
-}
+// func (p Product) GetURL() string {
+// 	return p.URL
+// }
 
-func (p Product) GetPrice() int64 {
-	return p.Price
-}
+// func (p Product) GetPrice() int64 {
+// 	return p.Price
+// }
 
-func (p Product) GetShopCode() string {
-	return p.ShopCode
-}
+// func (p Product) GetShopCode() string {
+// 	return p.ShopCode
+// }
 
-func (p Product) GetProductAndShopCode() []string {
-	return []string{p.ProductCode, p.ShopCode}
-}
+// func (p Product) GetProductAndShopCode() []string {
+// 	return []string{p.ProductCode, p.ShopCode}
+// }
 
-func (p Product) IsValidJan() bool {
-	return p.Jan != nil
-}
+// func (p Product) IsValidJan() bool {
+// 	return p.Jan != nil
+// }
 
-func (p *Product) SetJan(jan string) {
-	if jan != "" {
-		p.Jan = &jan
-	}
-}
+// func (p *Product) SetJan(jan string) {
+// 	if jan != "" {
+// 		p.Jan = &jan
+// 	}
+// }
 
 type Products []IProduct
 
