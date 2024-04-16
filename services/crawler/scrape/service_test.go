@@ -13,6 +13,7 @@ import (
 	"github.com/uptrace/bun"
 
 	"crawler/test/util"
+	"crawler/product"
 )
 
 type ClientMock struct {
@@ -28,13 +29,13 @@ func (c ClientMock) Request(req *http.Request) (*http.Response, error) {
 }
 
 type ParserMock struct {
-	products Products
+	products product.Products
 	URL      string
 	jan      string
 	err      error
 }
 
-func (p ParserMock) ProductListByReq(r io.ReadCloser, req *http.Request) (Products, *http.Request) {
+func (p ParserMock) ProductListByReq(r io.ReadCloser, req *http.Request) (product.Products, *http.Request) {
 	if p.URL == "" {
 		return p.products, nil
 	}
@@ -42,7 +43,7 @@ func (p ParserMock) ProductListByReq(r io.ReadCloser, req *http.Request) (Produc
 	return p.products, &http.Request{URL: u}
 }
 
-func (p ParserMock) ProductList(doc io.ReadCloser, url string) (Products, string) {
+func (p ParserMock) ProductList(doc io.ReadCloser, url string) (product.Products, string) {
 	return p.products, p.URL
 }
 
@@ -52,12 +53,12 @@ func (p ParserMock) Product(doc io.ReadCloser) (string, error) {
 
 func TestScrapeProductsList(t *testing.T) {
 	type args struct {
-		service Service[*Product]
+		service Service[*product.Product]
 		URL     string
 	}
 	type want struct {
-		first IProduct
-		last  IProduct
+		first product.IProduct
+		last  product.IProduct
 		len   int
 	}
 
@@ -68,12 +69,12 @@ func TestScrapeProductsList(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service[*Product]{
+			service: Service[*product.Product]{
 				Parser: ParserMock{
-					products: Products{
-						(NewTestProduct("test", "test1", "http://test.jp", "1111", "test", 1111)),
-						(NewTestProduct("test", "test3", "http://test.jp", "3333", "test", 3333)),
-						(NewTestProduct("test", "test2", "http://test.jp", "2222", "test", 2222)),
+					products: product.Products{
+						(product.NewTestProduct("test", "test1", "http://test.jp", "1111", "test", 1111)),
+						(product.NewTestProduct("test", "test3", "http://test.jp", "3333", "test", 3333)),
+						(product.NewTestProduct("test", "test2", "http://test.jp", "2222", "test", 2222)),
 					},
 					URL: "",
 				},
@@ -82,8 +83,8 @@ func TestScrapeProductsList(t *testing.T) {
 			URL: "https://google.com",
 		},
 		want: want{
-			first: (NewTestProduct("test", "test1", "http://test.jp", "1111", "test", 1111)),
-			last:  (NewTestProduct("test", "test2", "http://test.jp", "2222", "test", 2222)),
+			first: (product.NewTestProduct("test", "test1", "http://test.jp", "1111", "test", 1111)),
+			last:  (product.NewTestProduct("test", "test2", "http://test.jp", "2222", "test", 2222)),
 			len:   3,
 		},
 	}}
@@ -126,20 +127,20 @@ func TestGetProductsBatch(t *testing.T) {
 				Repo: NewProductRepository(&Product{}, []*Product{}),
 			},
 			products: Products{
-				(NewTestProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
-				(NewTestProduct("test2", "test2", "http://test.jp", "", "test", 2222)),
-				(NewTestProduct("test3", "test3", "http://test.jp", "", "test", 3333)),
-				(NewTestProduct("test4", "test4", "http://test.jp", "", "test", 4444)),
+				(product.NewTestProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
+				(product.NewTestProduct("test2", "test2", "http://test.jp", "", "test", 2222)),
+				(product.NewTestProduct("test3", "test3", "http://test.jp", "", "test", 3333)),
+				(product.NewTestProduct("test4", "test4", "http://test.jp", "", "test", 4444)),
 			},
 			ctx: ctx,
 			db:  db,
 		},
 		want: want{
 			Products{
-				(NewTestProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
-				(NewTestProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
-				(NewTestProduct("test3", "test3", "http://test.jp", "3333", "test", 3333)),
-				(NewTestProduct("test4", "test4", "http://test.jp", "4444", "test", 4444)),
+				(product.NewTestProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
+				(product.NewTestProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
+				(product.NewTestProduct("test3", "test3", "http://test.jp", "3333", "test", 3333)),
+				(product.NewTestProduct("test4", "test4", "http://test.jp", "4444", "test", 4444)),
 			},
 		},
 	}, {
@@ -147,28 +148,28 @@ func TestGetProductsBatch(t *testing.T) {
 		args: args{
 			service: NewService(ParserMock{}, &Product{}, []*Product{}, WithHttpClient[*Product](ClientMock{})),
 			products: Products{
-				(NewTestProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
-				(NewTestProduct("test22", "test22", "http://test.jp", "", "test", 2222)),
-				(NewTestProduct("test33", "test33", "http://test.jp", "", "test", 3333)),
+				(product.NewTestProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
+				(product.NewTestProduct("test22", "test22", "http://test.jp", "", "test", 2222)),
+				(product.NewTestProduct("test33", "test33", "http://test.jp", "", "test", 3333)),
 			},
 			ctx: ctx,
 			db:  db,
 		},
 		want: want{
 			Products{
-				(NewTestProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
-				(NewTestProduct("test22", "test22", "http://test.jp", "", "test", 2222)),
-				(NewTestProduct("test33", "test33", "http://test.jp", "", "test", 3333)),
+				(product.NewTestProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
+				(product.NewTestProduct("test22", "test22", "http://test.jp", "", "test", 2222)),
+				(product.NewTestProduct("test33", "test33", "http://test.jp", "", "test", 3333)),
 			},
 		},
 	}}
 
 	db.ResetModel(ctx, (*Product)(nil))
 	ps := Products{
-		(NewTestProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
-		(NewTestProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
-		(NewTestProduct("test3", "test3", "http://test.jp", "3333", "test", 3333)),
-		(NewTestProduct("test4", "test4", "http://test.jp", "4444", "test", 4444)),
+		(product.NewTestProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
+		(product.NewTestProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
+		(product.NewTestProduct("test3", "test3", "http://test.jp", "3333", "test", 3333)),
+		(product.NewTestProduct("test4", "test4", "http://test.jp", "4444", "test", 4444)),
 	}
 	ProductRepository[*Product]{}.BulkUpsert(ctx, db, ps)
 
@@ -208,14 +209,14 @@ func TestScrapeProduct(t *testing.T) {
 				httpClient: ClientMock{"html/test_scrape_products_list.html"},
 			},
 			products: Products{
-				(NewTestProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
-				(NewTestProduct("test2", "test2", "http://test.jp", "", "test", 2222)),
+				(product.NewTestProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
+				(product.NewTestProduct("test2", "test2", "http://test.jp", "", "test", 2222)),
 			},
 		},
 		want: want{
 			products: Products{
-				(NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
-				(NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
+				(product.NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
+				(product.NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
 			},
 		},
 	}}
@@ -255,18 +256,18 @@ func TestSaveProduct(t *testing.T) {
 		args: args{
 			service: NewService(ParserMock{}, &Product{}, []*Product{}),
 			products: Products{
-				(NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
-				(NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
-				(NewTestProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
+				(product.NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
+				(product.NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
+				(product.NewTestProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
 			},
 			ctx: ctx,
 			db:  db,
 		},
 		want: want{
 			products: Products{
-				(NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
-				(NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
-				(NewTestProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
+				(product.NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
+				(product.NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
+				(product.NewTestProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
 			},
 		},
 	}}
@@ -312,10 +313,10 @@ func TestSendMessage(t *testing.T) {
 			service: Service[*Product]{
 				mqClient: MQMock{},
 			},
-			products: Products{
-				(NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
-				(NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
-				(NewTestProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
+			products: product.Products{
+				(product.NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
+				(product.NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
+				(product.NewTestProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
 			},
 			siteName: "test",
 		},

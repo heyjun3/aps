@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"crawler/scrape"
 	"crawler/test/util"
 
 	"github.com/stretchr/testify/assert"
@@ -46,7 +45,7 @@ func ptr[T any](a T) *T {
 
 func seedProducts(ctx context.Context, db *bun.DB) {
 	count := 100
-	products := make(scrape.Products, 0, count)
+	products := make(Products, 0, count)
 	for i := 0; i < count; i++ {
 		p, err := New(Product{
 			SiteCode:    "testSite",
@@ -93,7 +92,7 @@ func testGetProduct(t *testing.T, ctx context.Context, db *bun.DB) {
 
 func testGetByProductAndShopCodes(t *testing.T, ctx context.Context,
 	db *bun.DB) {
-	want := scrape.Products{
+	want := Products{
 		&Product{
 			SiteCode:    "testSite",
 			ShopCode:    "testShop",
@@ -125,12 +124,12 @@ func testGetByProductAndShopCodes(t *testing.T, ctx context.Context,
 		[][]string{{"nonExistsProductCode", "testShop"}}...)
 
 	assert.NoError(t, err)
-	assert.Equal(t, scrape.Products(nil), result)
+	assert.Equal(t, Products(nil), result)
 }
 
 func testBulkUpsert(t *testing.T, ctx context.Context, db *bun.DB) {
 	repo := NewRepository[*Product]("testSite")
-	products := scrape.Products{
+	products := Products{
 		&Product{
 			SiteCode:    "testSite",
 			ShopCode:    "testShop",

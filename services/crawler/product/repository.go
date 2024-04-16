@@ -4,16 +4,14 @@ import (
 	"context"
 	"strings"
 
-	"crawler/scrape"
-
 	"github.com/uptrace/bun"
 )
 
-type Repository[T scrape.IProduct] struct {
+type Repository[T IProduct] struct {
 	siteCode string
 }
 
-func NewRepository[T scrape.IProduct](siteCode string) Repository[T] {
+func NewRepository[T IProduct](siteCode string) Repository[T] {
 	return Repository[T]{
 		siteCode: siteCode,
 	}
@@ -35,7 +33,7 @@ func (p Repository[T]) GetProduct(ctx context.Context,
 
 // ここのcodesに型つけたいな
 func (p Repository[T]) GetByProductAndShopCodes(ctx context.Context,
-	db *bun.DB, codes ...[]string) (scrape.Products, error) {
+	db *bun.DB, codes ...[]string) (Products, error) {
 	records := make([][]string, 0, len(codes))
 	for _, code := range codes {
 		record := append(code, p.siteCode)
@@ -48,16 +46,16 @@ func (p Repository[T]) GetByProductAndShopCodes(ctx context.Context,
 			bun.In(records)).
 		Order("product_code ASC").
 		Scan(ctx, &products)
-	return scrape.ConvToProducts(products), err
+	return ConvToProducts(products), err
 }
 
 func (p Repository[T]) BulkUpsert(ctx context.Context, db *bun.DB,
-	ps scrape.Products) error {
-	mapProduct := map[string]scrape.IProduct{}
+	ps Products) error {
+	mapProduct := map[string]IProduct{}
 	for _, v := range ps {
 		mapProduct[v.GetProductCode()] = v
 	}
-	var products scrape.Products
+	var products Products
 	for _, v := range mapProduct {
 		products = append(products, v)
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	// "encoding/json"
-	"fmt"
+	// "fmt"
 	// "reflect"
 	"time"
 
@@ -28,18 +28,18 @@ func CreateTable(db *bun.DB, ctx context.Context, model interface{}) error {
 	return err
 }
 
-type IProduct interface {
-	GenerateMessage(filename string) ([]byte, error)
-	GetName() string
-	GetProductCode() string
-	GetJan() string
-	GetURL() string
-	GetPrice() int64
-	GetShopCode() string
-	GetProductAndShopCode() []string
-	IsValidJan() bool
-	SetJan(string)
-}
+// type IProduct interface {
+// 	GenerateMessage(filename string) ([]byte, error)
+// 	GetName() string
+// 	GetProductCode() string
+// 	GetJan() string
+// 	GetURL() string
+// 	GetPrice() int64
+// 	GetShopCode() string
+// 	GetProductAndShopCode() []string
+// 	IsValidJan() bool
+// 	SetJan(string)
+// }
 
 // type Product struct {
 // 	Name        string
@@ -139,73 +139,73 @@ type IProduct interface {
 // 	}
 // }
 
-type Products []IProduct
+// type Products []IProduct
 
-func ConvToProducts[T IProduct](products []T) Products {
-	var result Products
-	for i := 0; i < len(products); i++ {
-		result = append(result, products[i])
-	}
-	return result
-}
+// func ConvToProducts[T IProduct](products []T) Products {
+// 	var result Products
+// 	for i := 0; i < len(products); i++ {
+// 		result = append(result, products[i])
+// 	}
+// 	return result
+// }
 
-func (p Products) getProductAndShopCodes() [][]string {
-	codes := make([][]string, 0, len(p))
-	for _, product := range p {
-		codes = append(codes, product.GetProductAndShopCode())
-	}
-	return codes
-}
+// func (p Products) getProductAndShopCodes() [][]string {
+// 	codes := make([][]string, 0, len(p))
+// 	for _, product := range p {
+// 		codes = append(codes, product.GetProductAndShopCode())
+// 	}
+// 	return codes
+// }
 
-func (p Products) MapProducts(products Products) Products {
-	mapped := map[string]IProduct{}
-	for _, v := range products {
-		code := v.GetProductCode()
-		mapped[code] = v
-	}
+// func (p Products) MapProducts(products Products) Products {
+// 	mapped := map[string]IProduct{}
+// 	for _, v := range products {
+// 		code := v.GetProductCode()
+// 		mapped[code] = v
+// 	}
 
-	for _, v := range p {
-		product, exist := mapped[v.GetProductCode()]
-		if !exist {
-			continue
-		}
-		v.SetJan(product.GetJan())
-	}
-	return p
-}
+// 	for _, v := range p {
+// 		product, exist := mapped[v.GetProductCode()]
+// 		if !exist {
+// 			continue
+// 		}
+// 		v.SetJan(product.GetJan())
+// 	}
+// 	return p
+// }
 
-type message struct {
-	Filename string  `json:"filename"`
-	Jan      *string `json:"jan"`
-	Price    int64   `json:"cost"`
-	URL      string  `json:"url"`
-}
+// type message struct {
+// 	Filename string  `json:"filename"`
+// 	Jan      *string `json:"jan"`
+// 	Price    int64   `json:"cost"`
+// 	URL      string  `json:"url"`
+// }
 
-func NewMessage(filename, url string, jan *string, price int64) (*message, error) {
-	m := message{
-		Filename: filename,
-		Jan:      jan,
-		Price:    price,
-		URL:      url,
-	}
-	if err := m.validation(); err != nil {
-		return nil, err
-	}
-	return &m, nil
-}
+// func NewMessage(filename, url string, jan *string, price int64) (*message, error) {
+// 	m := message{
+// 		Filename: filename,
+// 		Jan:      jan,
+// 		Price:    price,
+// 		URL:      url,
+// 	}
+// 	if err := m.validation(); err != nil {
+// 		return nil, err
+// 	}
+// 	return &m, nil
+// }
 
-func (m *message) validation() error {
-	if m.Jan == nil || *m.Jan == "" {
-		return fmt.Errorf("jan is zero value. url: %s", m.URL)
-	}
-	if m.Price == 0 {
-		return fmt.Errorf("price is zero value. url:%s", m.URL)
-	}
-	if m.URL == "" {
-		return fmt.Errorf("url is zero value")
-	}
-	return nil
-}
+// func (m *message) validation() error {
+// 	if m.Jan == nil || *m.Jan == "" {
+// 		return fmt.Errorf("jan is zero value. url: %s", m.URL)
+// 	}
+// 	if m.Price == 0 {
+// 		return fmt.Errorf("price is zero value. url:%s", m.URL)
+// 	}
+// 	if m.URL == "" {
+// 		return fmt.Errorf("url is zero value")
+// 	}
+// 	return nil
+// }
 
 type RunServiceHistory struct {
 	bun.BaseModel

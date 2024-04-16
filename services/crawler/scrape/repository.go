@@ -6,20 +6,21 @@ import (
 	"strings"
 
 	"github.com/uptrace/bun"
+	"crawler/product"
 )
 
-type ProductRepositoryInterface[T IProduct] interface {
-	BulkUpsert(context.Context, *bun.DB, Products) error
+type ProductRepositoryInterface[T product.IProduct] interface {
+	BulkUpsert(context.Context, *bun.DB, product.Products) error
 	GetProduct(context.Context, *bun.DB, string, string) (T, error)
-	GetByProductAndShopCodes(context.Context, *bun.DB, ...[]string) (Products, error)
+	GetByProductAndShopCodes(context.Context, *bun.DB, ...[]string) (product.Products, error)
 }
 
-type ProductRepository[T IProduct] struct {
+type ProductRepository[T product.IProduct] struct {
 	product  T
 	products []T
 }
 
-func NewProductRepository[T IProduct](p T, ps []T) ProductRepository[T] {
+func NewProductRepository[T product.IProduct](p T, ps []T) ProductRepository[T] {
 	return ProductRepository[T]{
 		product:  p,
 		products: ps,
@@ -40,7 +41,7 @@ func (p ProductRepository[T]) GetProduct(ctx context.Context,
 }
 
 func (p ProductRepository[T]) GetByProductAndShopCodes(ctx context.Context,
-	db *bun.DB, codes ...[]string) (Products, error) {
+	db *bun.DB, codes ...[]string) (product.Products, error) {
 	products := p.products
 
 	err := db.NewSelect().
@@ -49,16 +50,16 @@ func (p ProductRepository[T]) GetByProductAndShopCodes(ctx context.Context,
 		Order("product_code ASC").
 		Scan(ctx, &products)
 
-	return ConvToProducts(products), err
+	return product.ConvToProducts(products), err
 }
 
 func (p ProductRepository[T]) BulkUpsert(ctx context.Context, db *bun.DB,
-	ps Products) error {
-	mapProduct := map[string]IProduct{}
+	ps product.Products) error {
+	mapProduct := map[string]product.IProduct{}
 	for _, v := range ps {
 		mapProduct[v.GetProductCode()] = v
 	}
-	var products Products
+	var products product.Products
 	for _, v := range mapProduct {
 		products = append(products, v)
 	}
