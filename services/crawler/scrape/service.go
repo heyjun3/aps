@@ -11,18 +11,19 @@ import (
 	"github.com/uptrace/bun"
 
 	"crawler/config"
+	"crawler/product"
 )
 
 var logger = config.Logger
 
 type IParser interface {
-	ProductListByReq(io.ReadCloser, *http.Request) (Products, *http.Request)
+	ProductListByReq(io.ReadCloser, *http.Request) (product.Products, *http.Request)
 	Product(io.ReadCloser) (string, error)
 }
 
 type Parser struct{}
 
-func (p Parser) ConvToReq(products Products, url string) (Products, *http.Request) {
+func (p Parser) ConvToReq(products product.Products, url string) (product.Products, *http.Request) {
 	if url == "" {
 		return products, nil
 	}
@@ -34,7 +35,7 @@ func (p Parser) ConvToReq(products Products, url string) (Products, *http.Reques
 	return products, req
 }
 
-type Service[T IProduct] struct {
+type Service[T product.IProduct] struct {
 	Parser            IParser
 	Repo              ProductRepositoryInterface[T]
 	HistoryRepository RunServiceHistoryRepository
@@ -44,7 +45,7 @@ type Service[T IProduct] struct {
 	fileId            string
 }
 
-func NewService[T IProduct](parser IParser, p T, ps []T, opts ...Option[T]) Service[T] {
+func NewService[T product.IProduct](parser IParser, p T, ps []T, opts ...Option[T]) Service[T] {
 	s := &Service[T]{
 		Parser:            parser,
 		Repo:              NewProductRepository(p, ps),
@@ -58,27 +59,27 @@ func NewService[T IProduct](parser IParser, p T, ps []T, opts ...Option[T]) Serv
 	return *s
 }
 
-type Option[T IProduct] func(*Service[T])
+type Option[T product.IProduct] func(*Service[T])
 
-func WithHttpClient[T IProduct](c HttpClient) func(*Service[T]) {
+func WithHttpClient[T product.IProduct](c HttpClient) func(*Service[T]) {
 	return func(s *Service[T]) {
 		s.httpClient = c
 	}
 }
 
-func WithMQClient[T IProduct](c RabbitMQClient) func(*Service[T]) {
+func WithMQClient[T product.IProduct](c RabbitMQClient) func(*Service[T]) {
 	return func(s *Service[T]) {
 		s.mqClient = c
 	}
 }
 
-func WithFileId[T IProduct](fileId string) func(*Service[T]) {
+func WithFileId[T product.IProduct](fileId string) func(*Service[T]) {
 	return func(s *Service[T]) {
 		s.fileId = fileId
 	}
 }
 
-func WithCustomRepository[T IProduct](
+func WithCustomRepository[T product.IProduct](
 	repo ProductRepositoryInterface[T]) func(*Service[T]) {
 	return func(s *Service[T]) {
 		s.Repo = repo
@@ -121,8 +122,8 @@ func (s Service[T]) StartScrape(url, shopName string) {
 	s.HistoryRepository.Save(ctx, db, history)
 }
 
-func (s Service[T]) ScrapeProductsList(req *http.Request) chan Products {
-	c := make(chan Products, 100)
+func (s Service[T]) ScrapeProductsList(req *http.Request) chan product.Products {
+	c := make(chan product.Products, 100)
 	go func() {
 		defer close(c)
 		for req != nil {
@@ -132,7 +133,7 @@ func (s Service[T]) ScrapeProductsList(req *http.Request) chan Products {
 				logger.Error("http request error", err)
 				break
 			}
-			var products Products
+			var products product.Products
 			products, req = s.Parser.ProductListByReq(res.Body, req)
 			res.Body.Close()
 
@@ -142,13 +143,13 @@ func (s Service[T]) ScrapeProductsList(req *http.Request) chan Products {
 	return c
 }
 
-func (s Service[T]) GetProductsBatch(ctx context.Context, db *bun.DB, c chan Products) chan Products {
-	send := make(chan Products, 100)
+func (s Service[T]) GetProductsBatch(ctx context.Context, db *bun.DB, c chan product.Products) chan product.Products {
+	send := make(chan product.Products, 100)
 	go func() {
 		defer close(send)
 
 		for p := range c {
-			dbProduct, err := s.Repo.GetByProductAndShopCodes(ctx, db, p.getProductAndShopCodes()...)
+			dbProduct, err := s.Repo.GetByProductAndShopCodes(ctx, db, p.GetProductAndShopCodes()...)
 			if err != nil {
 				logger.Error("db get product error", err)
 				continue
@@ -161,9 +162,9 @@ func (s Service[T]) GetProductsBatch(ctx context.Context, db *bun.DB, c chan Pro
 }
 
 func (s Service[T]) ScrapeProduct(
-	ch chan Products) chan Products {
+	ch chan product.Products) chan product.Products {
 
-	send := make(chan Products, 100)
+	send := make(chan product.Products, 100)
 	go func() {
 		defer close(send)
 		for products := range ch {
@@ -188,9 +189,9 @@ func (s Service[T]) ScrapeProduct(
 	return send
 }
 
-func (s Service[T]) SaveProduct(ctx context.Context, db *bun.DB, ch chan Products) chan IProduct {
+func (s Service[T]) SaveProduct(ctx context.Context, db *bun.DB, ch chan product.Products) chan product.IProduct {
 
-	send := make(chan IProduct, 100)
+	send := make(chan product.IProduct, 100)
 	go func() {
 		defer close(send)
 		for p := range ch {
@@ -208,7 +209,7 @@ func (s Service[T]) SaveProduct(ctx context.Context, db *bun.DB, ch chan Product
 }
 
 func (s Service[T]) SendMessage(
-	ch chan IProduct,
+	ch chan product.IProduct,
 	fileId string, wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()

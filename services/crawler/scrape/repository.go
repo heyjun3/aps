@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/uptrace/bun"
 	"crawler/product"
+	"github.com/uptrace/bun"
 )
 
 type ProductRepositoryInterface[T product.IProduct] interface {

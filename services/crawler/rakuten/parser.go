@@ -11,6 +11,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 
+	"crawler/product"
 	"crawler/scrape"
 )
 
@@ -23,11 +24,11 @@ type RakutenParser struct {
 	scrape.Parser
 }
 
-func (p RakutenParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+func (p RakutenParser) ProductListByReq(r io.ReadCloser, req *http.Request) (product.Products, *http.Request) {
 	return p.ConvToReq(p.ProductList(r, req.URL.String()))
 }
 
-func (p RakutenParser) ProductList(r io.ReadCloser, u string) (scrape.Products, string) {
+func (p RakutenParser) ProductList(r io.ReadCloser, u string) (product.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)
@@ -35,7 +36,7 @@ func (p RakutenParser) ProductList(r io.ReadCloser, u string) (scrape.Products, 
 	}
 
 	var price int64
-	var products scrape.Products
+	var products product.Products
 	doc.Find(".dui-card.searchresultitem").Each(func(i int, s *goquery.Selection) {
 		itemBoxElem := s.Find(".title-link--3Ho6z")
 		name := itemBoxElem.Text()

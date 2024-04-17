@@ -6,22 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func NewTestProduct(
-	name, productCode, url, jan, shopCode string, price int64) *Product {
-	p, _ := New(
-		Product{
-			SiteCode:    "testSite",
-			ShopCode:    shopCode,
-			ProductCode: productCode,
-			Name:        name,
-			URL:         url,
-			Jan:         &jan,
-			Price:       price,
-		},
-	)
-	return p
-}
-
 func TestMappingProducts(t *testing.T) {
 	type args struct {
 		mergeProducts  Products

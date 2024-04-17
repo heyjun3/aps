@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/uptrace/bun"
 
-	"crawler/test/util"
 	"crawler/product"
+	"crawler/test/util"
 )
 
 type ClientMock struct {
@@ -107,13 +107,13 @@ func TestGetProductsBatch(t *testing.T) {
 	db, ctx := util.DatabaseFactory()
 
 	type args struct {
-		service  Service[*Product]
-		products Products
+		service  Service[*product.Product]
+		products product.Products
 		ctx      context.Context
 		db       *bun.DB
 	}
 	type want struct {
-		products Products
+		products product.Products
 	}
 
 	tests := []struct {
@@ -123,10 +123,10 @@ func TestGetProductsBatch(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service[*Product]{
-				Repo: NewProductRepository(&Product{}, []*Product{}),
+			service: Service[*product.Product]{
+				Repo: NewProductRepository(&product.Product{}, []*product.Product{}),
 			},
-			products: Products{
+			products: product.Products{
 				(product.NewTestProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
 				(product.NewTestProduct("test2", "test2", "http://test.jp", "", "test", 2222)),
 				(product.NewTestProduct("test3", "test3", "http://test.jp", "", "test", 3333)),
@@ -136,7 +136,7 @@ func TestGetProductsBatch(t *testing.T) {
 			db:  db,
 		},
 		want: want{
-			Products{
+			product.Products{
 				(product.NewTestProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
 				(product.NewTestProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
 				(product.NewTestProduct("test3", "test3", "http://test.jp", "3333", "test", 3333)),
@@ -146,8 +146,12 @@ func TestGetProductsBatch(t *testing.T) {
 	}, {
 		name: "get products return null",
 		args: args{
-			service: NewService(ParserMock{}, &Product{}, []*Product{}, WithHttpClient[*Product](ClientMock{})),
-			products: Products{
+			service: NewService(
+				ParserMock{}, &product.Product{}, []*product.Product{},
+				WithHttpClient[*product.Product](ClientMock{}),
+				WithCustomRepository(product.NewRepository[*product.Product]("testSite")),
+			),
+			products: product.Products{
 				(product.NewTestProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
 				(product.NewTestProduct("test22", "test22", "http://test.jp", "", "test", 2222)),
 				(product.NewTestProduct("test33", "test33", "http://test.jp", "", "test", 3333)),
@@ -156,7 +160,7 @@ func TestGetProductsBatch(t *testing.T) {
 			db:  db,
 		},
 		want: want{
-			Products{
+			product.Products{
 				(product.NewTestProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
 				(product.NewTestProduct("test22", "test22", "http://test.jp", "", "test", 2222)),
 				(product.NewTestProduct("test33", "test33", "http://test.jp", "", "test", 3333)),
@@ -164,18 +168,18 @@ func TestGetProductsBatch(t *testing.T) {
 		},
 	}}
 
-	db.ResetModel(ctx, (*Product)(nil))
-	ps := Products{
+	db.ResetModel(ctx, (*product.Product)(nil))
+	ps := product.Products{
 		(product.NewTestProduct("test1", "test1", "http://test.jp", "1111", "test", 1111)),
 		(product.NewTestProduct("test2", "test2", "http://test.jp", "2222", "test", 2222)),
 		(product.NewTestProduct("test3", "test3", "http://test.jp", "3333", "test", 3333)),
 		(product.NewTestProduct("test4", "test4", "http://test.jp", "4444", "test", 4444)),
 	}
-	ProductRepository[*Product]{}.BulkUpsert(ctx, db, ps)
+	product.NewRepository[*product.Product]("testSite").BulkUpsert(ctx, db, ps)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
-			ch := make(chan Products, 10)
+			ch := make(chan product.Products, 10)
 			ch <- tt.args.products
 			close(ch)
 
@@ -188,11 +192,11 @@ func TestGetProductsBatch(t *testing.T) {
 
 func TestScrapeProduct(t *testing.T) {
 	type args struct {
-		service  Service[*Product]
-		products Products
+		service  Service[*product.Product]
+		products product.Products
 	}
 	type want struct {
-		products Products
+		products product.Products
 	}
 
 	tests := []struct {
@@ -202,19 +206,19 @@ func TestScrapeProduct(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service[*Product]{
+			service: Service[*product.Product]{
 				Parser: ParserMock{
 					jan: "99999",
 				},
 				httpClient: ClientMock{"html/test_scrape_products_list.html"},
 			},
-			products: Products{
+			products: product.Products{
 				(product.NewTestProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
 				(product.NewTestProduct("test2", "test2", "http://test.jp", "", "test", 2222)),
 			},
 		},
 		want: want{
-			products: Products{
+			products: product.Products{
 				(product.NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
 				(product.NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
 			},
@@ -223,7 +227,7 @@ func TestScrapeProduct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
-			ch := make(chan Products, 10)
+			ch := make(chan product.Products, 10)
 			ch <- tt.args.products
 			close(ch)
 
@@ -238,13 +242,13 @@ func TestSaveProduct(t *testing.T) {
 	db, ctx := util.DatabaseFactory()
 
 	type args struct {
-		service  Service[*Product]
-		products Products
+		service  Service[*product.Product]
+		products product.Products
 		ctx      context.Context
 		db       *bun.DB
 	}
 	type want struct {
-		products Products
+		products product.Products
 	}
 
 	tests := []struct {
@@ -254,8 +258,11 @@ func TestSaveProduct(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: NewService(ParserMock{}, &Product{}, []*Product{}),
-			products: Products{
+			service: NewService(
+				ParserMock{}, &product.Product{}, []*product.Product{},
+				WithCustomRepository(product.NewRepository[*product.Product]("testSite")),
+			),
+			products: product.Products{
 				(product.NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
 				(product.NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
 				(product.NewTestProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
@@ -264,7 +271,7 @@ func TestSaveProduct(t *testing.T) {
 			db:  db,
 		},
 		want: want{
-			products: Products{
+			products: product.Products{
 				(product.NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
 				(product.NewTestProduct("test2", "test2", "http://test.jp", "99999", "test", 2222)),
 				(product.NewTestProduct("test3", "test3", "http://test.jp", "99999", "test", 3333)),
@@ -274,13 +281,13 @@ func TestSaveProduct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ch := make(chan Products, 10)
+			ch := make(chan product.Products, 10)
 			ch <- tt.args.products
 			close(ch)
 
 			c := tt.args.service.SaveProduct(tt.args.ctx, tt.args.db, ch)
 
-			var products Products
+			var products product.Products
 			for p := range c {
 				products = append(products, p)
 			}
@@ -299,8 +306,8 @@ func (m MQMock) Publish(message []byte) error {
 
 func TestSendMessage(t *testing.T) {
 	type args struct {
-		service  Service[*Product]
-		products Products
+		service  Service[*product.Product]
+		products product.Products
 		siteName string
 	}
 
@@ -310,7 +317,7 @@ func TestSendMessage(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service[*Product]{
+			service: Service[*product.Product]{
 				mqClient: MQMock{},
 			},
 			products: product.Products{
@@ -324,7 +331,7 @@ func TestSendMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
-			ch := make(chan IProduct, 10)
+			ch := make(chan product.IProduct, 10)
 			for _, v := range tt.args.products {
 				ch <- v
 			}

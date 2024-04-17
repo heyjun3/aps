@@ -124,7 +124,7 @@ func ConvToProducts[T IProduct](products []T) Products {
 	return result
 }
 
-func (p Products) getProductAndShopCodes() [][]string {
+func (p Products) GetProductAndShopCodes() [][]string {
 	codes := make([][]string, 0, len(p))
 	for _, product := range p {
 		codes = append(codes, product.GetProductAndShopCode())

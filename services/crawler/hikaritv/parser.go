@@ -12,6 +12,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 
 	"crawler/config"
+	"crawler/product"
 	"crawler/scrape"
 )
 
@@ -26,14 +27,14 @@ type HikaritvParser struct {
 	scrape.Parser
 }
 
-func (p HikaritvParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+func (p HikaritvParser) ProductListByReq(r io.ReadCloser, req *http.Request) (product.Products, *http.Request) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)
 		return nil, nil
 	}
 
-	var products scrape.Products
+	var products product.Products
 	doc.Find(".w50p .inner").Each(func(i int, s *goquery.Selection) {
 		name := s.Find(".w50p_item_name").Text()
 		path, exist := s.Find("a").Attr("href")
