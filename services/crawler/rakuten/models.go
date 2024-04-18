@@ -14,14 +14,12 @@ func NewRakutenProduct(
 
 	calcPrice := price - point
 	return product.New(
-		product.Product{
-			SiteCode:    siteCode,
-			ShopCode:    shopCode,
-			ProductCode: productCode,
-			Name:        name,
-			URL:         url,
-			Jan:         &jan,
-			Price:       calcPrice,
-		},
+		siteCode,
+		shopCode,
+		productCode,
+		name,
+		jan,
+		url,
+		calcPrice,
 	)
 }

@@ -47,18 +47,14 @@ func seedProducts(ctx context.Context, db *bun.DB) {
 	count := 100
 	products := make(Products, 0, count)
 	for i := 0; i < count; i++ {
-		p, err := New(Product{
-			SiteCode:    "testSite",
-			ShopCode:    "testShop",
-			ProductCode: fmt.Sprintf("productCode_%d", i),
-			Name:        fmt.Sprintf("productName_%d", i),
-			Jan:         ptr(fmt.Sprintf("jan%d", i)),
-			Price:       int64((i + 1) * 1000),
-			URL:         fmt.Sprintf("testURL%d", i),
-		})
-		if err != nil {
-			panic(err)
-		}
+		p := NewTestProduct(
+			fmt.Sprintf("productName_%d", i),
+			fmt.Sprintf("productCode_%d", i),
+			fmt.Sprintf("testURL%d", i),
+			fmt.Sprintf("jan%d", i),
+			"testShop",
+			int64((i+1)*1000),
+		)
 		products = append(products, p)
 	}
 	repo := NewRepository("testSite")
@@ -69,13 +65,15 @@ func seedProducts(ctx context.Context, db *bun.DB) {
 
 func testGetProduct(t *testing.T, ctx context.Context, db *bun.DB) {
 	want := &Product{
-		SiteCode:    "testSite",
-		ShopCode:    "testShop",
-		ProductCode: "productCode_1",
-		Name:        "productName_1",
-		Jan:         ptr("jan1"),
-		Price:       int64(2000),
-		URL:         "testURL1",
+		Code: Code{
+			SiteCode:    "testSite",
+			ShopCode:    "testShop",
+			ProductCode: "productCode_1",
+		},
+		Name:  "productName_1",
+		Jan:   ptr("jan1"),
+		Price: int64(2000),
+		URL:   "testURL1",
 	}
 	repo := NewRepository("testSite")
 
@@ -94,22 +92,26 @@ func testGetByProductAndShopCodes(t *testing.T, ctx context.Context,
 	db *bun.DB) {
 	want := Products{
 		&Product{
-			SiteCode:    "testSite",
-			ShopCode:    "testShop",
-			ProductCode: "productCode_1",
-			Name:        "productName_1",
-			Jan:         ptr("jan1"),
-			Price:       int64(2000),
-			URL:         "testURL1",
+			Code: Code{
+				SiteCode:    "testSite",
+				ShopCode:    "testShop",
+				ProductCode: "productCode_1",
+			},
+			Name:  "productName_1",
+			Jan:   ptr("jan1"),
+			Price: int64(2000),
+			URL:   "testURL1",
 		},
 		&Product{
-			SiteCode:    "testSite",
-			ShopCode:    "testShop",
-			ProductCode: "productCode_10",
-			Name:        "productName_10",
-			Jan:         ptr("jan10"),
-			Price:       int64(11000),
-			URL:         "testURL10",
+			Code: Code{
+				SiteCode:    "testSite",
+				ShopCode:    "testShop",
+				ProductCode: "productCode_10",
+			},
+			Name:  "productName_10",
+			Jan:   ptr("jan10"),
+			Price: int64(11000),
+			URL:   "testURL10",
 		},
 	}
 	repo := NewRepository("testSite")
@@ -131,22 +133,26 @@ func testBulkUpsert(t *testing.T, ctx context.Context, db *bun.DB) {
 	repo := NewRepository("testSite")
 	products := Products{
 		&Product{
-			SiteCode:    "testSite",
-			ShopCode:    "testShop",
-			ProductCode: "productCode_1",
-			Name:        "productName_1",
-			Jan:         ptr("jan1"),
-			Price:       int64(2000),
-			URL:         "testURL1",
+			Code: Code{
+				SiteCode:    "testSite",
+				ShopCode:    "testShop",
+				ProductCode: "productCode_1",
+			},
+			Name:  "productName_1",
+			Jan:   ptr("jan1"),
+			Price: int64(2000),
+			URL:   "testURL1",
 		},
 		&Product{
-			SiteCode:    "testSite",
-			ShopCode:    "testShop",
-			ProductCode: "productCode_10",
-			Name:        "productName_10",
-			Jan:         ptr("jan10"),
-			Price:       int64(11000),
-			URL:         "testURL10",
+			Code: Code{
+				SiteCode:    "testSite",
+				ShopCode:    "testShop",
+				ProductCode: "productCode_10",
+			},
+			Name:  "productName_10",
+			Jan:   ptr("jan10"),
+			Price: int64(11000),
+			URL:   "testURL10",
 		},
 	}
 	err := repo.BulkUpsert(ctx, db, products)

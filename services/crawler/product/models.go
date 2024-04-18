@@ -17,31 +17,49 @@ type IProduct interface {
 	GetPrice() int64
 	GetShopCode() string
 	GetProductAndShopCode() []string
+	GetCode() Code
 	IsValidJan() bool
 	SetJan(string)
 }
 
+type Code struct {
+	SiteCode    string `bun:"site_code,pk"`
+	ShopCode    string `bun:"shop_code,pk"`
+	ProductCode string `bun:"product_code,pk"`
+}
+
 type Product struct {
 	bun.BaseModel `bun:"crawler.products"`
-	SiteCode      string `bun:"site_code,pk"`
-	ShopCode      string `bun:"shop_code,pk"`
-	ProductCode   string `bun:"product_code,pk"`
-	Name          string
-	Jan           *string
-	Price         int64
-	URL           string
+	Code
+	Name  string
+	Jan   *string
+	Price int64
+	URL   string
 }
 
 var _ IProduct = &Product{}
 
-func New(product Product) (*Product, error) {
+func New(
+	siteCode, shopCode, productCode, name, jan, url string,
+	price int64) (*Product, error) {
+	product := &Product{
+		Code: Code{
+			SiteCode:    siteCode,
+			ShopCode:    shopCode,
+			ProductCode: productCode,
+		},
+		Name:  name,
+		Jan:   &jan,
+		URL:   url,
+		Price: price,
+	}
 	if *product.Jan == "" {
 		product.Jan = nil
 	}
 	if err := product.validateZeroValues(); err != nil {
 		return nil, err
 	}
-	return &product, nil
+	return product, nil
 }
 
 func (p Product) validateZeroValues() (err error) {
@@ -100,6 +118,10 @@ func (p Product) GetShopCode() string {
 	return p.ShopCode
 }
 
+func (p Product) GetCode() Code {
+	return p.Code
+}
+
 func (p Product) GetProductAndShopCode() []string {
 	return []string{p.ProductCode, p.ShopCode}
 }
@@ -128,6 +150,14 @@ func (p Products) GetProductAndShopCodes() [][]string {
 	codes := make([][]string, 0, len(p))
 	for _, product := range p {
 		codes = append(codes, product.GetProductAndShopCode())
+	}
+	return codes
+}
+
+func (p Products) GetCodes() []Code {
+	codes := make([]Code, 0, len(p))
+	for _, pr := range p {
+		codes = append(codes, pr.GetCode())
 	}
 	return codes
 }
