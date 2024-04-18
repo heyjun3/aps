@@ -47,8 +47,8 @@ type Service[T product.IProduct] struct {
 
 func NewService[T product.IProduct](parser IParser, p T, ps []T, opts ...Option[T]) Service[T] {
 	s := &Service[T]{
-		Parser:            parser,
-		Repo:              NewProductRepository(p, ps),
+		Parser: parser,
+		// Repo:              NewProductRepository(p, ps),
 		HistoryRepository: RunServiceHistoryRepository{},
 		httpClient:        NewClient(),
 		mqClient:          NewMQClient(config.MQDsn, "mws"),

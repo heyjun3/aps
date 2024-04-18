@@ -124,7 +124,7 @@ func TestGetProductsBatch(t *testing.T) {
 		name: "happy path",
 		args: args{
 			service: Service[*product.Product]{
-				Repo: NewProductRepository(&product.Product{}, []*product.Product{}),
+				Repo: product.NewRepository[*product.Product]("testSite"),
 			},
 			products: product.Products{
 				(product.NewTestProduct("test1", "test1", "http://test.jp", "", "test", 1111)),

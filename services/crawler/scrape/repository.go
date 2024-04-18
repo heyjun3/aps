@@ -2,8 +2,6 @@ package scrape
 
 import (
 	"context"
-	"reflect"
-	"strings"
 
 	"crawler/product"
 	"github.com/uptrace/bun"
@@ -13,70 +11,6 @@ type ProductRepositoryInterface[T product.IProduct] interface {
 	BulkUpsert(context.Context, *bun.DB, product.Products) error
 	GetProduct(context.Context, *bun.DB, string, string) (T, error)
 	GetByProductAndShopCodes(context.Context, *bun.DB, ...[]string) (product.Products, error)
-}
-
-type ProductRepository[T product.IProduct] struct {
-	product  T
-	products []T
-}
-
-func NewProductRepository[T product.IProduct](p T, ps []T) ProductRepository[T] {
-	return ProductRepository[T]{
-		product:  p,
-		products: ps,
-	}
-}
-
-func (p ProductRepository[T]) GetProduct(ctx context.Context,
-	db *bun.DB, productCode, shopCode string) (T, error) {
-
-	product := reflect.New(reflect.ValueOf(p.product).Elem().Type()).Interface().(T)
-	err := db.NewSelect().
-		Model(product).
-		Where("product_code = ?", productCode).
-		Where("shop_code = ?", shopCode).
-		Scan(ctx, product)
-
-	return product, err
-}
-
-func (p ProductRepository[T]) GetByProductAndShopCodes(ctx context.Context,
-	db *bun.DB, codes ...[]string) (product.Products, error) {
-	products := p.products
-
-	err := db.NewSelect().
-		Model(&products).
-		Where("(product_code, shop_code) IN (?)", bun.In(codes)).
-		Order("product_code ASC").
-		Scan(ctx, &products)
-
-	return product.ConvToProducts(products), err
-}
-
-func (p ProductRepository[T]) BulkUpsert(ctx context.Context, db *bun.DB,
-	ps product.Products) error {
-	mapProduct := map[string]product.IProduct{}
-	for _, v := range ps {
-		mapProduct[v.GetProductCode()] = v
-	}
-	var products product.Products
-	for _, v := range mapProduct {
-		products = append(products, v)
-	}
-
-	_, err := db.NewInsert().
-		Model(&products).
-		On("CONFLICT (shop_code, product_code) DO UPDATE").
-		Set(strings.Join([]string{
-			"name = EXCLUDED.name",
-			"jan = EXCLUDED.jan",
-			"price = EXCLUDED.price",
-			"url = EXCLUDED.url",
-		}, ",")).
-		Returning("NULL").
-		Exec(ctx)
-
-	return err
 }
 
 type RunServiceHistoryRepository struct{}
