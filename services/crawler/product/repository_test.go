@@ -61,7 +61,7 @@ func seedProducts(ctx context.Context, db *bun.DB) {
 		}
 		products = append(products, p)
 	}
-	repo := NewRepository[*Product]("testSite")
+	repo := NewRepository("testSite")
 	if err := repo.BulkUpsert(ctx, db, products); err != nil {
 		panic(err)
 	}
@@ -77,7 +77,7 @@ func testGetProduct(t *testing.T, ctx context.Context, db *bun.DB) {
 		Price:       int64(2000),
 		URL:         "testURL1",
 	}
-	repo := NewRepository[*Product]("testSite")
+	repo := NewRepository("testSite")
 
 	result, err := repo.GetProduct(ctx, db, "productCode_1", "testShop")
 
@@ -112,7 +112,7 @@ func testGetByProductAndShopCodes(t *testing.T, ctx context.Context,
 			URL:         "testURL10",
 		},
 	}
-	repo := NewRepository[*Product]("testSite")
+	repo := NewRepository("testSite")
 
 	result, err := repo.GetByProductAndShopCodes(ctx, db,
 		[][]string{{"productCode_1", "testShop"}, {"productCode_10", "testShop"}}...)
@@ -128,7 +128,7 @@ func testGetByProductAndShopCodes(t *testing.T, ctx context.Context,
 }
 
 func testBulkUpsert(t *testing.T, ctx context.Context, db *bun.DB) {
-	repo := NewRepository[*Product]("testSite")
+	repo := NewRepository("testSite")
 	products := Products{
 		&Product{
 			SiteCode:    "testSite",

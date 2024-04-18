@@ -7,32 +7,29 @@ import (
 	"github.com/uptrace/bun"
 )
 
-type Repository[T IProduct] struct {
+type Repository struct {
 	siteCode string
 }
 
-func NewRepository[T IProduct](siteCode string) Repository[T] {
-	return Repository[T]{
+func NewRepository(siteCode string) Repository {
+	return Repository{
 		siteCode: siteCode,
 	}
 }
 
-func (p Repository[T]) GetProduct(ctx context.Context,
-	db *bun.DB, productCode, shopCode string) (T, error) {
-	var i interface{}
+func (p Repository) GetProduct(ctx context.Context,
+	db *bun.DB, productCode, shopCode string) (*Product, error) {
 	product := new(Product)
 	err := db.NewSelect().
 		Model(product).
 		Where("(site_code, shop_code, product_code) IN (?)",
 			bun.In([][]string{{p.siteCode, shopCode, productCode}})).
 		Scan(ctx, product)
-	i = product
-	result, _ := i.(T)
-	return result, err
+	return product, err
 }
 
 // ここのcodesに型つけたいな
-func (p Repository[T]) GetByProductAndShopCodes(ctx context.Context,
+func (p Repository) GetByProductAndShopCodes(ctx context.Context,
 	db *bun.DB, codes ...[]string) (Products, error) {
 	records := make([][]string, 0, len(codes))
 	for _, code := range codes {
@@ -49,7 +46,7 @@ func (p Repository[T]) GetByProductAndShopCodes(ctx context.Context,
 	return ConvToProducts(products), err
 }
 
-func (p Repository[T]) BulkUpsert(ctx context.Context, db *bun.DB,
+func (p Repository) BulkUpsert(ctx context.Context, db *bun.DB,
 	ps Products) error {
 	mapProduct := map[string]IProduct{}
 	for _, v := range ps {

@@ -11,11 +11,11 @@ import (
 
 var logger = config.Logger
 
-func NewScrapeService() scrape.Service[*product.Product] {
+func NewScrapeService() scrape.Service {
 	return scrape.NewService(
 		RakutenParser{}, &product.Product{}, []*product.Product{},
 		scrape.WithCustomRepository(
-			product.NewRepository[*product.Product](siteCode),
+			product.NewRepository(siteCode),
 		),
 	)
 }

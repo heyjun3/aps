@@ -35,9 +35,9 @@ func (p Parser) ConvToReq(products product.Products, url string) (product.Produc
 	return products, req
 }
 
-type Service[T product.IProduct] struct {
+type Service struct {
 	Parser            IParser
-	Repo              ProductRepositoryInterface[T]
+	Repo              ProductRepositoryInterface
 	HistoryRepository RunServiceHistoryRepository
 	EntryReq          *http.Request
 	httpClient        HttpClient
@@ -45,8 +45,9 @@ type Service[T product.IProduct] struct {
 	fileId            string
 }
 
-func NewService[T product.IProduct](parser IParser, p T, ps []T, opts ...Option[T]) Service[T] {
-	s := &Service[T]{
+func NewService[T product.IProduct](
+	parser IParser, p T, ps []T, opts ...Option[T]) Service {
+	s := &Service{
 		Parser: parser,
 		// Repo:              NewProductRepository(p, ps),
 		HistoryRepository: RunServiceHistoryRepository{},
@@ -59,34 +60,34 @@ func NewService[T product.IProduct](parser IParser, p T, ps []T, opts ...Option[
 	return *s
 }
 
-type Option[T product.IProduct] func(*Service[T])
+type Option[T product.IProduct] func(*Service)
 
-func WithHttpClient[T product.IProduct](c HttpClient) func(*Service[T]) {
-	return func(s *Service[T]) {
+func WithHttpClient[T product.IProduct](c HttpClient) func(*Service) {
+	return func(s *Service) {
 		s.httpClient = c
 	}
 }
 
-func WithMQClient[T product.IProduct](c RabbitMQClient) func(*Service[T]) {
-	return func(s *Service[T]) {
+func WithMQClient[T product.IProduct](c RabbitMQClient) func(*Service) {
+	return func(s *Service) {
 		s.mqClient = c
 	}
 }
 
-func WithFileId[T product.IProduct](fileId string) func(*Service[T]) {
-	return func(s *Service[T]) {
+func WithFileId[T product.IProduct](fileId string) func(*Service) {
+	return func(s *Service) {
 		s.fileId = fileId
 	}
 }
 
-func WithCustomRepository[T product.IProduct](
-	repo ProductRepositoryInterface[T]) func(*Service[T]) {
-	return func(s *Service[T]) {
+func WithCustomRepository(
+	repo ProductRepositoryInterface) func(*Service) {
+	return func(s *Service) {
 		s.Repo = repo
 	}
 }
 
-func (s Service[T]) StartScrape(url, shopName string) {
+func (s Service) StartScrape(url, shopName string) {
 	ctx := context.Background()
 	db := CreateDBConnection(config.DBDsn)
 	history := NewRunServiceHistory(shopName, url, "PROGRESS")
@@ -122,7 +123,7 @@ func (s Service[T]) StartScrape(url, shopName string) {
 	s.HistoryRepository.Save(ctx, db, history)
 }
 
-func (s Service[T]) ScrapeProductsList(req *http.Request) chan product.Products {
+func (s Service) ScrapeProductsList(req *http.Request) chan product.Products {
 	c := make(chan product.Products, 100)
 	go func() {
 		defer close(c)
@@ -143,7 +144,7 @@ func (s Service[T]) ScrapeProductsList(req *http.Request) chan product.Products 
 	return c
 }
 
-func (s Service[T]) GetProductsBatch(ctx context.Context, db *bun.DB, c chan product.Products) chan product.Products {
+func (s Service) GetProductsBatch(ctx context.Context, db *bun.DB, c chan product.Products) chan product.Products {
 	send := make(chan product.Products, 100)
 	go func() {
 		defer close(send)
@@ -161,7 +162,7 @@ func (s Service[T]) GetProductsBatch(ctx context.Context, db *bun.DB, c chan pro
 	return send
 }
 
-func (s Service[T]) ScrapeProduct(
+func (s Service) ScrapeProduct(
 	ch chan product.Products) chan product.Products {
 
 	send := make(chan product.Products, 100)
@@ -189,7 +190,7 @@ func (s Service[T]) ScrapeProduct(
 	return send
 }
 
-func (s Service[T]) SaveProduct(ctx context.Context, db *bun.DB, ch chan product.Products) chan product.IProduct {
+func (s Service) SaveProduct(ctx context.Context, db *bun.DB, ch chan product.Products) chan product.IProduct {
 
 	send := make(chan product.IProduct, 100)
 	go func() {
@@ -208,7 +209,7 @@ func (s Service[T]) SaveProduct(ctx context.Context, db *bun.DB, ch chan product
 	return send
 }
 
-func (s Service[T]) SendMessage(
+func (s Service) SendMessage(
 	ch chan product.IProduct,
 	fileId string, wg *sync.WaitGroup) {
 	go func() {

@@ -53,7 +53,7 @@ func (p ParserMock) Product(doc io.ReadCloser) (string, error) {
 
 func TestScrapeProductsList(t *testing.T) {
 	type args struct {
-		service Service[*product.Product]
+		service Service
 		URL     string
 	}
 	type want struct {
@@ -69,7 +69,7 @@ func TestScrapeProductsList(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service[*product.Product]{
+			service: Service{
 				Parser: ParserMock{
 					products: product.Products{
 						(product.NewTestProduct("test", "test1", "http://test.jp", "1111", "test", 1111)),
@@ -107,7 +107,7 @@ func TestGetProductsBatch(t *testing.T) {
 	db, ctx := util.DatabaseFactory()
 
 	type args struct {
-		service  Service[*product.Product]
+		service  Service
 		products product.Products
 		ctx      context.Context
 		db       *bun.DB
@@ -123,8 +123,8 @@ func TestGetProductsBatch(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service[*product.Product]{
-				Repo: product.NewRepository[*product.Product]("testSite"),
+			service: Service{
+				Repo: product.NewRepository("testSite"),
 			},
 			products: product.Products{
 				(product.NewTestProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
@@ -149,7 +149,7 @@ func TestGetProductsBatch(t *testing.T) {
 			service: NewService(
 				ParserMock{}, &product.Product{}, []*product.Product{},
 				WithHttpClient[*product.Product](ClientMock{}),
-				WithCustomRepository(product.NewRepository[*product.Product]("testSite")),
+				WithCustomRepository(product.NewRepository("testSite")),
 			),
 			products: product.Products{
 				(product.NewTestProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
@@ -175,7 +175,7 @@ func TestGetProductsBatch(t *testing.T) {
 		(product.NewTestProduct("test3", "test3", "http://test.jp", "3333", "test", 3333)),
 		(product.NewTestProduct("test4", "test4", "http://test.jp", "4444", "test", 4444)),
 	}
-	product.NewRepository[*product.Product]("testSite").BulkUpsert(ctx, db, ps)
+	product.NewRepository("testSite").BulkUpsert(ctx, db, ps)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
@@ -192,7 +192,7 @@ func TestGetProductsBatch(t *testing.T) {
 
 func TestScrapeProduct(t *testing.T) {
 	type args struct {
-		service  Service[*product.Product]
+		service  Service
 		products product.Products
 	}
 	type want struct {
@@ -206,7 +206,7 @@ func TestScrapeProduct(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service[*product.Product]{
+			service: Service{
 				Parser: ParserMock{
 					jan: "99999",
 				},
@@ -242,7 +242,7 @@ func TestSaveProduct(t *testing.T) {
 	db, ctx := util.DatabaseFactory()
 
 	type args struct {
-		service  Service[*product.Product]
+		service  Service
 		products product.Products
 		ctx      context.Context
 		db       *bun.DB
@@ -260,7 +260,7 @@ func TestSaveProduct(t *testing.T) {
 		args: args{
 			service: NewService(
 				ParserMock{}, &product.Product{}, []*product.Product{},
-				WithCustomRepository(product.NewRepository[*product.Product]("testSite")),
+				WithCustomRepository(product.NewRepository("testSite")),
 			),
 			products: product.Products{
 				(product.NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),
@@ -306,7 +306,7 @@ func (m MQMock) Publish(message []byte) error {
 
 func TestSendMessage(t *testing.T) {
 	type args struct {
-		service  Service[*product.Product]
+		service  Service
 		products product.Products
 		siteName string
 	}
@@ -317,7 +317,7 @@ func TestSendMessage(t *testing.T) {
 	}{{
 		name: "happy path",
 		args: args{
-			service: Service[*product.Product]{
+			service: Service{
 				mqClient: MQMock{},
 			},
 			products: product.Products{

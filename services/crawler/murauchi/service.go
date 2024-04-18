@@ -10,10 +10,10 @@ import (
 
 var logger = config.Logger
 
-func NewScrapeService(category string) scrape.Service[*product.Product] {
+func NewScrapeService(category string) scrape.Service {
 	service := scrape.NewService(MurauchiParser{},
 		&product.Product{}, []*product.Product{}, scrape.WithCustomRepository(
-			product.NewRepository[*product.Product](siteCode),
+			product.NewRepository(siteCode),
 		))
 	req, err := generateRequest(0, category)
 	if err != nil {
