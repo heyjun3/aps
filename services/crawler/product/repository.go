@@ -28,24 +28,6 @@ func (p Repository) GetProduct(ctx context.Context,
 	return product, err
 }
 
-// ここのcodesに型つけたいな
-func (p Repository) GetByProductAndShopCodes(ctx context.Context,
-	db *bun.DB, codes ...[]string) (Products, error) {
-	records := make([][]string, 0, len(codes))
-	for _, code := range codes {
-		record := append(code, p.siteCode)
-		records = append(records, record)
-	}
-	var products []*Product
-	err := db.NewSelect().
-		Model(&products).
-		Where("(product_code, shop_code, site_code) IN (?)",
-			bun.In(records)).
-		Order("product_code ASC").
-		Scan(ctx, &products)
-	return ConvToProducts(products), err
-}
-
 func (p Repository) GetByCodes(ctx context.Context,
 	db *bun.DB, codes []Code) (Products, error) {
 	records := make([][]string, 0, len(codes))
