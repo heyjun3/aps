@@ -12,6 +12,7 @@ import (
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
 
+	"crawler/product"
 	"crawler/scrape"
 )
 
@@ -23,7 +24,7 @@ const (
 
 type MurauchiParser struct{}
 
-func (p MurauchiParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+func (p MurauchiParser) ProductListByReq(r io.ReadCloser, req *http.Request) (product.Products, *http.Request) {
 	reader := transform.NewReader(r, japanese.ShiftJIS.NewDecoder())
 	doc, err := goquery.NewDocumentFromReader(reader)
 	if err != nil {
@@ -31,7 +32,7 @@ func (p MurauchiParser) ProductListByReq(r io.ReadCloser, req *http.Request) (sc
 		return nil, nil
 	}
 
-	var products scrape.Products
+	var products product.Products
 	doc.Find(".window_item").Each(func(i int, s *goquery.Selection) {
 		nameElem := s.Find("h2 a")
 		name := nameElem.Text()

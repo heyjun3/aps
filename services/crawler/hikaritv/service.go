@@ -5,8 +5,8 @@ import (
 	"crawler/scrape"
 )
 
-func NewScrapeService() scrape.Service[*product.Product] {
+func NewScrapeService() scrape.Service {
 	return scrape.NewService(HikaritvParser{}, &product.Product{},
 		[]*product.Product{}, scrape.WithCustomRepository(
-			product.NewRepository[*product.Product](siteCode)))
+			product.NewRepository(siteCode)))
 }

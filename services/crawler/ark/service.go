@@ -8,9 +8,9 @@ import (
 
 var logger = config.Logger
 
-func NewScrapeServiceV2() scrape.Service[*product.Product] {
+func NewScrapeServiceV2() scrape.Service {
 	return scrape.NewService(
 		ArkParser{}, &product.Product{}, []*product.Product{},
 		scrape.WithCustomRepository(
-			product.NewRepository[*product.Product](siteCode)))
+			product.NewRepository(siteCode)))
 }

@@ -8,21 +8,19 @@ import (
 )
 
 const (
-	sitCode = "kaago"
+	siteCode = "kaago"
 )
 
 func NewKaagoProduct(name, productCode, url, jan, shopCode string,
 	price int64) (*product.Product, error) {
 	return product.New(
-		product.Product{
-			SiteCode:    sitCode,
-			ShopCode:    shopCode,
-			ProductCode: productCode,
-			Name:        name,
-			URL:         url,
-			Jan:         &jan,
-			Price:       price,
-		},
+		siteCode,
+		shopCode,
+		productCode,
+		name,
+		jan,
+		url,
+		price,
 	)
 }
 

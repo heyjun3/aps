@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"crawler/product"
 	"crawler/scrape"
 
 	"github.com/PuerkitoBio/goquery"
@@ -20,14 +21,14 @@ const (
 
 type BomberParser struct{}
 
-func (p BomberParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+func (p BomberParser) ProductListByReq(r io.ReadCloser, req *http.Request) (product.Products, *http.Request) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)
 		return nil, nil
 	}
 
-	var products scrape.Products
+	var products product.Products
 	doc.Find(".pane-main .block-thumbnail-h--goods.js-enhanced-ecommerce-item").Each(func(i int, s *goquery.Selection) {
 		nameElem := s.Find(".js-enhanced-ecommerce-goods-name")
 		name := nameElem.Text()

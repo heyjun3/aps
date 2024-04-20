@@ -13,7 +13,7 @@ import (
 var logger = config.Logger
 
 func NewScrapeService(
-	opts ...scrape.Option[*product.Product]) scrape.Service[*product.Product] {
+	opts ...scrape.Option[*product.Product]) scrape.Service {
 	return scrape.NewService(
 		NojimaParser{}, &product.Product{}, []*product.Product{}, opts...)
 }
@@ -36,7 +36,7 @@ func ScrapeAll() {
 	service := NewScrapeService(
 		scrape.WithFileId[*product.Product](fileId),
 		scrape.WithCustomRepository(
-			product.NewRepository[*product.Product](siteCode),
+			product.NewRepository(siteCode),
 		),
 	)
 	for _, u := range urls {

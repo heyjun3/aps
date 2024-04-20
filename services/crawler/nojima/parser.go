@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"crawler/product"
 	"crawler/scrape"
 
 	"github.com/PuerkitoBio/goquery"
@@ -21,18 +22,18 @@ type NojimaParser struct {
 	scrape.Parser
 }
 
-func (p NojimaParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+func (p NojimaParser) ProductListByReq(r io.ReadCloser, req *http.Request) (product.Products, *http.Request) {
 	return p.ConvToReq(p.ProductList(r, req.URL.String()))
 }
 
-func (p NojimaParser) ProductList(r io.ReadCloser, requestURL string) (scrape.Products, string) {
+func (p NojimaParser) ProductList(r io.ReadCloser, requestURL string) (product.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("reponse parse error", err)
 		return nil, ""
 	}
 
-	var products scrape.Products
+	var products product.Products
 	doc.Find(".shouhinlist").Each(func(i int, s *goquery.Selection) {
 		name := strings.Join(strings.Fields(s.Find(".textOverflowShohinmei a[href]").Text()), "")
 		if name == "" {

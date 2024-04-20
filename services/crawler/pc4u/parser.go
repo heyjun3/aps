@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"crawler/product"
 	"crawler/scrape"
 
 	"github.com/PuerkitoBio/goquery"
@@ -22,11 +23,11 @@ type Pc4uParser struct {
 	scrape.Parser
 }
 
-func (p Pc4uParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+func (p Pc4uParser) ProductListByReq(r io.ReadCloser, req *http.Request) (product.Products, *http.Request) {
 	return p.ConvToReq(p.ProductList(r, req.URL.String()))
 }
 
-func (p Pc4uParser) ProductList(r io.ReadCloser, u string) (scrape.Products, string) {
+func (p Pc4uParser) ProductList(r io.ReadCloser, u string) (product.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)
@@ -34,7 +35,7 @@ func (p Pc4uParser) ProductList(r io.ReadCloser, u string) (scrape.Products, str
 	}
 
 	isSold := false
-	var products scrape.Products
+	var products product.Products
 	doc.Find(".big-item-list__item").Each(func(i int, s *goquery.Selection) {
 		name := s.Find(".big-item-list__name a").Text()
 		if name == "" {

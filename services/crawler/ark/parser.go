@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"crawler/product"
 	"crawler/scrape"
 
 	"github.com/PuerkitoBio/goquery"
@@ -22,17 +23,17 @@ type ArkParser struct {
 	scrape.Parser
 }
 
-func (p ArkParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+func (p ArkParser) ProductListByReq(r io.ReadCloser, req *http.Request) (product.Products, *http.Request) {
 	return p.ConvToReq(p.ProductList(r, req.URL.String()))
 }
 
-func (p ArkParser) ProductList(r io.ReadCloser, u string) (scrape.Products, string) {
+func (p ArkParser) ProductList(r io.ReadCloser, u string) (product.Products, string) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		logger.Error("response parse error", err)
 		return nil, ""
 	}
-	var products scrape.Products
+	var products product.Products
 	doc.Find(".item_listbox").Each(func(i int, s *goquery.Selection) {
 		name := s.Find(".itemname1 a").Text()
 		if name == "" {

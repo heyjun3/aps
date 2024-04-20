@@ -1,15 +1,10 @@
-package scrape
+package product
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func NewTestProduct(name, productCode, url, jan, shopCode string, price int64) *Product {
-	p, _ := NewProduct(name, productCode, url, jan, shopCode, price)
-	return p
-}
 
 func TestMappingProducts(t *testing.T) {
 	type args struct {

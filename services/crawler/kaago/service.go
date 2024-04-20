@@ -7,10 +7,10 @@ import (
 	"crawler/scrape"
 )
 
-func NewScrapeService(url string) scrape.Service[*product.Product] {
+func NewScrapeService(url string) scrape.Service {
 	service := scrape.NewService(KaagoParser{},
 		&product.Product{}, []*product.Product{}, scrape.WithCustomRepository(
-			product.NewRepository[*product.Product](sitCode),
+			product.NewRepository(siteCode),
 		))
 	req, err := generateRequest(0)
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"crawler/config"
-	"crawler/scrape"
+	"crawler/product"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -24,9 +24,9 @@ var logger = config.Logger
 
 type KaagoParser struct{}
 
-func (p KaagoParser) ProductListByReq(r io.ReadCloser, req *http.Request) (scrape.Products, *http.Request) {
+func (p KaagoParser) ProductListByReq(r io.ReadCloser, req *http.Request) (product.Products, *http.Request) {
 	var resp KaagoResp
-	var products scrape.Products
+	var products product.Products
 
 	if err := json.NewDecoder(r).Decode(&resp); err != nil {
 		logger.Error("response decode error", err)
