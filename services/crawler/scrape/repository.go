@@ -11,6 +11,7 @@ type ProductRepositoryInterface interface {
 	BulkUpsert(context.Context, *bun.DB, product.Products) error
 	GetProduct(context.Context, *bun.DB, string, string) (*product.Product, error)
 	GetByProductAndShopCodes(context.Context, *bun.DB, ...[]string) (product.Products, error)
+	GetByCodes(context.Context, *bun.DB, ...product.Code) (product.Products, error)
 }
 
 type RunServiceHistoryRepository struct{}

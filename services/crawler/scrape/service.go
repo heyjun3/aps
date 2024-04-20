@@ -150,7 +150,7 @@ func (s Service) GetProductsBatch(ctx context.Context, db *bun.DB, c chan produc
 		defer close(send)
 
 		for p := range c {
-			dbProduct, err := s.Repo.GetByProductAndShopCodes(ctx, db, p.GetProductAndShopCodes()...)
+			dbProduct, err := s.Repo.GetByCodes(ctx, db, p.GetCodes()...)
 			if err != nil {
 				logger.Error("db get product error", err)
 				continue

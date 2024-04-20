@@ -22,12 +22,15 @@ func TestRepository(t *testing.T) {
 		name: "test get product and shop code",
 		fn:   testGetByProductAndShopCodes,
 	}, {
+		name: "test get product by codes",
+		fn:   testGetByCodes,
+	}, {
 		name: "test buld upsert",
 		fn:   testBulkUpsert,
 	}}
 
+	db, ctx := setupTest()
 	for _, tt := range tests {
-		db, ctx := setupTest()
 		tt.fn(t, ctx, db)
 	}
 }
@@ -124,6 +127,62 @@ func testGetByProductAndShopCodes(t *testing.T, ctx context.Context,
 
 	result, err = repo.GetByProductAndShopCodes(ctx, db,
 		[][]string{{"nonExistsProductCode", "testShop"}}...)
+
+	assert.NoError(t, err)
+	assert.Equal(t, Products(nil), result)
+}
+
+func testGetByCodes(t *testing.T, ctx context.Context,
+	db *bun.DB) {
+	want := Products{
+		&Product{
+			Code: Code{
+				SiteCode:    "testSite",
+				ShopCode:    "testShop",
+				ProductCode: "productCode_1",
+			},
+			Name:  "productName_1",
+			Jan:   ptr("jan1"),
+			Price: int64(2000),
+			URL:   "testURL1",
+		},
+		&Product{
+			Code: Code{
+				SiteCode:    "testSite",
+				ShopCode:    "testShop",
+				ProductCode: "productCode_10",
+			},
+			Name:  "productName_10",
+			Jan:   ptr("jan10"),
+			Price: int64(11000),
+			URL:   "testURL10",
+		},
+	}
+	repo := NewRepository("testSite")
+
+	result, err := repo.GetByCodes(ctx, db,
+		[]Code{
+			{
+				SiteCode:    "testSite",
+				ShopCode:    "testShop",
+				ProductCode: "productCode_1",
+			},
+			{
+				SiteCode:    "testSite",
+				ShopCode:    "testShop",
+				ProductCode: "productCode_10",
+			},
+		}...)
+
+	assert.NoError(t, err)
+	assert.Equal(t, want, result)
+
+	result, err = repo.GetByCodes(ctx, db,
+		[]Code{{
+			SiteCode:    "testSite",
+			ShopCode:    "testShop",
+			ProductCode: "nonExistsProductCode",
+		}}...)
 
 	assert.NoError(t, err)
 	assert.Equal(t, Products(nil), result)

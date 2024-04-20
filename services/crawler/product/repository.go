@@ -56,7 +56,7 @@ func (p Repository) GetByCodes(ctx context.Context,
 	var products []*Product
 	err := db.NewSelect().
 		Model(&products).
-		Where("(product_code, shop_code, site_code) IN (?)",
+		Where("(site_code, shop_code, product_code) IN (?)",
 			bun.In(records)).
 		Order("product_code ASC").
 		Scan(ctx, &products)
