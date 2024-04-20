@@ -47,7 +47,7 @@ func (p Repository) GetByProductAndShopCodes(ctx context.Context,
 }
 
 func (p Repository) GetByCodes(ctx context.Context,
-	db *bun.DB, codes ...Code) (Products, error) {
+	db *bun.DB, codes []Code) (Products, error) {
 	records := make([][]string, 0, len(codes))
 	for _, code := range codes {
 		record := []string{code.SiteCode, code.ShopCode, code.ProductCode}

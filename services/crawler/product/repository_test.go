@@ -172,7 +172,7 @@ func testGetByCodes(t *testing.T, ctx context.Context,
 				ShopCode:    "testShop",
 				ProductCode: "productCode_10",
 			},
-		}...)
+		})
 
 	assert.NoError(t, err)
 	assert.Equal(t, want, result)
@@ -182,7 +182,7 @@ func testGetByCodes(t *testing.T, ctx context.Context,
 			SiteCode:    "testSite",
 			ShopCode:    "testShop",
 			ProductCode: "nonExistsProductCode",
-		}}...)
+		}})
 
 	assert.NoError(t, err)
 	assert.Equal(t, Products(nil), result)
