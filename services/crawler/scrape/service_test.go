@@ -124,7 +124,7 @@ func TestGetProductsBatch(t *testing.T) {
 		name: "happy path",
 		args: args{
 			service: Service{
-				Repo: product.NewRepository("testSite"),
+				Repo: product.NewRepository(),
 			},
 			products: product.Products{
 				(product.NewTestProduct("test1", "test1", "http://test.jp", "", "test", 1111)),
@@ -149,7 +149,7 @@ func TestGetProductsBatch(t *testing.T) {
 			service: NewService(
 				ParserMock{}, &product.Product{}, []*product.Product{},
 				WithHttpClient[*product.Product](ClientMock{}),
-				WithCustomRepository(product.NewRepository("testSite")),
+				WithCustomRepository(product.NewRepository()),
 			),
 			products: product.Products{
 				(product.NewTestProduct("test11", "test11", "http://test.jp", "", "test", 1111)),
@@ -175,7 +175,7 @@ func TestGetProductsBatch(t *testing.T) {
 		(product.NewTestProduct("test3", "test3", "http://test.jp", "3333", "test", 3333)),
 		(product.NewTestProduct("test4", "test4", "http://test.jp", "4444", "test", 4444)),
 	}
-	product.NewRepository("testSite").BulkUpsert(ctx, db, ps)
+	product.NewRepository().BulkUpsert(ctx, db, ps)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
@@ -260,7 +260,7 @@ func TestSaveProduct(t *testing.T) {
 		args: args{
 			service: NewService(
 				ParserMock{}, &product.Product{}, []*product.Product{},
-				WithCustomRepository(product.NewRepository("testSite")),
+				WithCustomRepository(product.NewRepository()),
 			),
 			products: product.Products{
 				(product.NewTestProduct("test1", "test1", "http://test.jp", "99999", "test", 1111)),

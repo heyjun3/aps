@@ -12,5 +12,5 @@ func NewScrapeServiceV2() scrape.Service {
 	return scrape.NewService(
 		ArkParser{}, &product.Product{}, []*product.Product{},
 		scrape.WithCustomRepository(
-			product.NewRepository(siteCode)))
+			product.NewRepository()))
 }

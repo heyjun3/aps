@@ -36,7 +36,7 @@ func ScrapeAll() {
 	service := NewScrapeService(
 		scrape.WithFileId[*product.Product](fileId),
 		scrape.WithCustomRepository(
-			product.NewRepository(siteCode),
+			product.NewRepository(),
 		),
 	)
 	for _, u := range urls {

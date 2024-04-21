@@ -29,7 +29,7 @@ func ScrapeAll(shopName string) {
 	service := NewScrapeService(
 		scrape.WithFileId[*product.Product](fileId),
 		scrape.WithCustomRepository(
-			product.NewRepository(siteCode),
+			product.NewRepository(),
 		),
 	)
 	for _, s := range shops {

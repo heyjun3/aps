@@ -16,6 +16,6 @@ const (
 func NewScrapeService() scrape.Service {
 	return scrape.NewService(IkebeParser{}, &product.Product{},
 		[]*product.Product{}, scrape.WithCustomRepository(
-			product.NewRepository(siteCode),
+			product.NewRepository(),
 		))
 }

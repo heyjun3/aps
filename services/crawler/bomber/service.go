@@ -12,5 +12,5 @@ func NewScrapeService() scrape.Service {
 	return scrape.NewService(
 		BomberParser{}, &product.Product{}, []*product.Product{},
 		scrape.WithCustomRepository(
-			product.NewRepository(siteCode)))
+			product.NewRepository()))
 }
