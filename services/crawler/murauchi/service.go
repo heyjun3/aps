@@ -12,7 +12,7 @@ var logger = config.Logger
 
 func NewScrapeService(category string) scrape.Service {
 	service := scrape.NewService(MurauchiParser{},
-		&product.Product{}, []*product.Product{}, scrape.WithCustomRepository(
+		scrape.WithCustomRepository(
 			product.NewRepository(),
 		))
 	req, err := generateRequest(0, category)

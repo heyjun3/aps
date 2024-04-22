@@ -45,11 +45,11 @@ type Service struct {
 	fileId            string
 }
 
-func NewService[T product.IProduct](
-	parser IParser, p T, ps []T, opts ...Option[T]) Service {
+func NewService(
+	parser IParser, opts ...Option) Service {
 	s := &Service{
-		Parser: parser,
-		// Repo:              NewProductRepository(p, ps),
+		Parser:            parser,
+		Repo:              product.NewRepository(),
 		HistoryRepository: RunServiceHistoryRepository{},
 		httpClient:        NewClient(),
 		mqClient:          NewMQClient(config.MQDsn, "mws"),
@@ -60,21 +60,21 @@ func NewService[T product.IProduct](
 	return *s
 }
 
-type Option[T product.IProduct] func(*Service)
+type Option func(*Service)
 
-func WithHttpClient[T product.IProduct](c HttpClient) func(*Service) {
+func WithHttpClient(c HttpClient) func(*Service) {
 	return func(s *Service) {
 		s.httpClient = c
 	}
 }
 
-func WithMQClient[T product.IProduct](c RabbitMQClient) func(*Service) {
+func WithMQClient(c RabbitMQClient) func(*Service) {
 	return func(s *Service) {
 		s.mqClient = c
 	}
 }
 
-func WithFileId[T product.IProduct](fileId string) func(*Service) {
+func WithFileId(fileId string) func(*Service) {
 	return func(s *Service) {
 		s.fileId = fileId
 	}

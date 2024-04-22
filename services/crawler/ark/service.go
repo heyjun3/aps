@@ -10,7 +10,7 @@ var logger = config.Logger
 
 func NewScrapeServiceV2() scrape.Service {
 	return scrape.NewService(
-		ArkParser{}, &product.Product{}, []*product.Product{},
+		ArkParser{},
 		scrape.WithCustomRepository(
 			product.NewRepository()))
 }

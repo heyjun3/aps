@@ -10,7 +10,7 @@ var logger = config.Logger
 
 func NewScrapeService() scrape.Service {
 	return scrape.NewService(
-		BomberParser{}, &product.Product{}, []*product.Product{},
+		BomberParser{},
 		scrape.WithCustomRepository(
 			product.NewRepository()))
 }
