@@ -257,7 +257,15 @@ class NetseaHTMLPage(object):
         if next_page_url_tag:
             next_page_url = urljoin(settings.NETSEA_NEXT_URL, next_page_url_tag.attrs.get('href'))
         elif len(products) == 60:
-            price = int(''.join(price_regex.findall(products[-1].select_one('.price').text)))
+            price = None
+            for product in products[-1:]:
+                price_str = product.select_one('.price')
+                if price_str:
+                    price = int(''.join(price_regex.findall(price_str.text)))
+                    break
+            if price is None:
+                return None
+
             current_url = urlparse(response_url)
             query = parse_qs(current_url.query)
             query['page'] = ['1']
