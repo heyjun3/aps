@@ -9,8 +9,8 @@ import (
 
 func NewScrapeService(url string) scrape.Service {
 	service := scrape.NewService(KaagoParser{},
-		&product.Product{}, []*product.Product{}, scrape.WithCustomRepository(
-			product.NewRepository(siteCode),
+		scrape.WithCustomRepository(
+			product.NewRepository(),
 		))
 	req, err := generateRequest(0)
 	if err != nil {

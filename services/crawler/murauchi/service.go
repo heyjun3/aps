@@ -12,8 +12,8 @@ var logger = config.Logger
 
 func NewScrapeService(category string) scrape.Service {
 	service := scrape.NewService(MurauchiParser{},
-		&product.Product{}, []*product.Product{}, scrape.WithCustomRepository(
-			product.NewRepository(siteCode),
+		scrape.WithCustomRepository(
+			product.NewRepository(),
 		))
 	req, err := generateRequest(0, category)
 	if err != nil {

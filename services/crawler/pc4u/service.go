@@ -13,9 +13,9 @@ import (
 
 var logger = config.Logger
 
-func NewScrapeService(opts ...scrape.Option[*product.Product]) scrape.Service {
+func NewScrapeService(opts ...scrape.Option) scrape.Service {
 	return scrape.NewService(
-		Pc4uParser{}, &product.Product{}, []*product.Product{}, opts...)
+		Pc4uParser{}, opts...)
 }
 
 func ScrapeAll(shopName string) {
@@ -27,9 +27,9 @@ func ScrapeAll(shopName string) {
 	}
 	fileId := strings.Join([]string{shopName, scrape.TimeToStr(time.Now())}, "_")
 	service := NewScrapeService(
-		scrape.WithFileId[*product.Product](fileId),
+		scrape.WithFileId(fileId),
 		scrape.WithCustomRepository(
-			product.NewRepository(siteCode),
+			product.NewRepository(),
 		),
 	)
 	for _, s := range shops {

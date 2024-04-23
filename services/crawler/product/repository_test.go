@@ -19,9 +19,6 @@ func TestRepository(t *testing.T) {
 		name: "test get product",
 		fn:   testGetProduct,
 	}, {
-		name: "test get product and shop code",
-		fn:   testGetByProductAndShopCodes,
-	}, {
 		name: "test get product by codes",
 		fn:   testGetByCodes,
 	}, {
@@ -60,7 +57,7 @@ func seedProducts(ctx context.Context, db *bun.DB) {
 		)
 		products = append(products, p)
 	}
-	repo := NewRepository("testSite")
+	repo := NewRepository()
 	if err := repo.BulkUpsert(ctx, db, products); err != nil {
 		panic(err)
 	}
@@ -78,58 +75,17 @@ func testGetProduct(t *testing.T, ctx context.Context, db *bun.DB) {
 		Price: int64(2000),
 		URL:   "testURL1",
 	}
-	repo := NewRepository("testSite")
+	repo := NewRepository()
 
-	result, err := repo.GetProduct(ctx, db, "productCode_1", "testShop")
+	result, err := repo.GetProduct(ctx, db, "testSite", "testShop", "productCode_1")
 
 	assert.NoError(t, err)
 	assert.Equal(t, want, result)
 
-	result, err = repo.GetProduct(ctx, db, "nonExistsCode", "testShop")
+	result, err = repo.GetProduct(ctx, db, "testSite", "testShop", "nonExistsCode")
 
 	assert.Error(t, err)
 	assert.Equal(t, &Product{}, result)
-}
-
-func testGetByProductAndShopCodes(t *testing.T, ctx context.Context,
-	db *bun.DB) {
-	want := Products{
-		&Product{
-			Code: Code{
-				SiteCode:    "testSite",
-				ShopCode:    "testShop",
-				ProductCode: "productCode_1",
-			},
-			Name:  "productName_1",
-			Jan:   ptr("jan1"),
-			Price: int64(2000),
-			URL:   "testURL1",
-		},
-		&Product{
-			Code: Code{
-				SiteCode:    "testSite",
-				ShopCode:    "testShop",
-				ProductCode: "productCode_10",
-			},
-			Name:  "productName_10",
-			Jan:   ptr("jan10"),
-			Price: int64(11000),
-			URL:   "testURL10",
-		},
-	}
-	repo := NewRepository("testSite")
-
-	result, err := repo.GetByProductAndShopCodes(ctx, db,
-		[][]string{{"productCode_1", "testShop"}, {"productCode_10", "testShop"}}...)
-
-	assert.NoError(t, err)
-	assert.Equal(t, want, result)
-
-	result, err = repo.GetByProductAndShopCodes(ctx, db,
-		[][]string{{"nonExistsProductCode", "testShop"}}...)
-
-	assert.NoError(t, err)
-	assert.Equal(t, Products(nil), result)
 }
 
 func testGetByCodes(t *testing.T, ctx context.Context,
@@ -158,7 +114,7 @@ func testGetByCodes(t *testing.T, ctx context.Context,
 			URL:   "testURL10",
 		},
 	}
-	repo := NewRepository("testSite")
+	repo := NewRepository()
 
 	result, err := repo.GetByCodes(ctx, db,
 		[]Code{
@@ -189,7 +145,7 @@ func testGetByCodes(t *testing.T, ctx context.Context,
 }
 
 func testBulkUpsert(t *testing.T, ctx context.Context, db *bun.DB) {
-	repo := NewRepository("testSite")
+	repo := NewRepository()
 	products := Products{
 		&Product{
 			Code: Code{

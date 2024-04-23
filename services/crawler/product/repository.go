@@ -7,43 +7,21 @@ import (
 	"github.com/uptrace/bun"
 )
 
-type Repository struct {
-	siteCode string
-}
+type Repository struct{}
 
-func NewRepository(siteCode string) Repository {
-	return Repository{
-		siteCode: siteCode,
-	}
+func NewRepository() Repository {
+	return Repository{}
 }
 
 func (p Repository) GetProduct(ctx context.Context,
-	db *bun.DB, productCode, shopCode string) (*Product, error) {
+	db *bun.DB, siteCode, shopCode, productCode string) (*Product, error) {
 	product := new(Product)
 	err := db.NewSelect().
 		Model(product).
 		Where("(site_code, shop_code, product_code) IN (?)",
-			bun.In([][]string{{p.siteCode, shopCode, productCode}})).
+			bun.In([][]string{{siteCode, shopCode, productCode}})).
 		Scan(ctx, product)
 	return product, err
-}
-
-// ここのcodesに型つけたいな
-func (p Repository) GetByProductAndShopCodes(ctx context.Context,
-	db *bun.DB, codes ...[]string) (Products, error) {
-	records := make([][]string, 0, len(codes))
-	for _, code := range codes {
-		record := append(code, p.siteCode)
-		records = append(records, record)
-	}
-	var products []*Product
-	err := db.NewSelect().
-		Model(&products).
-		Where("(product_code, shop_code, site_code) IN (?)",
-			bun.In(records)).
-		Order("product_code ASC").
-		Scan(ctx, &products)
-	return ConvToProducts(products), err
 }
 
 func (p Repository) GetByCodes(ctx context.Context,

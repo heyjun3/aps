@@ -13,9 +13,9 @@ import (
 var logger = config.Logger
 
 func NewScrapeService(
-	opts ...scrape.Option[*product.Product]) scrape.Service {
+	opts ...scrape.Option) scrape.Service {
 	return scrape.NewService(
-		NojimaParser{}, &product.Product{}, []*product.Product{}, opts...)
+		NojimaParser{}, opts...)
 }
 
 func ScrapeAll() {
@@ -34,9 +34,9 @@ func ScrapeAll() {
 	}
 	fileId := "nojima_" + scrape.TimeToStr(time.Now())
 	service := NewScrapeService(
-		scrape.WithFileId[*product.Product](fileId),
+		scrape.WithFileId(fileId),
 		scrape.WithCustomRepository(
-			product.NewRepository(siteCode),
+			product.NewRepository(),
 		),
 	)
 	for _, u := range urls {
