@@ -36,7 +36,7 @@ type ProductWithChart struct {
 }
 
 type ChartRes struct {
-	Charts      []ProductWithChart `json:"chart_data"`
+	Charts      []product.ProductWithChart `json:"chart_data"`
 	CurrentPage int                `json:"current_page"`
 	MaxPage     int                `json:"max_page"`
 }
@@ -62,7 +62,10 @@ func GetCharts(c echo.Context) error {
 		slog.Error("error", err)
 		return c.JSON(http.StatusBadRequest, Res{"error"})
 	}
-	limit := 100
+	limit, err := strconv.Atoi(c.QueryParam("limit"))
+	if err != nil {
+		limit = 100
+	}
 	ctx := context.Background()
 	charts, total, err := productRepo.GetProductWithChart(ctx, filename, page, limit)
 	if err != nil {
@@ -76,11 +79,7 @@ func GetCharts(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, Res{"error"})
 	}
 
-	products := make([]ProductWithChart, len(charts))
-	for i := 0; i < len(charts); i++ {
-		products[i] = ProductWithChart{charts[i].Product, charts[i].Chart}
-	}
-	return c.JSON(http.StatusOK, ChartRes{products, page, maxPage})
+	return c.JSON(http.StatusOK, ChartRes{charts, page, maxPage})
 }
 
 func GetFilenames(c echo.Context) error {
