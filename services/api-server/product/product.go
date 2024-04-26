@@ -107,28 +107,58 @@ func (p ProductRepository) GetFilenames(ctx context.Context) ([]string, error) {
 	return filenames, err
 }
 
-func (p ProductRepository) GetProductWithChart(ctx context.Context, filename string, page, limit int) ([]ProductWithChart, int, error) {
-	if page < 1 {
+type searchCondition struct {
+	filename                string
+	page                    int
+	limit                   int
+	minProfit               int
+	minProfitRate           float32
+	maxUnit                 int
+	minQuarterlySalesVolume int
+}
+
+func NewSearchCondition(filename string) searchCondition {
+	return searchCondition{
+		filename:                filename,
+		page:                    1,
+		limit:                   100,
+		minProfit:               200,
+		minProfitRate:           0.1,
+		maxUnit:                 10,
+		minQuarterlySalesVolume: 3,
+	}
+}
+
+func (p ProductRepository) GetProductWithChartBySearchCondition(
+	ctx context.Context, c searchCondition) ([]ProductWithChart, int, error) {
+	if c.page < 1 {
 		return nil, 0, fmt.Errorf("page is over 1")
 	}
-	offset := (page - 1) * limit
+	offset := (c.page - 1) * c.limit
 	var product []ProductWithChart
 	count, err := p.DB.NewSelect().
 		ColumnExpr("p.*").
 		ColumnExpr("k.render_data").
 		TableExpr("mws_products AS p").
 		Join("JOIN keepa_products AS k ON k.asin = p.asin").
-		Where("p.filename = ?", filename).
-		Where("p.profit >= ?", 200).
-		Where("p.profit_rate >= ?", 0.1).
-		Where("p.unit <= ?", 10).
-		Where("k.sales_drops_90 > ?", 3).
+		Where("p.filename = ?", c.filename).
+		Where("p.profit >= ?", c.minProfit).
+		Where("p.profit_rate >= ?", c.minProfitRate).
+		Where("p.unit <= ?", c.maxUnit).
+		Where("k.sales_drops_90 > ?", c.minQuarterlySalesVolume).
 		Where("k.render_data IS NOT NULL").
 		OrderExpr("p.profit DESC").
-		Limit(limit).
+		Limit(c.limit).
 		Offset(offset).
 		ScanAndCount(ctx, &product)
 	return product, count, err
+}
+
+func (p ProductRepository) GetProductWithChart(ctx context.Context, filename string, page, limit int) ([]ProductWithChart, int, error) {
+	c := NewSearchCondition(filename)
+	c.page = page
+	c.limit = limit
+	return p.GetProductWithChartBySearchCondition(ctx, c)
 }
 
 func (p ProductRepository) DeleteIfCondition(ctx context.Context, condition *Condition) error {

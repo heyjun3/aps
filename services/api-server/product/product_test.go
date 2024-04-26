@@ -121,46 +121,49 @@ func TestGetFilenames(t *testing.T) {
 }
 
 func TestGetProductWithChart(t *testing.T) {
-	db := test.CreateTestDBConnection()
-	if err := db.ResetModel(context.Background(), (*Product)(nil)); err != nil {
-		panic("test database dsn is null")
+	setupData := func() *bun.DB {
+		db := test.CreateTestDBConnection()
+		if err := db.ResetModel(context.Background(), (*Product)(nil)); err != nil {
+			panic("test database dsn is null")
+		}
+		if err := db.ResetModel(context.Background(), (*Keepa)(nil)); err != nil {
+			panic("test database dsn is null")
+		}
+		createTestData(db)
+		return db
 	}
-	if err := db.ResetModel(context.Background(), (*Keepa)(nil)); err != nil {
-		panic("test database dsn is null")
-	}
-	createTestData(db)
 
-	type args struct {
-		ctx      context.Context
-		filename string
-		page     int
-		limit    int
+	testGetProductWithChart := func(t *testing.T, db *bun.DB) {
+		repo := ProductRepository{DB: db}
+		ps, total, err := repo.GetProductWithChart(
+			context.Background(), "aaa", 1, 100)
+		assert.Equal(t, 100, len(ps))
+		assert.Equal(t, 150, total)
+		assert.NoError(t, err)
 	}
-	type want struct {
-		count int
-		total int
+
+	testGetProductWithChartBySearchCondition := func(t *testing.T, db *bun.DB) {
+		repo := ProductRepository{DB: db}
+		c := NewSearchCondition("aaa")
+		ps, total, err := repo.GetProductWithChartBySearchCondition(
+			context.Background(), c)
+		assert.Equal(t, 100, len(ps))
+		assert.Equal(t, 150, total)
+		assert.NoError(t, err)
 	}
 
 	tests := []struct {
-		name    string
-		args    args
-		want    want
-		wantErr bool
+		name string
+		fn   func(*testing.T, *bun.DB)
 	}{
-		{"get product with chart", args{context.Background(), "aaa", 1, 100}, want{100, 150}, false},
+		{"get product with chart", testGetProductWithChart},
+		{"get product by search condition", testGetProductWithChartBySearchCondition},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := ProductRepository{DB: db}
-			ps, total, err := repo.GetProductWithChart(tt.args.ctx, tt.args.filename, tt.args.page, tt.args.limit)
-			assert.Equal(t, tt.want.count, len(ps))
-			assert.Equal(t, tt.want.total, total)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			db := setupData()
+			tt.fn(t, db)
 		})
 	}
 }
