@@ -36,7 +36,7 @@ type ProductWithChart struct {
 }
 
 type ChartRes struct {
-	Charts      []product.ProductWithChart `json:"chart_data"`
+	Charts      []ProductWithChart `json:"chart_data"`
 	CurrentPage int                `json:"current_page"`
 	MaxPage     int                `json:"max_page"`
 }
@@ -78,8 +78,12 @@ func GetCharts(c echo.Context) error {
 		slog.Error("page over max page size")
 		return c.JSON(http.StatusNotFound, Res{"error"})
 	}
+	products := make([]ProductWithChart, 0, len(charts))
+	for i := 0; i < len(charts); i++ {
+		products = append(products, ProductWithChart{charts[i].Product, charts[i].Chart})
+	}
 
-	return c.JSON(http.StatusOK, ChartRes{charts, page, maxPage})
+	return c.JSON(http.StatusOK, ChartRes{products, page, maxPage})
 }
 
 func GetFilenames(c echo.Context) error {
