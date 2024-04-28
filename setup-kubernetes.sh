@@ -1,4 +1,5 @@
 #!/bin/bash
+# https://zenn.dev/junpee/scraps/07e4651b94727a
 
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
 overlay
