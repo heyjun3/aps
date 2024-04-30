@@ -133,15 +133,6 @@ func TestGetProductWithChart(t *testing.T) {
 		return db
 	}
 
-	testGetProductWithChart := func(t *testing.T, db *bun.DB) {
-		repo := ProductRepository{DB: db}
-		ps, total, err := repo.GetProductWithChart(
-			context.Background(), "aaa", 1, 100)
-		assert.Equal(t, 100, len(ps))
-		assert.Equal(t, 150, total)
-		assert.NoError(t, err)
-	}
-
 	testGetProductWithChartBySearchCondition := func(t *testing.T, db *bun.DB) {
 		repo := ProductRepository{DB: db}
 		c := NewSearchCondition("aaa")
@@ -156,7 +147,6 @@ func TestGetProductWithChart(t *testing.T) {
 		name string
 		fn   func(*testing.T, *bun.DB)
 	}{
-		{"get product with chart", testGetProductWithChart},
 		{"get product by search condition", testGetProductWithChartBySearchCondition},
 	}
 

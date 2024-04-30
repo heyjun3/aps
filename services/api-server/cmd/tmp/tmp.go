@@ -5,7 +5,7 @@ import (
 	"api-server/inventory"
 	"api-server/spapi"
 	"context"
-	// "encoding/json"
+	"encoding/json"
 	"fmt"
 	"os"
 )
@@ -20,15 +20,15 @@ func tmpHttp() {
 	if err != nil {
 		panic(err)
 	}
-	res, err := client.GetCompetitivePricing([]string{"", ""})
-	if err != nil {
-		panic(err)
-	}
+	// res, err := client.GetCompetitivePricing([]string{"", ""})
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	flag := false
-	if flag {
-		fmt.Println(res)
-	}
+	// flag := false
+	// if flag {
+	// 	fmt.Println(res)
+	// }
 	// res, err := client.InventorySummaries("")
 	// if err != nil {
 	// 	panic(err)
@@ -39,18 +39,18 @@ func tmpHttp() {
 	// 		fmt.Println(*s.InventoryDetails.FulfillableQuantity)
 	// 	}
 	// }
-	// res, err := client.GetPricing([]string{"4562312235052-N-6980-20231105"})
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// flag := false
-	// if flag {
-	// 	buf, err := json.Marshal(res)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	fmt.Println(string(buf))
-	// }
+	res, err := client.GetPricing([]string{"4562312235052-N-6980-20231105"})
+	if err != nil {
+		panic(err)
+	}
+	flag := true
+	if flag {
+		buf, err := json.Marshal(res)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(buf))
+	}
 }
 
 func updatePoint() {

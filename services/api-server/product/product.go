@@ -117,8 +117,8 @@ type searchCondition struct {
 	minQuarterlySalesVolume int
 }
 
-func NewSearchCondition(filename string) searchCondition {
-	return searchCondition{
+func NewSearchCondition(filename string, opts ...searchConditionOption) searchCondition {
+	c := searchCondition{
 		filename:                filename,
 		page:                    1,
 		limit:                   100,
@@ -126,6 +126,25 @@ func NewSearchCondition(filename string) searchCondition {
 		minProfitRate:           0.1,
 		maxUnit:                 10,
 		minQuarterlySalesVolume: 3,
+	}
+	for _, opt := range opts {
+		c = opt(c)
+	}
+	return c
+}
+
+type searchConditionOption func(searchCondition) searchCondition
+
+func SearchConditionWithPage(page int) searchConditionOption {
+	return func(c searchCondition) searchCondition {
+		c.page = page
+		return c
+	}
+}
+func SearchConditionWithLimit(limit int) searchConditionOption {
+	return func(c searchCondition) searchCondition {
+		c.limit = limit
+		return c
 	}
 }
 
@@ -152,13 +171,6 @@ func (p ProductRepository) GetProductWithChartBySearchCondition(
 		Offset(offset).
 		ScanAndCount(ctx, &product)
 	return product, count, err
-}
-
-func (p ProductRepository) GetProductWithChart(ctx context.Context, filename string, page, limit int) ([]ProductWithChart, int, error) {
-	c := NewSearchCondition(filename)
-	c.page = page
-	c.limit = limit
-	return p.GetProductWithChartBySearchCondition(ctx, c)
 }
 
 func (p ProductRepository) DeleteIfCondition(ctx context.Context, condition *Condition) error {

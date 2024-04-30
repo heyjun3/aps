@@ -67,7 +67,12 @@ func GetCharts(c echo.Context) error {
 		limit = 100
 	}
 	ctx := context.Background()
-	charts, total, err := productRepo.GetProductWithChart(ctx, filename, page, limit)
+	charts, total, err := productRepo.GetProductWithChartBySearchCondition(
+		ctx, product.NewSearchCondition(filename,
+			product.SearchConditionWithLimit(limit),
+			product.SearchConditionWithPage(page),
+		),
+	)
 	if err != nil {
 		slog.Error("error", err)
 		return c.JSON(http.StatusInternalServerError, Res{"error"})

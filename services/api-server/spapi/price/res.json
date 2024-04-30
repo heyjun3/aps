@@ -1,0 +1,46 @@
+{
+    "responses": [
+        {
+            "body": {
+                "payload": {
+                    "Offers": [
+                        {
+                            "Points": {
+                                "PointsNumber": 68
+                            },
+                            "ListingPrice": {
+                                "Amount": 6800
+                            },
+                            "MyOffer": false,
+                            "IsFulfilledByAmazon": true,
+                            "IsBuyBoxWinner": true
+                        },
+                        {
+                            "Points": {
+                                "PointsNumber": 0
+                            },
+                            "ListingPrice": {
+                                "Amount": 9080
+                            },
+                            "MyOffer": false,
+                            "IsFulfilledByAmazon": false,
+                            "IsBuyBoxWinner": false
+                        },
+                        {
+                            "Points": {
+                                "PointsNumber": null
+                            },
+                            "ListingPrice": {
+                                "Amount": 12500
+                            },
+                            "MyOffer": false,
+                            "IsFulfilledByAmazon": true,
+                            "IsBuyBoxWinner": false
+                        }
+                    ],
+                    "SKU": "TEST"
+                }
+            }
+        }
+    ]
+}
