@@ -85,6 +85,7 @@ func GetCharts(c echo.Context) error {
 	}
 	products := make([]ProductWithChart, 0, len(charts))
 	for i := 0; i < len(charts); i++ {
+		charts[i].Chart.CalculateRankMA(7)
 		products = append(products, ProductWithChart{charts[i].Product, charts[i].Chart})
 	}
 

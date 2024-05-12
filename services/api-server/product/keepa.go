@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -14,10 +15,15 @@ import (
 	"api-server/spapi/price/competitive"
 )
 
+const (
+	timeFormat string = "2006-01-02"
+)
+
 type Chart struct {
-	Date  string  `json:"date" bun:"type:date"`
-	Rank  float64 `json:"rank"`
-	Price float64 `json:"price"`
+	Date    string  `json:"date" bun:"type:date"`
+	Rank    float64 `json:"rank"`
+	Price   float64 `json:"price"`
+	RankMA7 int     `json:"rank_ma7"`
 }
 
 type ChartData struct {
@@ -38,6 +44,32 @@ func (c *ChartData) filteringPastDays(days int) {
 		}
 	}
 	c.Data = charts
+}
+
+// calculate rank of moving average for a period of days.
+func (c *ChartData) CalculateRankMA(days int) error {
+	sort.Slice(c.Data, func(i, j int) bool {
+		ti, err := time.Parse(timeFormat, c.Data[i].Date)
+		if err != nil {
+			logger.Warn("date string parse error", "date", c.Data[i].Date)
+			return false
+		}
+		tj, err := time.Parse(timeFormat, c.Data[j].Date)
+		if err != nil {
+			logger.Warn("date string parse error", "date", c.Data[j].Date)
+			return false
+		}
+		return ti.Before(tj)
+	})
+	for i := days; i < len(c.Data); i++ {
+		var rankSum int
+		data := c.Data[i-days : i]
+		for _, chart := range data {
+			rankSum += int(chart.Rank)
+		}
+		c.Data[i].RankMA7 = int(rankSum / days)
+	}
+	return nil
 }
 
 type Keepa struct {
