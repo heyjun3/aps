@@ -27,7 +27,9 @@ type Chart struct {
 }
 
 type ChartData struct {
-	Data []Chart `json:"data"`
+	Data         []Chart `json:"data"`
+	DiffCount    int     `json:"diff_count"`
+	DiffCountMA7 int     `json:"diff_count_ma7"`
 }
 
 func (c *ChartData) filteringPastDays(days int) {
@@ -68,6 +70,14 @@ func (c *ChartData) CalculateRankMA(days int) error {
 			rankSum += int(chart.Rank)
 		}
 		c.Data[i].RankMA7 = int(rankSum / days)
+	}
+	for i := 1; i < len(c.Data)-1; i++ {
+		if c.Data[i-1].Rank > c.Data[i].Rank && c.Data[i].Rank < c.Data[i+1].Rank {
+			c.DiffCount += 1
+		}
+		if c.Data[i-1].RankMA7 > c.Data[i].RankMA7 && c.Data[i].RankMA7 < c.Data[i+1].RankMA7 {
+			c.DiffCountMA7 += 1
+		}
 	}
 	return nil
 }
