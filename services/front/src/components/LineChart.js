@@ -44,12 +44,23 @@ const RenderLineChart = (props) => {
             dot={false}
             isAnimationActive={false}
           />
+          <Line
+            yAxisId={2}
+            strokeWidth={3}
+            type="monotone"
+            dataKey="rank_ma7"
+            stroke="red"
+            dot={false}
+            isAnimationActive={false}
+          />
           <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
           <XAxis dataKey="date" />
           <Legend />
         </LineChart>
       </ResponsiveContainer>
       <div className="asinBox">
+        <p>diff: {props.diffCount}</p>
+        <p>diffMA7: {props.diffCountMA7}</p>
         <h3 className="asin">
           JAN :{" "}
           <a href={props.url} target="_blank" rel="noreferrer">
