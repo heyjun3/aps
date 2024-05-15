@@ -86,6 +86,7 @@ type Keepa struct {
 	bun.BaseModel `bun:"keepa_products"`
 	Asin          string             `bun:"asin,pk"`
 	Drops         int                `bun:"sales_drops_90"`
+	DropsMA7      int                `bun:"drops_ma_7"`
 	Prices        map[string]float64 `bun:"price_data,type:jsonb"`
 	Ranks         map[string]float64 `bun:"rank_data,type:jsonb"`
 	Charts        ChartData          `bun:"render_data,type:jsonb"`
@@ -108,6 +109,32 @@ func (k *Keepa) updateRenderData(data renderData, keepaTime, date string) *Keepa
 	chart := Chart{Date: date, Price: price, Rank: rank}
 	k.Charts.Data = append(k.Charts.Data, chart)
 	k.Charts.filteringPastDays(90)
+	return k
+}
+
+func (k *Keepa) calculateDropsMA7() *Keepa {
+	sort.Slice(k.Charts.Data, func(i, j int) bool {
+		ti, err := time.Parse(timeFormat, k.Charts.Data[i].Date)
+		if err != nil {
+			logger.Warn("date string parse error", "date", k.Charts.Data[i].Date)
+			return false
+		}
+		tj, err := time.Parse(timeFormat, k.Charts.Data[j].Date)
+		if err != nil {
+			logger.Warn("date string parse error", "date", k.Charts.Data[j].Date)
+			return false
+		}
+		return ti.Before(tj)
+	})
+
+	dropsMA7 := 0
+	for i := 1; i < len(k.Charts.Data)-1; i++ {
+		if k.Charts.Data[i-1].RankMA7 > k.Charts.Data[i].RankMA7 &&
+			k.Charts.Data[i].RankMA7 < k.Charts.Data[i+1].RankMA7 {
+			dropsMA7 += 1
+		}
+	}
+	k.DropsMA7 = dropsMA7
 	return k
 }
 
