@@ -31,8 +31,8 @@ type RenderChart struct {
 }
 
 type ProductWithChart struct {
+	Keepa
 	Product
-	RenderChart
 }
 
 type ProductRepository struct {

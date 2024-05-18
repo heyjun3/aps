@@ -49,44 +49,12 @@ func (c *ChartData) filteringPastDays(days int) {
 }
 
 // calculate rank of moving average for a period of days.
-func (c *ChartData) CalculateRankMA(days int) error {
-	sort.Slice(c.Data, func(i, j int) bool {
-		ti, err := time.Parse(timeFormat, c.Data[i].Date)
-		if err != nil {
-			logger.Warn("date string parse error", "date", c.Data[i].Date)
-			return false
-		}
-		tj, err := time.Parse(timeFormat, c.Data[j].Date)
-		if err != nil {
-			logger.Warn("date string parse error", "date", c.Data[j].Date)
-			return false
-		}
-		return ti.Before(tj)
-	})
-	for i := days; i < len(c.Data); i++ {
-		var rankSum int
-		data := c.Data[i-days : i]
-		for _, chart := range data {
-			rankSum += int(chart.Rank)
-		}
-		c.Data[i].RankMA7 = int(rankSum / days)
-	}
-	for i := 1; i < len(c.Data)-1; i++ {
-		if c.Data[i-1].Rank > c.Data[i].Rank && c.Data[i].Rank < c.Data[i+1].Rank {
-			c.DiffCount += 1
-		}
-		if c.Data[i-1].RankMA7 > c.Data[i].RankMA7 && c.Data[i].RankMA7 < c.Data[i+1].RankMA7 {
-			c.DiffCountMA7 += 1
-		}
-	}
-	return nil
-}
 
 type Keepa struct {
 	bun.BaseModel `bun:"keepa_products"`
 	Asin          string             `bun:"asin,pk"`
 	Drops         int                `bun:"sales_drops_90"`
-	DropsMA7      int                `bun:"drops_ma_7"`
+	DropsMA7      int                `bun:"drops_ma_7" json:"drops_ma_7"`
 	Prices        map[string]float64 `bun:"price_data,type:jsonb"`
 	Ranks         map[string]float64 `bun:"rank_data,type:jsonb"`
 	Charts        ChartData          `bun:"render_data,type:jsonb"`
@@ -112,7 +80,18 @@ func (k *Keepa) updateRenderData(data renderData, keepaTime, date string) *Keepa
 	return k
 }
 
-func (k *Keepa) calculateDropsMA7() *Keepa {
+func (k *Keepa) calculateDropsMA7() {
+	dropsMA7 := 0
+	for i := 1; i < len(k.Charts.Data)-1; i++ {
+		if k.Charts.Data[i-1].RankMA7 > k.Charts.Data[i].RankMA7 &&
+			k.Charts.Data[i].RankMA7 < k.Charts.Data[i+1].RankMA7 {
+			dropsMA7 += 1
+		}
+	}
+	k.DropsMA7 = dropsMA7
+}
+
+func (k *Keepa) CalculateRankMA(days int) error {
 	sort.Slice(k.Charts.Data, func(i, j int) bool {
 		ti, err := time.Parse(timeFormat, k.Charts.Data[i].Date)
 		if err != nil {
@@ -126,16 +105,16 @@ func (k *Keepa) calculateDropsMA7() *Keepa {
 		}
 		return ti.Before(tj)
 	})
-
-	dropsMA7 := 0
-	for i := 1; i < len(k.Charts.Data)-1; i++ {
-		if k.Charts.Data[i-1].RankMA7 > k.Charts.Data[i].RankMA7 &&
-			k.Charts.Data[i].RankMA7 < k.Charts.Data[i+1].RankMA7 {
-			dropsMA7 += 1
+	for i := days; i < len(k.Charts.Data); i++ {
+		var rankSum int
+		data := k.Charts.Data[i-days : i]
+		for _, chart := range data {
+			rankSum += int(chart.Rank)
 		}
+		k.Charts.Data[i].RankMA7 = int(rankSum / days)
 	}
-	k.DropsMA7 = dropsMA7
-	return k
+	k.calculateDropsMA7()
+	return nil
 }
 
 type Keepas []*Keepa
