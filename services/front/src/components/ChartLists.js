@@ -55,13 +55,13 @@ const ChartLists = () => {
         return (
           <RenderLineChart
             key={product.asin}
-            data={product.data}
+            data={product.Chart.data}
             title={product.title}
             jan={product.jan}
             asin={product.asin}
             url={product.url}
-            diffCount={product.diff_count}
-            diffCountMA7={product.diff_count_ma7}
+            diffCount={product.Chart.diff_count}
+            diffCountMA7={product.Chart.diff_count_ma7}
           />
         );
       })}
