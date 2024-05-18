@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { Box, Typography as P } from "@mui/material";
 
 const RenderLineChart = (props) => {
   return (
@@ -58,15 +59,23 @@ const RenderLineChart = (props) => {
           <Legend />
         </LineChart>
       </ResponsiveContainer>
-      <div className="asinBox">
-        <p>diff: {props.diffCount}</p>
-        <p>diffMA7: {props.diffCountMA7}</p>
-        <h3 className="asin">
-          JAN :{" "}
+      <Box
+        width={"70%"}
+        display={"flex"}
+        margin={"0 auto"}
+        gap={"10px"}
+        justifyContent={"end"}
+      >
+        <P fontWeight={"bold"}>diff: {props.diffCount}</P>
+        <P fontWeight={"bold"}>diffMA7: {props.diffCountMA7}</P>
+        <P className="asin" fontWeight={"bold"}>
+          JAN :
           <a href={props.url} target="_blank" rel="noreferrer">
             {props.jan}
-          </a>{" "}
-          ASIN :{" "}
+          </a>
+        </P>
+        <P className="asin" fontWeight={"bold"}>
+          ASIN :
           <a
             href={`https://www.amazon.co.jp/dp/${props.asin}`}
             target="_blank"
@@ -74,8 +83,8 @@ const RenderLineChart = (props) => {
           >
             {props.asin}
           </a>
-        </h3>
-      </div>
+        </P>
+      </Box>
     </div>
   );
 };
