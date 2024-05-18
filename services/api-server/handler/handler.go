@@ -32,7 +32,7 @@ type StatusRes struct {
 
 type ProductWithChart struct {
 	product.Product
-	product.ChartData
+	product.RenderChart
 }
 
 type ChartRes struct {
@@ -86,7 +86,8 @@ func GetCharts(c echo.Context) error {
 	products := make([]ProductWithChart, 0, len(charts))
 	for i := 0; i < len(charts); i++ {
 		charts[i].Chart.CalculateRankMA(7)
-		products = append(products, ProductWithChart{charts[i].Product, charts[i].Chart})
+		slog.Info("drops", "d", charts[i].Drops)
+		products = append(products, ProductWithChart{charts[i].Product, charts[i].RenderChart})
 	}
 
 	return c.JSON(http.StatusOK, ChartRes{products, page, maxPage})

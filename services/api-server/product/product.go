@@ -25,9 +25,14 @@ type Product struct {
 	URL           *string   `bun:"url" json:"url"`
 }
 
+type RenderChart struct {
+	Chart ChartData `bun:"render_data,type:jsonb"`
+	Drops int       `bun:"sales_drops_90"`
+}
+
 type ProductWithChart struct {
 	Product
-	Chart ChartData `bun:"render_data,type:jsonb"`
+	RenderChart
 }
 
 type ProductRepository struct {
@@ -158,6 +163,7 @@ func (p ProductRepository) GetProductWithChartBySearchCondition(
 	count, err := p.DB.NewSelect().
 		ColumnExpr("p.*").
 		ColumnExpr("k.render_data").
+		ColumnExpr("k.sales_drops_90").
 		TableExpr("mws_products AS p").
 		Join("JOIN keepa_products AS k ON k.asin = p.asin").
 		Where("p.filename = ?", c.filename).
