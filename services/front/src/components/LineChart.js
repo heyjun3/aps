@@ -66,8 +66,7 @@ const RenderLineChart = (props) => {
         gap={"10px"}
         justifyContent={"end"}
       >
-        <P fontWeight={"bold"}>diff: {props.diffCount}</P>
-        <P fontWeight={"bold"}>diffMA7: {props.diffCountMA7}</P>
+        <P fontWeight={"bold"}>DropsMA7: {props.diffCountMA7}</P>
         <P className="asin" fontWeight={"bold"}>
           JAN :
           <a href={props.url} target="_blank" rel="noreferrer">
