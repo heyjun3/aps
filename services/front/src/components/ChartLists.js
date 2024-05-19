@@ -60,7 +60,6 @@ const ChartLists = () => {
             jan={product.jan}
             asin={product.asin}
             url={product.url}
-            diffCount={product.Charts.diff_count}
             diffCountMA7={product.drops_ma_7}
           />
         );
