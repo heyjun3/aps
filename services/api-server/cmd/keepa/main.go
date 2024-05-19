@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	// "time"
-	// "encoding/json"
-	// "fmt"
+	"fmt"
 	"flag"
 	"log"
 	"os"
@@ -25,7 +23,10 @@ func main() {
 	if dsn == "" {
 		log.Fatal("dsn null value")
 	}
-	db := database.OpenDB(dsn, true)
+	db := database.OpenDB(dsn, false)
+	repo := product.KeepaRepository{DB: db}
+	ctx := context.Background()
+
 	if scanningRows {
 		rows, err := db.NewSelect().Model((*product.Keepa)(nil)).Order("asin").Rows(context.Background())
 		if err != nil {
@@ -34,7 +35,14 @@ func main() {
 		defer rows.Close()
 		for rows.Next() {
 			keepa := new(product.Keepa)
-			if err := db.ScanRow(context.Background(), rows, keepa); err != nil {
+			if err := db.ScanRow(ctx, rows, keepa); err != nil {
+				panic(err)
+			}
+			fmt.Println(keepa.Asin)
+			if err := keepa.CalculateRankMA(7); err != nil {
+				panic(err)
+			}
+			if err := repo.Save(ctx, []*product.Keepa{keepa}); err != nil {
 				panic(err)
 			}
 		}

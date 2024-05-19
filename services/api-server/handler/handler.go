@@ -30,11 +30,6 @@ type StatusRes struct {
 	Mws   map[string]int `json:"mws"`
 }
 
-type ProductWithChart struct {
-	product.Product
-	product.RenderChart
-}
-
 type ChartRes struct {
 	Charts      []product.ProductWithChart `json:"chart_data"`
 	CurrentPage int                        `json:"current_page"`

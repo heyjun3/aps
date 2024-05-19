@@ -27,9 +27,7 @@ type Chart struct {
 }
 
 type ChartData struct {
-	Data         []Chart `json:"data"`
-	DiffCount    int     `json:"diff_count"`
-	DiffCountMA7 int     `json:"diff_count_ma7"`
+	Data []Chart `json:"data"`
 }
 
 func (c *ChartData) filteringPastDays(days int) {
@@ -47,8 +45,6 @@ func (c *ChartData) filteringPastDays(days int) {
 	}
 	c.Data = charts
 }
-
-// calculate rank of moving average for a period of days.
 
 type Keepa struct {
 	bun.BaseModel `bun:"keepa_products"`
@@ -91,6 +87,7 @@ func (k *Keepa) calculateDropsMA7() {
 	k.DropsMA7 = dropsMA7
 }
 
+// calculate rank of moving average for a period of days.
 func (k *Keepa) CalculateRankMA(days int) error {
 	sort.Slice(k.Charts.Data, func(i, j int) bool {
 		ti, err := time.Parse(timeFormat, k.Charts.Data[i].Date)
@@ -216,6 +213,7 @@ func (k KeepaRepository) Save(ctx context.Context, keepas []*Keepa) error {
 		On("CONFLICT (asin) DO UPDATE").
 		Set(strings.Join([]string{
 			"sales_drops_90 = EXCLUDED.sales_drops_90",
+			"drops_ma_7 = EXCLUDED.drops_ma_7",
 			"price_data = EXCLUDED.price_data",
 			"rank_data =  EXCLUDED.rank_data",
 			"render_data = EXCLUDED.render_data",
