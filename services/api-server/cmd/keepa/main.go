@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -27,6 +27,19 @@ func main() {
 	repo := product.KeepaRepository{DB: db}
 	ctx := context.Background()
 
+	updateDropsMA := func(keepa []*product.Keepa) error {
+		fmt.Println(keepa[0].Asin)
+		for _, k := range keepa {
+			if err := k.CalculateRankMA(7); err != nil {
+				return err
+			}
+		}
+		if err := repo.UpdateDropsMA(ctx, keepa); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if scanningRows {
 		rows, err := db.NewSelect().Model((*product.Keepa)(nil)).Order("asin").Rows(context.Background())
 		if err != nil {
@@ -38,11 +51,7 @@ func main() {
 			if err := db.ScanRow(ctx, rows, keepa); err != nil {
 				panic(err)
 			}
-			fmt.Println(keepa.Asin)
-			if err := keepa.CalculateRankMA(7); err != nil {
-				panic(err)
-			}
-			if err := repo.Save(ctx, []*product.Keepa{keepa}); err != nil {
+			if err := updateDropsMA([]*product.Keepa{keepa}); err != nil {
 				panic(err)
 			}
 		}
@@ -50,7 +59,6 @@ func main() {
 			panic(err)
 		}
 	} else {
-		repo := product.KeepaRepository{DB: db}
 		var keepas product.Keepas
 		var err error
 		cursor := product.Cursor{
@@ -62,6 +70,9 @@ func main() {
 			if err != nil {
 				log.Print(cursor.End)
 				log.Fatal(err)
+			}
+			if err := updateDropsMA(keepas); err != nil {
+				panic(err)
 			}
 			if len(keepas) != limit {
 				log.Print(len(keepas))

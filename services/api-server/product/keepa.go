@@ -223,6 +223,20 @@ func (k KeepaRepository) Save(ctx context.Context, keepas []*Keepa) error {
 	return err
 }
 
+func (k KeepaRepository) UpdateDropsMA(ctx context.Context, keepas []*Keepa) error {
+	if len(keepas) == 0 {
+		return fmt.Errorf("expect at least on keepa ojbects")
+	}
+	_, err := k.DB.NewInsert().
+		Model(&keepas).
+		On("CONFLICT (asin) DO UPDATE").
+		Set(strings.Join([]string{
+			"drops_ma_7 = EXCLUDED.drops_ma_7",
+		}, ",")).
+		Exec(ctx)
+	return err
+}
+
 func (k KeepaRepository) Get(ctx context.Context) (*Keepa, error) {
 	keepa := new(Keepa)
 	err := k.DB.NewSelect().Model(keepa).Limit(1).Scan(ctx)
