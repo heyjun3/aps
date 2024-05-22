@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 
 	"api-server/database"
 	"api-server/product"
@@ -26,15 +27,17 @@ func main() {
 	db := database.OpenDB(dsn, false)
 	repo := product.KeepaRepository{DB: db}
 	ctx := context.Background()
+	wg := &sync.WaitGroup{}
 
-	updateDropsMA := func(keepa []*product.Keepa) error {
+	updateDropsMA := func(keepa []*product.Keepa, wg *sync.WaitGroup) error {
+		defer wg.Done()
 		fmt.Println(keepa[0].Asin)
 		for _, k := range keepa {
 			if err := k.CalculateRankMA(7); err != nil {
 				return err
 			}
 		}
-		if err := repo.UpdateDropsMA(ctx, keepa); err != nil {
+		if err := repo.UpdateDropsMAV2(ctx, keepa); err != nil {
 			return err
 		}
 		return nil
@@ -51,7 +54,7 @@ func main() {
 			if err := db.ScanRow(ctx, rows, keepa); err != nil {
 				panic(err)
 			}
-			if err := updateDropsMA([]*product.Keepa{keepa}); err != nil {
+			if err := updateDropsMA([]*product.Keepa{keepa}, wg); err != nil {
 				panic(err)
 			}
 		}
@@ -64,23 +67,24 @@ func main() {
 		cursor := product.Cursor{
 			End: asin,
 		}
-		limit := 100
+		limit := 500
 		for {
-			keepas, cursor, err = repo.GetPageNate(context.Background(), cursor.End, limit)
+			keepas, cursor, err = repo.GetPageNate(context.Background(), cursor.End, limit, product.LoadingData{})
 			if err != nil {
 				log.Print(cursor.End)
 				log.Fatal(err)
 			}
-			if err := updateDropsMA(keepas); err != nil {
-				panic(err)
-			}
+			wg.Add(1)
+			go updateDropsMA(keepas, wg)
+
 			if len(keepas) != limit {
 				log.Print(len(keepas))
 				log.Print("return data len not equal limit")
-				return
+				break
 			}
 			log.Print(len(keepas))
 		}
-
+		wg.Wait()
+		log.Println("done")
 	}
 }

@@ -237,6 +237,15 @@ func (k KeepaRepository) UpdateDropsMA(ctx context.Context, keepas []*Keepa) err
 	return err
 }
 
+func (k KeepaRepository) UpdateDropsMAV2(ctx context.Context, keepas []*Keepa) error {
+	_, err := k.DB.NewUpdate().
+		Model(&keepas).
+		Column("drops_ma_7").
+		Bulk().
+		Exec(ctx)
+	return err
+}
+
 func (k KeepaRepository) Get(ctx context.Context) (*Keepa, error) {
 	keepa := new(Keepa)
 	err := k.DB.NewSelect().Model(keepa).Limit(1).Scan(ctx)
@@ -281,14 +290,26 @@ func NewCursor(keepas Keepas) Cursor {
 	}
 }
 
-func (k KeepaRepository) GetPageNate(ctx context.Context, cursor string, limit int) (Keepas, Cursor, error) {
+type LoadingData struct {
+	Price bool
+	Rank  bool
+}
+
+func (k KeepaRepository) GetPageNate(ctx context.Context, cursor string, limit int, isLoadingData LoadingData) (Keepas, Cursor, error) {
 	var keepas Keepas
-	if err := k.DB.NewSelect().
+	qb := k.DB.NewSelect().
 		Model(&keepas).
 		Where("asin > ?", cursor).
 		Order("asin ASC").
-		Limit(limit).
-		Scan(ctx); err != nil {
+		Limit(limit)
+
+	if !isLoadingData.Price {
+		qb.ExcludeColumn("price_data")
+	}
+	if !isLoadingData.Rank {
+		qb.ExcludeColumn("rank_data")
+	}
+	if err := qb.Scan(ctx); err != nil {
 		return nil, Cursor{}, err
 	}
 	return keepas, NewCursor(keepas), nil
