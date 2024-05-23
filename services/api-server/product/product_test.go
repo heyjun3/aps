@@ -25,7 +25,7 @@ func createTestData(db *bun.DB) {
 	}
 	keepas := make([]*Keepa, count)
 	for i := 0; i < count; i++ {
-		k := Keepa{Asin: "aaa" + fmt.Sprint(i), Drops: 4 + i}
+		k := Keepa{Asin: "aaa" + fmt.Sprint(i), Drops: 4 + i, DropsMA7: 4}
 		keepas[i] = &k
 	}
 	productRepo := ProductRepository{DB: db}

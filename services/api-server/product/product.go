@@ -120,6 +120,7 @@ type searchCondition struct {
 	minProfitRate           float32
 	maxUnit                 int
 	minQuarterlySalesVolume int
+	minDropsMA7             int
 }
 
 func NewSearchCondition(filename string, opts ...searchConditionOption) searchCondition {
@@ -131,6 +132,7 @@ func NewSearchCondition(filename string, opts ...searchConditionOption) searchCo
 		minProfitRate:           0.1,
 		maxUnit:                 10,
 		minQuarterlySalesVolume: 3,
+		minDropsMA7:             3,
 	}
 	for _, opt := range opts {
 		c = opt(c)
@@ -172,6 +174,7 @@ func (p ProductRepository) GetProductWithChartBySearchCondition(
 		Where("p.unit <= ?", c.maxUnit).
 		Where("k.sales_drops_90 > ?", c.minQuarterlySalesVolume).
 		Where("k.render_data IS NOT NULL").
+		Where("k.drops_ma_7 > ?", c.minDropsMA7).
 		OrderExpr("p.profit DESC").
 		Limit(c.limit).
 		Offset(offset).
