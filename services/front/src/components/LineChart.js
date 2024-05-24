@@ -50,7 +50,7 @@ const RenderLineChart = (props) => {
             strokeWidth={3}
             type="monotone"
             dataKey="rank_ma7"
-            stroke="red"
+            stroke="#82ca5a"
             dot={false}
             isAnimationActive={false}
           />
