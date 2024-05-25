@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import RenderLineChart from "./LineChart";
 import config from "../config";
 import { PageBox } from "./PageBox";
+import ChartSearchForm from "./ChartSearchForm";
 
 const filenameNumber = 2;
 
@@ -50,6 +51,7 @@ const ChartLists = () => {
 
   return (
     <div className="chartLists">
+      <ChartSearchForm />
       <PageBox setLimit={setLimit} />
       {products.map((product) => {
         return (
