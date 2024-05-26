@@ -15,6 +15,7 @@ const ChartLists = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(100);
   const [maxPage, setMaxPage] = useState(0);
+  const [isDisableRankLine, setIsDisableRankLine] = useState(true);
 
   let location = useLocation();
   const filename = location.pathname.split("/")[filenameNumber];
@@ -51,7 +52,9 @@ const ChartLists = () => {
 
   return (
     <div className="chartLists">
-      <ChartSearchForm />
+      <ChartSearchForm
+        onSubmit={(data) => setIsDisableRankLine(!data.rankLine)}
+      />
       <PageBox setLimit={setLimit} />
       {products.map((product) => {
         return (
@@ -63,6 +66,7 @@ const ChartLists = () => {
             asin={product.asin}
             url={product.url}
             diffCountMA7={product.drops_ma_7}
+            isDisableRankLine={isDisableRankLine}
           />
         );
       })}

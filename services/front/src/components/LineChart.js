@@ -44,6 +44,7 @@ const RenderLineChart = (props) => {
             stroke="#82ca9d"
             dot={false}
             isAnimationActive={false}
+            hide={props.isDisableRankLine === true}
           />
           <Line
             yAxisId={2}

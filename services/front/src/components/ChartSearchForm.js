@@ -1,21 +1,37 @@
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
+import {
+  Box,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+} from "@mui/material";
 
-export default function ChartSearchForm() {
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm();
-
-  const onSubmit = (data) => console.warn(data);
+export default function ChartSearchForm(props) {
+  const { handleSubmit, control } = useForm();
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <input defaultValue="test" {...register("example")} />
-      <input {...register("exampleRequired", { required: true })} />
-      {errors.exampleRequired && <span>This field is required</span>}
-      <input type="submit" />
-    </form>
+    <Box
+      component="form"
+      width={"60%"}
+      margin={"auto"}
+      onSubmit={handleSubmit(props.onSubmit)}
+    >
+      <Controller
+        name="rankLine"
+        control={control}
+        defaultValue={false}
+        render={({ field, formState: { errors } }) => (
+          <FormGroup {...field}>
+            <FormControlLabel control={<Checkbox />} label="Rank Line" />
+          </FormGroup>
+        )}
+      />
+      <Box display={"flex"} justifyContent={"flex-end"}>
+        <Button type="submit" color="primary">
+          Search
+        </Button>
+      </Box>
+    </Box>
   );
 }
