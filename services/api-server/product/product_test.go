@@ -19,8 +19,14 @@ func createTestData(db *bun.DB) {
 	count := 150
 	products := make([]Product, count)
 	for i := 0; i < count; i++ {
-		p := Product{Asin: "aaa" + fmt.Sprint(i), Filename: "aaa", Profit: Ptr[int64](200),
-			ProfitRate: Ptr[float64](0.1), Unit: Ptr[int64](1)}
+		p := Product{
+			Asin:       "aaa" + fmt.Sprint(i),
+			Filename:   "aaa",
+			Title:      Ptr("test_title_" + fmt.Sprint(i)),
+			Profit:     Ptr[int64](200),
+			ProfitRate: Ptr(0.1),
+			Unit:       Ptr[int64](1),
+		}
 		products[i] = p
 	}
 	keepas := make([]*Keepa, count)
@@ -143,11 +149,29 @@ func TestGetProductWithChart(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
+	testExcludeKeyword := func(t *testing.T, db *bun.DB) {
+		repo := ProductRepository{DB: db}
+		c := NewSearchCondition(
+			"aaa",
+			SearchConditionWithExcludeKeyword("100"),
+			SearchConditionWithExcludeKeyword("111"),
+			SearchConditionWithLimit(200),
+		)
+		products, total, err := repo.GetProductWithChartBySearchCondition(
+			context.Background(), c,
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 148, len(products))
+		assert.Equal(t, 148, total)
+	}
+
 	tests := []struct {
 		name string
 		fn   func(*testing.T, *bun.DB)
 	}{
 		{"get product by search condition", testGetProductWithChartBySearchCondition},
+		{"exclude keyword title", testExcludeKeyword},
 	}
 
 	for _, tt := range tests {

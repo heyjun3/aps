@@ -121,6 +121,7 @@ type searchCondition struct {
 	maxUnit                 int
 	minQuarterlySalesVolume int
 	minDropsMA7             int
+	excludeKeyword          []string
 }
 
 func NewSearchCondition(filename string, opts ...searchConditionOption) searchCondition {
@@ -155,6 +156,13 @@ func SearchConditionWithLimit(limit int) searchConditionOption {
 	}
 }
 
+func SearchConditionWithExcludeKeyword(keyword string) searchConditionOption {
+	return func(c searchCondition) searchCondition {
+		c.excludeKeyword = append(c.excludeKeyword, keyword)
+		return c
+	}
+}
+
 func (p ProductRepository) GetProductWithChartBySearchCondition(
 	ctx context.Context, c searchCondition) ([]ProductWithChart, int, error) {
 	if c.page < 1 {
@@ -162,7 +170,7 @@ func (p ProductRepository) GetProductWithChartBySearchCondition(
 	}
 	offset := (c.page - 1) * c.limit
 	var product []ProductWithChart
-	count, err := p.DB.NewSelect().
+	q := p.DB.NewSelect().
 		ColumnExpr("p.*").
 		ColumnExpr("k.render_data").
 		ColumnExpr("k.sales_drops_90").
@@ -177,8 +185,13 @@ func (p ProductRepository) GetProductWithChartBySearchCondition(
 		Where("k.drops_ma_7 > ?", c.minDropsMA7).
 		OrderExpr("p.profit DESC").
 		Limit(c.limit).
-		Offset(offset).
-		ScanAndCount(ctx, &product)
+		Offset(offset)
+
+	if len(c.excludeKeyword) > 0 {
+		q.Where("p.title !~ ALL(ARRAY[?])", bun.In(c.excludeKeyword))
+	}
+
+	count, err := q.ScanAndCount(ctx, &product)
 	return product, count, err
 }
 
