@@ -153,8 +153,7 @@ func TestGetProductWithChart(t *testing.T) {
 		repo := ProductRepository{DB: db}
 		c := NewSearchCondition(
 			"aaa",
-			SearchConditionWithExcludeKeyword("100"),
-			SearchConditionWithExcludeKeyword("111"),
+			SearchConditionWithExcludeKeywords([]string{"100", "111"}),
 			SearchConditionWithLimit(200),
 		)
 		products, total, err := repo.GetProductWithChartBySearchCondition(

@@ -156,9 +156,9 @@ func SearchConditionWithLimit(limit int) searchConditionOption {
 	}
 }
 
-func SearchConditionWithExcludeKeyword(keyword string) searchConditionOption {
+func SearchConditionWithExcludeKeywords(keywords []string) searchConditionOption {
 	return func(c searchCondition) searchCondition {
-		c.excludeKeyword = append(c.excludeKeyword, keyword)
+		c.excludeKeyword = append(c.excludeKeyword, keywords...)
 		return c
 	}
 }

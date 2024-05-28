@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"golang.org/x/exp/slog"
 
@@ -61,11 +62,14 @@ func GetCharts(c echo.Context) error {
 	if err != nil {
 		limit = 100
 	}
+	excludeKeywords := strings.Split(c.QueryParam("excludeKeywords"), ",")
+
 	ctx := context.Background()
 	charts, total, err := productRepo.GetProductWithChartBySearchCondition(
 		ctx, product.NewSearchCondition(filename,
 			product.SearchConditionWithLimit(limit),
 			product.SearchConditionWithPage(page),
+			product.SearchConditionWithExcludeKeywords(excludeKeywords),
 		),
 	)
 	if err != nil {
