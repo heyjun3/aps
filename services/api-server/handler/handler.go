@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -62,7 +63,13 @@ func GetCharts(c echo.Context) error {
 	if err != nil {
 		limit = 100
 	}
-	excludeKeywords := strings.Split(c.QueryParam("excludeKeywords"), ",")
+	excludeKeywords := slices.DeleteFunc(
+		strings.Split(c.QueryParam("excludeKeywords"), ","),
+		func(s string) bool {
+			return s == ""
+		},
+	)
+	excludeKeywords = append(excludeKeywords, []string{"インク", "トナー"}...)
 
 	ctx := context.Background()
 	charts, total, err := productRepo.GetProductWithChartBySearchCondition(
