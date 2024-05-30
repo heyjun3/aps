@@ -5,11 +5,12 @@ import {
   Checkbox,
   FormControlLabel,
   FormGroup,
+  TextField,
 } from "@mui/material";
 
 export default function ChartSearchForm(props) {
   const { handleSubmit, control } = useForm();
-
+  const excludeKeywords = props.excludeKeywords?.split(",").join(" ");
   return (
     <Box
       component="form"
@@ -25,6 +26,21 @@ export default function ChartSearchForm(props) {
           <FormGroup {...field}>
             <FormControlLabel control={<Checkbox />} label="Rank Line" />
           </FormGroup>
+        )}
+      />
+      <Controller
+        name="excludeKeywords"
+        control={control}
+        defaultValue={excludeKeywords}
+        render={({ field, formState: { errors } }) => (
+          <TextField
+            {...field}
+            id="standard-basic"
+            variant="standard"
+            label="Exclude Keywords"
+            defaultValue={excludeKeywords}
+            fullWidth
+          />
         )}
       />
       <Box display={"flex"} justifyContent={"flex-end"}>

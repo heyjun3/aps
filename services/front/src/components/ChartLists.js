@@ -16,12 +16,13 @@ const ChartLists = () => {
   const [limit, setLimit] = useState(100);
   const [maxPage, setMaxPage] = useState(0);
   const [isDisableRankLine, setIsDisableRankLine] = useState(true);
+  const [excludeKeywords, setExcludeKeywords] = useState("インク,トナー");
 
   let location = useLocation();
   const filename = location.pathname.split("/")[filenameNumber];
 
   useEffect(() => {
-    const params = { page, limit };
+    const params = { page, limit, excludeKeywords };
     const query = new URLSearchParams(params);
     fetch(`${config.fqdn}/api/chart_list/${filename}?${query}`, {
       method: "GET",
@@ -36,7 +37,7 @@ const ChartLists = () => {
         setProducts(data.chart_data);
         setMaxPage(data.max_page);
       });
-  }, [page, filename, limit]);
+  }, [page, filename, limit, excludeKeywords]);
 
   const handleChange = (event, value) => {
     setPage(value);
@@ -53,7 +54,12 @@ const ChartLists = () => {
   return (
     <div className="chartLists">
       <ChartSearchForm
-        onSubmit={(data) => setIsDisableRankLine(!data.rankLine)}
+        onSubmit={(data) => {
+          console.warn(data);
+          setIsDisableRankLine(!data.rankLine);
+          setExcludeKeywords(data.excludeKeywords?.split(" ").join(","));
+        }}
+        excludeKeywords={excludeKeywords}
       />
       <PageBox setLimit={setLimit} />
       {products.map((product) => {
