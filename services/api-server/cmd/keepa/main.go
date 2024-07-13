@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -14,12 +13,14 @@ import (
 )
 
 func main() {
+	var isAll bool
 	var cmdUpdateDrops = &cobra.Command{
 		Use: "updateDrops",
 		Run: func(cmd *cobra.Command, args []string) {
-			updateDrops()
+			updateDrops(isAll)
 		},
 	}
+	cmdUpdateDrops.Flags().BoolVarP(&isAll, "all", "a", false, "update all record")
 
 	var rootCmd = &cobra.Command{
 		Use: "keepa",
@@ -28,7 +29,7 @@ func main() {
 	rootCmd.Execute()
 }
 
-func updateDrops() {
+func updateDrops(isAll bool) {
 	dsn := os.Getenv("DB_DSN")
 	if dsn == "" {
 		log.Fatal("dsn null value")
@@ -38,6 +39,14 @@ func updateDrops() {
 	ctx := context.Background()
 	wg := &sync.WaitGroup{}
 
+	opts := []product.SelectQueryOption{
+		product.WithOutPriceData(),
+		product.WithOutRankData(),
+	}
+	if !isAll {
+		opts = append(opts, product.OnlyDropsMA7IsNull())
+	}
+
 	var asin string
 	var keepas product.Keepas
 	var err error
@@ -46,9 +55,14 @@ func updateDrops() {
 	}
 	limit := 500
 	for {
-		keepas, cursor, err = repo.GetPageNate(context.Background(), cursor.End, limit, product.LoadingData{})
+		keepas, cursor, err = repo.GetKeepaWithPaginate(
+			context.Background(),
+			cursor.End,
+			limit,
+			opts...,
+		)
+		log.Printf("cursor end: %s", cursor.End)
 		if err != nil {
-			log.Print(cursor.End)
 			log.Fatal(err)
 		}
 		wg.Add(1)
@@ -67,7 +81,9 @@ func updateDrops() {
 
 func updateDropsMA(ctx context.Context, repo product.KeepaRepository, keepa []*product.Keepa, wg *sync.WaitGroup) error {
 	defer wg.Done()
-	fmt.Println(keepa[0].Asin)
+	if len(keepa) == 0 {
+		return nil
+	}
 	for _, k := range keepa {
 		if err := k.CalculateRankMA(7); err != nil {
 			return err

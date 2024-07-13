@@ -40,7 +40,8 @@
 0 17 * * * docker compose -f /home/jun/aps/compose.yaml run -d go-crawler /app/go-crawler -s ark -u "https://www.ark-pc.co.jp/search/?limit=50&nouki=1"
 #
 */10 * * * * docker compose -f /home/jun/aps/compose.yaml run --rm api-server /app/delete_row
-0 * * * * docker compose -f /home/jun/aps/compose.yaml run --rm api-server /app/keepa updateDrops
+0 1 * * * docker compose -f /home/jun/aps/compose.yaml run --rm api-server /app/keepa updateDrops --all
+0 2-23 * * * docker compose -f /home/jun/aps/compose.yaml run --rm api-server /app/keepa updateDrops
 0 * * * * docker container ls -a | grep -i 'exited (0)' | awk '{print $1}' | xargs /usr/bin/docker rm
 0 * * * * curl -X POST 'http://localhost/api/inventory/refresh'
 0 3 * * * docker run --network=aps_default --env TZ=Asia/Tokyo -d aps-crawler python main.py spapi -i register

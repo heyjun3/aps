@@ -246,12 +246,6 @@ func (k KeepaRepository) UpdateDropsMAV2(ctx context.Context, keepas []*Keepa) e
 	return err
 }
 
-func (k KeepaRepository) Get(ctx context.Context) (*Keepa, error) {
-	keepa := new(Keepa)
-	err := k.DB.NewSelect().Model(keepa).Limit(1).Scan(ctx)
-	return keepa, err
-}
-
 func (k KeepaRepository) GetByAsins(ctx context.Context, asins []string) (Keepas, error) {
 	keepas := make([]*Keepa, 0, len(asins))
 	err := k.DB.NewSelect().
@@ -295,7 +289,30 @@ type LoadingData struct {
 	Rank  bool
 }
 
-func (k KeepaRepository) GetPageNate(ctx context.Context, cursor string, limit int, isLoadingData LoadingData) (Keepas, Cursor, error) {
+type SelectQueryOption = func(*bun.SelectQuery) *bun.SelectQuery
+
+func WithOutPriceData() SelectQueryOption {
+	return func(qb *bun.SelectQuery) *bun.SelectQuery {
+		qb.ExcludeColumn("price_data")
+		return qb
+	}
+}
+func WithOutRankData() SelectQueryOption {
+	return func(qb *bun.SelectQuery) *bun.SelectQuery {
+		qb.ExcludeColumn("rank_data")
+		return qb
+	}
+}
+func OnlyDropsMA7IsNull() SelectQueryOption {
+	return func(qb *bun.SelectQuery) *bun.SelectQuery {
+		qb.Where("drops_ma_7 IS NULL")
+		return qb
+	}
+}
+
+func (k KeepaRepository) GetKeepaWithPaginate(
+	ctx context.Context, cursor string, limit int,
+	opts ...SelectQueryOption) (Keepas, Cursor, error) {
 	var keepas Keepas
 	qb := k.DB.NewSelect().
 		Model(&keepas).
@@ -303,12 +320,10 @@ func (k KeepaRepository) GetPageNate(ctx context.Context, cursor string, limit i
 		Order("asin ASC").
 		Limit(limit)
 
-	if !isLoadingData.Price {
-		qb.ExcludeColumn("price_data")
+	for _, opt := range opts {
+		qb = opt(qb)
 	}
-	if !isLoadingData.Rank {
-		qb.ExcludeColumn("rank_data")
-	}
+
 	if err := qb.Scan(ctx); err != nil {
 		return nil, Cursor{}, err
 	}
