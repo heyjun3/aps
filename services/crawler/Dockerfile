@@ -12,7 +12,7 @@ FROM base AS build-server
 RUN go build -o serve cmd/server/main.go
 
 FROM base AS build-migrate
-RUN go build -o migrate db/cmd/main.go
+RUN go build -o migrate cmd/migrate/main.go
 
 FROM gcr.io/distroless/base-debian12:latest
 WORKDIR /app
