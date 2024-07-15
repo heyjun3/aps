@@ -15,7 +15,7 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-func RunMigrate(dsn string) {
+func genMigrateInstance(dsn string) (*migrate.Migrate, error) {
 	if dsn == "" {
 		panic(errors.New("don't set DB_DSN"))
 	}
@@ -28,14 +28,19 @@ func RunMigrate(dsn string) {
 	if err != nil {
 		panic(err)
 	}
-	m, err := migrate.NewWithSourceInstance("iofs",
+	return migrate.NewWithSourceInstance("iofs",
 		d,
 		fmt.Sprintf("%s&search_path=%s", dsn, "crawler"),
 	)
+
+}
+
+func RunMigrate(dsn string, steps int) {
+	m, err := genMigrateInstance(dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := m.Up(); err != nil && err.Error() != "no change" {
+	if err := m.Steps(steps); err != nil && err.Error() != "no change" {
 		slog.Error("run migrate", "err", err)
 	} else {
 		slog.Warn("run migrate", "result", "done")
